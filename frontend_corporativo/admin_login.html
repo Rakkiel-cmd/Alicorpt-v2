@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acceso Administrador | Alicorp</title>
+    <link rel="stylesheet" href="estilos.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box">
+            <h2 style="color: var(--color-primary); margin-bottom: 20px;">Seguridad Biométrica</h2>
+            <p>Acceso restringido para administradores autorizados.</p>
+            
+            <!-- Contenedor del video -->
+            <div class="video-container" style="position: relative;">
+                <video id="videoElement" autoplay playsinline style="width: 100%; max-height: 300px; display: block;"></video>
+                <canvas id="canvasElement" style="display: none;"></canvas>
+            </div>
+            
+            <p id="statusMensaje" style="font-size: 0.9rem; color: #666; margin-bottom: 20px;">
+                Cargando cámara... Por favor, permite el acceso.
+            </p>
+
+            <a href="index.html" class="btn-admin" style="display: inline-block;">← Volver al Inicio</a>
+            <button id="btnCapturar" class="btn-primary" style="border: none; margin-left: 10px; cursor: pointer;">Validar Identidad</button>
+        </div>
+    </div>
+
+    <!-- Script para capturar la cámara y conectarse con Python -->
+    <script>
+        const video = document.getElementById('videoElement');
+        const canvas = document.getElementById('canvasElement');
+        const btnCapturar = document.getElementById('btnCapturar');
+        const statusMensaje = document.getElementById('statusMensaje');
+
+        // Solicitar acceso a la cámara web
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+                statusMensaje.innerHTML = "Cámara lista. Ubica tu rostro y presiona Validar Identidad.";
+            })
+            .catch(err => {
+                console.error("Error accediendo a la cámara: ", err);
+                statusMensaje.innerHTML = "<span style='color:red;'>No se pudo acceder a la cámara. Revisa los permisos.</span>";
+            });
+
+        // Evento al dar clic en validar
+        btnCapturar.addEventListener('click', () => {
+            statusMensaje.innerHTML = "Analizando rostro... 🤖";
+            btnCapturar.disabled = true;
+
+            // Dibujar el fotograma actual del video en el canvas
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Convertir la imagen a Base64 para enviarla
+            const imageData = canvas.toDataURL('image/jpeg');
+
+            // Enviar la imagen al backend en Python (Flask)
+            fetch('/api/login_facial', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ image: imageData })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    statusMensaje.innerHTML = `<span style='color:green;'>✅ ${data.message}</span>`;
+                    // Redirigir al dashboard tras 1 segundo
+                    setTimeout(() => {
+                        window.location.href = data.redirect;
+                    }, 1000);
+                } else {
+                    statusMensaje.innerHTML = `<span style='color:red;'>❌ ${data.message}</span>`;
+                    btnCapturar.disabled = false;
+                }
+            })
+            .catch(error => {
+                statusMensaje.innerHTML = `<span style='color:red;'>❌ Error de red con el servidor Python.</span>`;
+                btnCapturar.disabled = false;
+            });
+        });
+    </script>
+</body>
+</html>

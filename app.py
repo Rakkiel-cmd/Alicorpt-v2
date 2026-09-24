@@ -1,4 +1,16 @@
 import streamlit as st
+import pandas as pd
+import numpy as np
+import cv2
+from PIL import Image
+
+try:
+    from Captura import capturar_rostro
+    from modelo_facial import validar_rostro
+except ImportError:
+    st.error("Error al importar módulos de reconocimiento facial. Verifica que Captura.py y modelo_facial.py estén en la misma carpeta.")
+    capturar_rostro = None
+    validar_rostro = None
 
 # Configuración de la página
 st.set_page_config(
@@ -17,6 +29,9 @@ def go_to_login():
 
 def go_to_home():
     st.session_state.view = 'home'
+
+def go_to_dashboard():
+    st.session_state.view = 'dashboard'
 
 # --- CSS PERSONALIZADO ---
 st.markdown("""
@@ -141,9 +156,48 @@ elif st.session_state.view == 'login':
             st.text_input("Contraseña", type="password")
             
             st.write("📷 **Validación Biométrica Requerida**")
-            st.camera_input("Captura de Rostro para IA (En desarrollo...)")
+            foto = st.camera_input("Captura de Rostro para IA")
             
             submit = st.form_submit_button("Ingresar al Dashboard de Ventas", use_container_width=True)
             
             if submit:
-                st.warning("El módulo de validación facial y acceso a la base de datos (CSV) aún está en construcción por el equipo de ML.")
+                if foto is not None:
+                    # Convertir la foto de st.camera_input a una imagen de OpenCV (array numpy BGR)
+                    image_pil = Image.open(foto)
+                    frame_bgr = cv2.cvtColor(np.array(image_pil), cv2.COLOR_RGB2BGR)
+                    
+                    if capturar_rostro and validar_rostro:
+                        rostro = capturar_rostro(frame_bgr)
+                        if rostro is not None:
+                            if validar_rostro(rostro):
+                                st.success("Acceso concedido. Redirigiendo...")
+                                st.session_state.view = 'dashboard'
+                                st.rerun()
+                            else:
+                                st.error("Acceso denegado. Rostro no reconocido o no autorizado.")
+                        else:
+                            st.warning("No se detectó ningún rostro en la imagen. Intenta de nuevo.")
+                    else:
+                        st.error("Los módulos de reconocimiento facial no están disponibles.")
+                else:
+                    st.warning("Debes tomarte una foto para validar tu identidad.")
+
+# --- VISTA DASHBOARD (SUBPROYECTO 2) ---
+elif st.session_state.view == 'dashboard':
+    col_back, _ = st.columns([1, 5])
+    with col_back:
+        st.button("← Cerrar Sesión", on_click=go_to_home)
+        
+    st.title("📊 Dashboard de Predicción de Ventas")
+    st.success("¡Bienvenido Administrador! Tu identidad ha sido verificada correctamente mediante biometría facial.")
+    st.write("---")
+    
+    st.info("💡 **Subproyecto 2:** Aquí el otro grupo de 3 integrantes debe cargar el CSV de la base de datos y realizar las predicciones de ventas a meses.")
+    
+    # Marcador de posición para el CSV y gráficos
+    st.write("Datos cargados: (Pendiente de implementación)")
+    chart_data = pd.DataFrame(
+        np.random.randn(20, 3),
+        columns=['Ventas Producto A', 'Ventas Producto B', 'Predicción']
+    )
+    st.line_chart(chart_data)

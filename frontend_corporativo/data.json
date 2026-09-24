@@ -1,0 +1,20 @@
+[
+    {
+        "id": 1,
+        "titulo": "Consumo Masivo",
+        "descripcion": "Productos que acompañan a millones de familias, brindando nutrición, cuidado y bienestar en el día a día.",
+        "imagen": "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80"
+    },
+    {
+        "id": 2,
+        "titulo": "B2B Soluciones Industriales",
+        "descripcion": "Ingredientes y soluciones de alto rendimiento para potenciar negocios, panaderías y el sector gastronómico.",
+        "imagen": "https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=600&q=80"
+    },
+    {
+        "id": 3,
+        "titulo": "Acuicultura",
+        "descripcion": "Alimentos balanceados de alta calidad para el desarrollo sostenible de la industria acuícola.",
+        "imagen": "https://images.unsplash.com/photo-1516245834210-043142870987?auto=format&fit=crop&w=600&q=80"
+    }
+]
