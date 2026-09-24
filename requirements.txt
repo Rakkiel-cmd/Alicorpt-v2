@@ -1,0 +1,6 @@
+flask
+opencv-python-headless<5.0.0
+face_recognition
+numpy
+gunicorn
+setuptools<70.0.0
