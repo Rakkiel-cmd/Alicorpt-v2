@@ -13,23 +13,77 @@
             <h2 style="color: var(--color-primary); margin-bottom: 20px;">Seguridad Biométrica</h2>
             <p>Acceso restringido para administradores autorizados.</p>
             
-            <!-- Contenedor del video -->
-            <div class="video-container" style="position: relative;">
-                <video id="videoElement" autoplay playsinline style="width: 100%; max-height: 300px; display: block;"></video>
-                <canvas id="canvasElement" style="display: none;"></canvas>
-            </div>
-            
-            <p id="statusMensaje" style="font-size: 0.9rem; color: #666; margin-bottom: 20px;">
-                Cargando cámara... Por favor, permite el acceso.
-            </p>
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+                <!-- SECCIÓN: LOGIN TRADICIONAL -->
+                <div style="border: 1px solid #e2e8f0; padding: 20px; border-radius: 10px; text-align: left;">
+                    <h3 style="color: var(--color-primary); margin-bottom: 15px; font-size: 1.1rem;">👤 Ingreso Clásico</h3>
+                    <input type="text" id="inputUsuario" placeholder="Usuario" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #cbd5e1; border-radius: 5px;">
+                    <input type="password" id="inputPassword" placeholder="Contraseña" style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #cbd5e1; border-radius: 5px;">
+                    <button id="btnTradicional" class="btn-primary" style="width: 100%; border: none; cursor: pointer;">Ingresar con Contraseña</button>
+                    <p id="statusTradicional" style="font-size: 0.85rem; margin-top: 10px;"></p>
+                </div>
 
-            <a href="index.html" class="btn-admin" style="display: inline-block;">← Volver al Inicio</a>
-            <button id="btnCapturar" class="btn-primary" style="border: none; margin-left: 10px; cursor: pointer;">Validar Identidad</button>
+                <div style="text-align: center; color: #94a3b8; font-weight: bold;">O</div>
+
+                <!-- SECCIÓN: LOGIN BIOMÉTRICO -->
+                <div style="border: 1px solid #e2e8f0; padding: 20px; border-radius: 10px;">
+                    <h3 style="color: var(--color-primary); margin-bottom: 15px; font-size: 1.1rem;">📷 Reconocimiento Facial</h3>
+                    <div class="video-container" style="position: relative;">
+                        <video id="videoElement" autoplay playsinline style="width: 100%; max-height: 250px; display: block;"></video>
+                        <canvas id="canvasElement" style="display: none;"></canvas>
+                    </div>
+                    
+                    <p id="statusMensaje" style="font-size: 0.9rem; color: #666; margin-bottom: 20px;">
+                        Cargando cámara...
+                    </p>
+
+                    <button id="btnCapturar" class="btn-primary" style="width: 100%; border: none; cursor: pointer; background-color: var(--color-primary);">Validar Identidad</button>
+                </div>
+            </div>
+
+            <div style="margin-top: 30px;">
+                <a href="index.html" class="btn-admin" style="display: inline-block;">← Volver al Inicio</a>
+            </div>
         </div>
     </div>
 
-    <!-- Script para capturar la cámara y conectarse con Python -->
+    <!-- Script para ambos métodos de login -->
     <script>
+        // --- LÓGICA TRADICIONAL ---
+        const btnTradicional = document.getElementById('btnTradicional');
+        const inputUsuario = document.getElementById('inputUsuario');
+        const inputPassword = document.getElementById('inputPassword');
+        const statusTradicional = document.getElementById('statusTradicional');
+
+        btnTradicional.addEventListener('click', () => {
+            statusTradicional.innerHTML = "Verificando... ⏳";
+            btnTradicional.disabled = true;
+
+            fetch('/api/login_password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    usuario: inputUsuario.value,
+                    password: inputPassword.value
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    statusTradicional.innerHTML = `<span style='color:green;'>✅ ${data.message}</span>`;
+                    setTimeout(() => window.location.href = data.redirect, 1000);
+                } else {
+                    statusTradicional.innerHTML = `<span style='color:red;'>❌ ${data.message}</span>`;
+                    btnTradicional.disabled = false;
+                }
+            })
+            .catch(err => {
+                statusTradicional.innerHTML = `<span style='color:red;'>❌ Error de red.</span>`;
+                btnTradicional.disabled = false;
+            });
+        });
+
+        // --- LÓGICA BIOMÉTRICA ---
         const video = document.getElementById('videoElement');
         const canvas = document.getElementById('canvasElement');
         const btnCapturar = document.getElementById('btnCapturar');
@@ -39,7 +93,7 @@
         navigator.mediaDevices.getUserMedia({ video: true })
             .then(stream => {
                 video.srcObject = stream;
-                statusMensaje.innerHTML = "Cámara lista. Ubica tu rostro y presiona Validar Identidad.";
+                statusMensaje.innerHTML = "Cámara lista. Ubica tu rostro.";
             })
             .catch(err => {
                 console.error("Error accediendo a la cámara: ", err);

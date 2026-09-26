@@ -3,6 +3,8 @@ import cv2
 import numpy as np
 import base64
 
+import os
+
 # Importamos la lógica de IA que hicieron tus compañeros
 try:
     from Captura import capturar_rostro
@@ -22,6 +24,23 @@ def index():
 @app.route('/<path:path>')
 def serve_static(path):
     return send_from_directory('frontend_corporativo', path)
+
+# API Endpoint: Login Tradicional (Usuario y Contraseña)
+@app.route('/api/login_password', methods=['POST'])
+def login_password():
+    data = request.json
+    usuario = data.get('usuario')
+    password = data.get('password')
+
+    # Usamos Variables de Entorno por seguridad. Si no existen, usa valores por defecto.
+    # En Render, deberás configurar ADMIN_USER y ADMIN_PASS en Environment Variables.
+    USUARIO_CORRECTO = os.environ.get("ADMIN_USER", "admin")
+    PASSWORD_CORRECTO = os.environ.get("ADMIN_PASS", "alicorp123")
+
+    if usuario == USUARIO_CORRECTO and password == PASSWORD_CORRECTO:
+        return jsonify({"success": True, "message": "Acceso concedido.", "redirect": "dashboard.html"})
+    else:
+        return jsonify({"success": False, "message": "Usuario o contraseña incorrectos."})
 
 # API Endpoint: Aquí es donde JavaScript enviará la foto de la cámara
 @app.route('/api/login_facial', methods=['POST'])
