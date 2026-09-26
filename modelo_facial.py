@@ -185,28 +185,35 @@ def _firma_carpeta(archivos):
 
 
 def _cargar_autorizados():
-    """Lista de (nombre_archivo, encoding). Usa cache si nada cambio."""
-    archivos = _archivos_autorizados()
-    firma = _firma_carpeta(archivos)
-    if firma == _cache["firma"]:
-        return _cache["autorizados"]
+    """Descarga la lista de (usuario, encoding) directamente desde Supabase."""
+    SUPABASE_URL = os.environ.get("SUPABASE_URL")
+    SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+    
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        _log.error("❌ Faltan las variables de entorno SUPABASE_URL y SUPABASE_KEY.")
+        return []
 
-    autorizados = []
-    for nombre in archivos:
-        ruta = os.path.join(CARPETA_AUTORIZADOS, nombre)
-        foto = cv2.imread(ruta)
-        if foto is None:
-            _log.warning("No se pudo leer la imagen autorizada: %s", nombre)
-            continue
-        encoding = _encoding_de_foto_autorizada(foto)
-        if encoding is None:
-            _log.warning("No se detecto un rostro en la foto autorizada: %s", nombre)
-            continue
-        autorizados.append((nombre, encoding))
-
-    _cache["firma"] = firma
-    _cache["autorizados"] = autorizados
-    return autorizados
+    try:
+        from supabase import create_client, Client
+        supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+        
+        # Consultar la tabla de administradores
+        response = supabase.table('administradores').select('usuario, face_encoding').execute()
+        
+        autorizados = []
+        for fila in response.data:
+            usuario = fila.get("usuario")
+            firma_json = fila.get("face_encoding")
+            
+            if firma_json:
+                # Convertir la lista de 128 números de vuelta a un array Numpy
+                firma_np = np.array(firma_json)
+                autorizados.append((usuario, firma_np))
+                
+        return autorizados
+    except Exception as e:
+        _log.error(f"Error conectando a Supabase: {e}")
+        return []
 
 
 # --------------------------------------------------------------------------

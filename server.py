@@ -29,18 +29,33 @@ def serve_static(path):
 @app.route('/api/login_password', methods=['POST'])
 def login_password():
     data = request.json
-    usuario = data.get('usuario')
-    password = data.get('password')
+    usuario_input = data.get('usuario')
+    password_input = data.get('password')
 
-    # Usamos Variables de Entorno por seguridad. Si no existen, usa valores por defecto.
-    # En Render, deberás configurar ADMIN_USER y ADMIN_PASS en Environment Variables.
-    USUARIO_CORRECTO = os.environ.get("ADMIN_USER", "admin")
-    PASSWORD_CORRECTO = os.environ.get("ADMIN_PASS", "alicorp123")
+    SUPABASE_URL = os.environ.get("SUPABASE_URL")
+    SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 
-    if usuario == USUARIO_CORRECTO and password == PASSWORD_CORRECTO:
-        return jsonify({"success": True, "message": "Acceso concedido.", "redirect": "dashboard.html"})
-    else:
-        return jsonify({"success": False, "message": "Usuario o contraseña incorrectos."})
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return jsonify({"success": False, "message": "Faltan credenciales de base de datos."}), 500
+
+    try:
+        from supabase import create_client, Client
+        supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+        
+        # Buscar el usuario en la base de datos
+        response = supabase.table('administradores').select('password').eq('usuario', usuario_input).execute()
+        
+        if len(response.data) > 0:
+            password_real = response.data[0]['password']
+            if password_input == password_real:
+                return jsonify({"success": True, "message": "Acceso concedido.", "redirect": "dashboard.html"})
+            else:
+                return jsonify({"success": False, "message": "Contraseña incorrecta."})
+        else:
+            return jsonify({"success": False, "message": "El usuario no existe."})
+            
+    except Exception as e:
+        return jsonify({"success": False, "message": f"Error de base de datos: {str(e)}"}), 500
 
 # API Endpoint: Aquí es donde JavaScript enviará la foto de la cámara
 @app.route('/api/login_facial', methods=['POST'])
