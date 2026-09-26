@@ -39,6 +39,10 @@ import time
 
 import cv2
 import numpy as np
+from dotenv import load_dotenv
+
+# Cargar variables locales
+load_dotenv()
 
 try:
     import face_recognition

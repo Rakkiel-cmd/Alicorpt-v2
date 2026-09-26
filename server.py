@@ -2,8 +2,11 @@ from flask import Flask, send_from_directory, request, jsonify
 import cv2
 import numpy as np
 import base64
-
 import os
+from dotenv import load_dotenv
+
+# Cargar variables de entorno desde el archivo .env si existe
+load_dotenv()
 
 # Importamos la lógica de IA que hicieron tus compañeros
 try:
