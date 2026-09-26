@@ -34,50 +34,78 @@ def registrar_nuevo_admin():
     usuario = input("Ingresa un nombre de usuario: ")
     password = input("Ingresa una contraseña segura: ")
     
-    print("\nInicializando cámara... Mira fijamente y presiona 's' para tomar la foto.")
-    
-    cap = cv2.VideoCapture(0)
-    rostro_detectado = None
+    print("\n¿Cómo deseas subir la foto?")
+    print("1. Usar mi cámara web")
+    print("2. Cargar una foto desde mi computadora")
+    opcion = input("Elige una opción (1/2): ")
 
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            print("No se pudo acceder a la cámara.")
-            break
+    if opcion == "2":
+        nombre_foto = input("Ingresa el nombre del archivo (ejemplo: compañero.jpg): ")
+        if not os.path.exists(nombre_foto):
+            print(f"❌ No se encontró el archivo '{nombre_foto}'. Asegúrate de que esté en la misma carpeta.")
+            return
             
-        cv2.imshow("Registro Facial - Presiona 's' para capturar", frame)
+        frame = cv2.imread(nombre_foto)
+        if frame is None:
+            print("❌ No se pudo leer la imagen. Archivo corrupto o formato no soportado.")
+            return
+            
+        print("Procesando rostro de la imagen...")
+        rostro_detectado = capturar_rostro(frame)
+        procesar_y_guardar(rostro_detectado, usuario, password)
+
+    else:
+        print("\nInicializando cámara... Mira fijamente y presiona 's' para tomar la foto.")
+        cap = cv2.VideoCapture(0)
         
-        if cv2.waitKey(1) & 0xFF == ord('s'):
-            print("Procesando rostro...")
-            rostro_detectado = capturar_rostro(frame)
-            if rostro_detectado is not None:
-                # Intentar extraer la firma matemática (128 números)
-                rgb_rostro = cv2.cvtColor(rostro_detectado, cv2.COLOR_BGR2RGB)
-                encodings = face_recognition.face_encodings(rgb_rostro)
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                print("No se pudo acceder a la cámara.")
+                break
                 
-                if len(encodings) > 0:
-                    firma = encodings[0].tolist() # Convertir Numpy array a lista normal de Python
-                    print("✅ Firma biométrica extraída con éxito.")
-                    
-                    # Guardar en Supabase
-                    try:
-                        data, count = supabase.table('administradores').insert({
-                            "usuario": usuario,
-                            "password": password,
-                            "face_encoding": firma
-                        }).execute()
-                        print(f"🎉 ¡Administrador '{usuario}' registrado exitosamente en la base de datos de Supabase!")
-                    except Exception as e:
-                        print("❌ Error al guardar en Supabase:", e)
-                    
+            cv2.imshow("Registro Facial - Presiona 's' para capturar", frame)
+            
+            if cv2.waitKey(1) & 0xFF == ord('s'):
+                print("Procesando rostro...")
+                rostro_detectado = capturar_rostro(frame)
+                exito = procesar_y_guardar(rostro_detectado, usuario, password)
+                if exito:
                     break
                 else:
-                    print("❌ No se pudo extraer la firma biométrica. Intenta acercarte más o mejorar la luz.")
-            else:
-                print("❌ No se detectó ningún rostro en la captura. Intenta de nuevo.")
+                    print("Intenta de nuevo presionando 's'.")
 
-    cap.release()
-    cv2.destroyAllWindows()
+        cap.release()
+        cv2.destroyAllWindows()
+
+def procesar_y_guardar(rostro_detectado, usuario, password):
+    if rostro_detectado is not None:
+        # Intentar extraer la firma matemática (128 números)
+        rgb_rostro = cv2.cvtColor(rostro_detectado, cv2.COLOR_BGR2RGB)
+        encodings = face_recognition.face_encodings(rgb_rostro)
+        
+        if len(encodings) > 0:
+            firma = encodings[0].tolist() # Convertir Numpy array a lista normal de Python
+            print("✅ Firma biométrica extraída con éxito.")
+            
+            # Guardar en Supabase
+            try:
+                data, count = supabase.table('administradores').insert({
+                    "usuario": usuario,
+                    "password": password,
+                    "face_encoding": firma
+                }).execute()
+                print(f"🎉 ¡Administrador '{usuario}' registrado exitosamente en la base de datos de Supabase!")
+                return True
+            except Exception as e:
+                print("❌ Error al guardar en Supabase:", e)
+                return False
+        else:
+            print("❌ No se pudo extraer la firma biométrica. Intenta acercarte más o mejorar la luz en la foto.")
+            return False
+    else:
+        print("❌ No se detectó ningún rostro en la foto. Intenta con otra imagen.")
+        return False
 
 if __name__ == "__main__":
     registrar_nuevo_admin()
