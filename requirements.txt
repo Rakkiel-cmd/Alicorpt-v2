@@ -5,3 +5,6 @@ numpy
 gunicorn
 setuptools<70.0.0
 supabase
+pandas
+scikit-learn
+python-dotenv

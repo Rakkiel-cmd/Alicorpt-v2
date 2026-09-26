@@ -3,6 +3,9 @@ import cv2
 import json
 import numpy as np
 from supabase import create_client, Client
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Importamos la lógica de captura para reciclar código
 try:
