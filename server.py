@@ -60,6 +60,114 @@ def login_password():
 # API Endpoint: Aquí es donde JavaScript enviará la foto de la cámara
 @app.route('/api/login_facial', methods=['POST'])
 def login_facial():
+    if not validar_rostro or not capturar_rostro:
+        return jsonify({"success": False, "message": "El modelo facial no está disponible."})
+
+    data = request.json
+    imagen_base64 = data.get('image')
+
+    if not imagen_base64:
+        return jsonify({"success": False, "message": "No se recibió ninguna imagen."})
+
+    # Decodificar la imagen Base64 a un array Numpy (formato BGR para OpenCV)
+    try:
+        header, encoded = imagen_base64.split(",", 1)
+        decoded_bytes = base64.b64decode(encoded)
+        np_arr = np.frombuffer(decoded_bytes, np.uint8)
+        frame_bgr = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+
+        # Usar la lógica de los compañeros
+        rostro = capturar_rostro(frame_bgr)
+        if rostro is not None:
+            # Validar con la base de datos de Supabase en modelo_facial
+            es_valido = validar_rostro(rostro)
+            if es_valido:
+                return jsonify({"success": True, "message": "¡Identidad confirmada!", "redirect": "dashboard.html"})
+            else:
+                return jsonify({"success": False, "message": "Rostro no autorizado."})
+        else:
+            return jsonify({"success": False, "message": "No se detectó ningún rostro claro."})
+
+    except Exception as e:
+        return jsonify({"success": False, "message": f"Error procesando imagen: {str(e)}"})
+
+# Subproyecto 2: API Endpoint para predecir ventas con Red Neuronal
+@app.route('/api/predecir_ventas', methods=['POST'])
+def predecir_ventas():
+    try:
+        import pandas as pd
+        from sklearn.neural_network import MLPRegressor
+        from sklearn.model_selection import train_test_split
+        from sklearn.preprocessing import StandardScaler
+
+        # Intentar cargar CSV local, si no existe generamos uno ficticio
+        try:
+            df = pd.read_csv('transacciones_alicorp_100k.csv')
+        except FileNotFoundError:
+            # Lógica de generación de respaldo en caso no exista
+            np.random.seed(42)
+            n_registros = 100000
+            productos = ['Aceite Primor 1L', 'Fideos Don Vittorio 500g', 'Mayonesa Alacena 500g', 'Detergente Bolívar 2kg', 'Harina Blanca Flor 1kg']
+            tiendas = ['Supermercado Lima Norte', 'Hipermercado Centro', 'Tienda Express Los Olivos', 'Mayorista San Martín']
+            fechas = pd.date_range(start='2024-01-01', periods=730, freq='D')
+            data = {
+                'id_transaccion': range(1, n_registros + 1),
+                'fecha': np.random.choice(fechas, n_registros),
+                'producto': np.random.choice(productos, n_registros),
+                'tienda': np.random.choice(tiendas, n_registros),
+                'precio_unitario': np.random.choice([8.5, 4.2, 7.0, 15.0, 5.5], n_registros),
+                'stock_actual': np.random.randint(50, 500, n_registros),
+                'temperatura_zona': np.random.uniform(18.0, 30.0, n_registros)
+            }
+            df = pd.DataFrame(data)
+            df['cantidad_vendida'] = np.random.poisson(lam=15, size=n_registros) + (df['stock_actual'] * 0.01).astype(int)
+            df['ventas_totales'] = df['cantidad_vendida'] * df['precio_unitario']
+            df.to_csv('transacciones_alicorp_100k.csv', index=False)
+
+        total_registros = len(df)
+        media_ventas = float(round(df['ventas_totales'].mean(), 2))
+        mediana_ventas = float(round(df['ventas_totales'].median(), 2))
+        desviacion_ventas = float(round(df['ventas_totales'].std(), 2))
+
+        # Modelo ML
+        df['producto_code'] = df['producto'].astype('category').cat.codes
+        df['tienda_code'] = df['tienda'].astype('category').cat.codes
+        df['dia_anio'] = pd.to_datetime(df['fecha']).dt.dayofyear
+
+        X = df[['precio_unitario', 'stock_actual', 'temperatura_zona', 'producto_code', 'tienda_code', 'dia_anio']]
+        y = df['cantidad_vendida']
+
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=42)
+        scaler = StandardScaler()
+        X_train_scaled = scaler.fit_transform(X_train)
+
+        red_neuronal = MLPRegressor(hidden_layer_sizes=(16, 8), max_iter=25, random_state=42)
+        red_neuronal.fit(X_train_scaled, y_train)
+
+        X_test_scaled = scaler.transform(X_test)
+        y_pred = red_neuronal.predict(X_test_scaled)
+        mse = float(round(np.mean((y_pred - y_test) ** 2), 2))
+        r2 = float(round(red_neuronal.score(X_test_scaled, y_test), 4))
+
+        # Predicción de ejemplo
+        escenario_prueba = np.array([[8.5, 200, 22.0, 0, 1, 150]])
+        escenario_scaled = scaler.transform(escenario_prueba)
+        prediccion_resultado = float(round(red_neuronal.predict(escenario_scaled)[0], 2))
+
+        return jsonify({
+            "success": True,
+            "total_registros": total_registros,
+            "media_ventas": media_ventas,
+            "mediana_ventas": mediana_ventas,
+            "desviacion_ventas": desviacion_ventas,
+            "mse": mse,
+            "r2": r2,
+            "prediccion_resultado": prediccion_resultado
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": str(e)})
     if not capturar_rostro or not validar_rostro:
         return jsonify({"success": False, "message": "Módulos de IA no disponibles."}), 500
 
