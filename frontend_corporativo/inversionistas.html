@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inversionistas | Alicorp</title>
+    <link rel="stylesheet" href="estilos.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        .brand-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 40px;
+        }
+        .brand-card {
+            border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; text-align: center;
+            background: #fff; transition: 0.3s;
+        }
+        .brand-card:hover { transform: scale(1.05); box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-color: var(--color-secondary); }
+        .brand-card img { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin-bottom: 15px; }
+        .stat-box { background: var(--color-primary); color: white; padding: 40px; border-radius: 15px; text-align: center; margin-bottom: 30px; }
+    </style>
+</head>
+<body>
+    <header class="navbar">
+        <div class="container nav-container">
+            <div class="logo"><a href="index.html" style="text-decoration: none;"><span class="logo-red">à</span><span class="logo-blue">licorp</span></a></div>
+            <nav class="nav-links">
+                <a href="inversionistas.html" style="color: var(--color-secondary);">Inversionistas</a>
+                <a href="clientes.html">Clientes y proveedores</a>
+                <a href="contacto.html">Contacto</a>
+                <a href="etica.html">Unico Ética Alicorp</a>
+                <a href="#">Perú ▾</a>
+            </nav>
+            <div class="nav-actions"><a href="admin_login.html" class="btn-outline">Personal Autorizado</a></div>
+        </div>
+    </header>
+
+    <section class="section container">
+        <h1 class="section-title">Relación con Inversionistas</h1>
+        <div class="stat-box">
+            <h2 style="font-size: 3rem; margin-bottom: 10px;">+15%</h2>
+            <p style="font-size: 1.2rem; font-weight: 300;">Crecimiento de EBITDA en el último trimestre impulsado por nuestras marcas líderes.</p>
+        </div>
+
+        <h2 style="color: var(--color-primary); margin-top: 50px;">Nuestras Marcas (Portafolio de Inversión)</h2>
+        <div class="brand-grid">
+            <div class="brand-card">
+                <img src="https://images.unsplash.com/photo-1621317765103-6cbac7a29930?auto=format&fit=crop&w=200&q=80" alt="Marca">
+                <h3>Aceite Dorado</h3>
+                <p style="color: #666; font-size: 0.9rem;">Líder en la categoría de aceites vegetales en Sudamérica.</p>
+            </div>
+            <div class="brand-card">
+                <img src="https://images.unsplash.com/photo-1599813955227-29367464010a?auto=format&fit=crop&w=200&q=80" alt="Marca">
+                <h3>Fideos Bella</h3>
+                <p style="color: #666; font-size: 0.9rem;">Pastas premium con alta penetración en el mercado local.</p>
+            </div>
+            <div class="brand-card">
+                <img src="https://images.unsplash.com/photo-1589301773722-6b9432f83d73?auto=format&fit=crop&w=200&q=80" alt="Marca">
+                <h3>Salsa Rica</h3>
+                <p style="color: #666; font-size: 0.9rem;">La mayonesa preferida por las familias peruanas.</p>
+            </div>
+            <div class="brand-card">
+                <img src="https://images.unsplash.com/photo-1585237837090-fba8d98d8ee4?auto=format&fit=crop&w=200&q=80" alt="Marca">
+                <h3>LavaMax</h3>
+                <p style="color: #666; font-size: 0.9rem;">Detergente en polvo de alto rendimiento y rentabilidad.</p>
+            </div>
+        </div>
+    </section>
+</body>
+</html>
