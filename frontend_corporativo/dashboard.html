@@ -18,72 +18,43 @@
             --text-muted: #64748b;
             --border: #e2e8f0;
             --radius: 16px;
-            --hero-bg: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-            --hero-border: #a7f3d0;
-            --hero-text: #065f46;
-            --hero-span: #047857;
-            --card-shadow: 0 2px 4px rgba(0,0,0,0.01);
-        }
-
-        [data-theme="dark"] {
-            --bg-main: #090d16;
-            --surface: #111827;
-            --primary: #f8fafc;
-            --accent: #38bdf8;
-            --accent-gradient: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-            --success: #34d399;
-            --text-main: #f1f5f9;
-            --text-muted: #94a3b8;
-            --border: #1f2937;
-            --hero-bg: linear-gradient(135deg, rgba(6, 95, 70, 0.2) 0%, rgba(4, 120, 87, 0.3) 100%);
-            --hero-border: #047857;
-            --hero-text: #34d399;
-            --hero-span: #6ee7b7;
-            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
         }
         
-        * { box-sizing: border-box; transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease; }
+        * { box-sizing: border-box; }
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--bg-main); margin: 0; padding: 30px; color: var(--text-main); }
         .app-container { max-width: 1400px; margin: auto; }
 
-        /* HEADER Y SELECTOR DE TEMA */
-        .header { background: var(--primary); color: var(--surface); padding: 30px 40px; border-radius: var(--radius); display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 25px -5px rgba(11, 19, 41, 0.3); margin-bottom: 25px; }
-        .header h1 { margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.5px; color: #ffffff; }
+        /* HEADER */
+        .header { background: var(--primary); color: white; padding: 30px 40px; border-radius: var(--radius); display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 25px -5px rgba(11, 19, 41, 0.3); margin-bottom: 25px; }
+        .header h1 { margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
         .header p { margin: 6px 0 0; color: #94a3b8; font-size: 13px; }
-        
-        .header-right { display: flex; align-items: center; gap: 15px; }
         .header-badge { background: rgba(2, 132, 199, 0.2); border: 1px solid var(--accent); color: #38bdf8; padding: 8px 16px; border-radius: 30px; font-size: 12px; font-weight: 600; text-transform: uppercase; }
 
-        /* TEMA CONTROLS (BOTONES) */
-        .theme-switcher { background: rgba(255, 255, 255, 0.1); padding: 4px; border-radius: 30px; display: flex; gap: 4px; border: 1px solid rgba(255, 255, 255, 0.15); }
-        .theme-btn { background: transparent; border: none; color: #94a3b8; padding: 6px 12px; font-size: 12px; font-weight: 600; border-radius: 20px; cursor: pointer; display: flex; align-items: center; gap: 5px; }
-        .theme-btn.active { background: var(--accent); color: white; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
-
         /* CONTROL / ACCIÓN RÁPIDA */
-        .action-bar { background: var(--surface); padding: 20px 30px; border-radius: var(--radius); border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; box-shadow: var(--card-shadow); }
+        .action-bar { background: var(--surface); padding: 20px 30px; border-radius: var(--radius); border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); }
         .action-bar p { margin: 0; color: var(--text-muted); font-size: 14px; }
         .btn-run { background: var(--accent-gradient); color: white; border: none; padding: 12px 28px; font-size: 14px; border-radius: 10px; cursor: pointer; font-weight: 600; transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3); }
         .btn-run:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(2, 132, 199, 0.4); }
         .btn-run:disabled { opacity: 0.7; cursor: not-allowed; }
 
         /* BANNER DE PREDICCIÓN DESTACADA */
-        .hero-banner { background: var(--hero-bg); border: 1px solid var(--hero-border); padding: 25px; border-radius: var(--radius); text-align: center; margin-bottom: 25px; box-shadow: var(--card-shadow); }
-        .hero-banner span { color: var(--hero-span); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
-        .hero-banner h2 { color: var(--hero-text); margin: 8px 0 0; font-size: 36px; font-weight: 800; }
+        .hero-banner { background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border: 1px solid #a7f3d0; padding: 25px; border-radius: var(--radius); text-align: center; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.05); }
+        .hero-banner span { color: #047857; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+        .hero-banner h2 { color: #065f46; margin: 8px 0 0; font-size: 36px; font-weight: 800; }
 
         /* MÉTRICAS GRID */
         .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; margin-bottom: 25px; }
-        .metric-card { background: var(--surface); padding: 20px; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--card-shadow); position: relative; overflow: hidden; }
+        .metric-card { background: var(--surface); padding: 20px; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.01); position: relative; overflow: hidden; }
         .metric-card::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 3px; background: var(--accent); }
         .metric-card h4 { margin: 0; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
-        .metric-card p { margin: 8px 0 0; font-size: 22px; font-weight: 700; color: var(--text-main); }
+        .metric-card p { margin: 8px 0 0; font-size: 22px; font-weight: 700; color: var(--primary); }
 
         /* DASHBOARD GRID DE GRÁFICOS */
         .charts-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 25px; margin-bottom: 25px; }
-        .chart-card { background: var(--surface); padding: 25px; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--card-shadow); grid-column: span 6; }
+        .chart-card { background: var(--surface); padding: 25px; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.01); grid-column: span 6; }
         .chart-card.full { grid-column: span 12; }
         .chart-card.third { grid-column: span 4; }
-        .chart-card h4 { margin-top: 0; color: var(--text-main); font-size: 15px; margin-bottom: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .chart-card h4 { margin-top: 0; color: var(--primary); font-size: 15px; margin-bottom: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
         .chart-container { position: relative; height: 280px; width: 100%; }
 
         #results-container { display: none; }
@@ -93,7 +64,6 @@
             .chart-card, .chart-card.third { grid-column: span 12; }
             .header { flex-direction: column; align-items: flex-start; gap: 15px; }
             .action-bar { flex-direction: column; gap: 15px; align-items: stretch; text-align: center; }
-            .header-right { width: 100%; justify-content: space-between; }
         }
     </style>
 </head>
@@ -105,15 +75,7 @@
                 <h1>Corporación Alicorp S.A.A.</h1>
                 <p>Módulo de Inteligencia Artificial Predictiva • Redes Neuronales & Big Data (100k Registros)</p>
             </div>
-            <div class="header-right">
-                <!-- SELECTOR DE TEMA -->
-                <div class="theme-switcher">
-                    <button class="theme-btn" onclick="setTheme('light')" id="btnLight">☀️ Claro</button>
-                    <button class="theme-btn" onclick="setTheme('dark')" id="btnDark">🌙 Oscuro</button>
-                    <button class="theme-btn" onclick="setTheme('system')" id="btnSystem">💻 Sistema</button>
-                </div>
-                <div class="header-badge">Sistema Activo v3.0 BI</div>
-            </div>
+            <div class="header-badge">Sistema Activo v3.0 BI</div>
         </div>
 
         <!-- BARRA DE ACCIÓN -->
@@ -159,8 +121,9 @@
                 </div>
             </div>
 
-            <!-- GRÁFICOS -->
+            <!-- GRÁFICOS ORGANIZADOS EN RETÍCULA PROFESIONAL -->
             <div class="charts-grid">
+                <!-- Tendencia de Demanda (Ocupa todo el ancho superior por importancia) -->
                 <div class="chart-card full">
                     <h4>📈 Tendencia Probabilística de Demanda vs. Predicción IA</h4>
                     <div class="chart-container" style="height: 300px;">
@@ -168,6 +131,7 @@
                     </div>
                 </div>
 
+                <!-- Top Productos (Izquierda) -->
                 <div class="chart-card">
                     <h4>🏆 Top Productos Más Vendidos</h4>
                     <div class="chart-container">
@@ -175,6 +139,7 @@
                     </div>
                 </div>
 
+                <!-- Distribución por Categorías (Derecha) -->
                 <div class="chart-card">
                     <h4>🍩 Participación de Mercado por Categorías</h4>
                     <div class="chart-container">
@@ -182,6 +147,7 @@
                     </div>
                 </div>
 
+                <!-- Distribución Estadística (Ocupa todo el ancho inferior) -->
                 <div class="chart-card full">
                     <h4>📊 Desglose de Métricas Estadísticas Clave</h4>
                     <div class="chart-container" style="height: 250px;">
@@ -197,79 +163,10 @@
     </div>
 
     <script>
-        // LÓGICA DE TEMA (CLARO / OSCURO / SISTEMA)
-        function setTheme(mode) {
-            ['btnLight', 'btnDark', 'btnSystem'].forEach(id => document.getElementById(id).classList.remove('active'));
-            
-            if (mode === 'dark') {
-                document.documentElement.setAttribute('data-theme', 'dark');
-                document.getElementById('btnDark').classList.add('active');
-                localStorage.setItem('theme', 'dark');
-            } else if (mode === 'light') {
-                document.documentElement.setAttribute('data-theme', 'light');
-                document.getElementById('btnLight').classList.add('active');
-                localStorage.setItem('theme', 'light');
-            } else {
-                localStorage.removeItem('theme');
-                document.getElementById('btnSystem').classList.add('active');
-                if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                    document.documentElement.setAttribute('data-theme', 'dark');
-                } else {
-                    document.documentElement.setAttribute('data-theme', 'light');
-                }
-            }
-            updateChartsTheme();
-        }
-
-        // Inicializar tema según preferencia guardada o sistema
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme) {
-            setTheme(savedTheme);
-        } else {
-            setTheme('system');
-        }
-
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-            if (!localStorage.getItem('theme')) {
-                setTheme('system');
-            }
-        });
-
-        // Configuración de Gráficos con Chart.js
         let chartBarInstance = null;
         let chartLineInstance = null;
         let chartProductosInstance = null;
         let chartCategoriasInstance = null;
-
-        function getChartOptions() {
-            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-            const textColor = isDark ? '#94a3b8' : '#64748b';
-            const gridColor = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)';
-
-            return {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    x: { ticks: { color: textColor }, grid: { color: gridColor } },
-                    y: { ticks: { color: textColor }, grid: { color: gridColor } }
-                },
-                plugins: {
-                    legend: { labels: { color: textColor } }
-                }
-            };
-        }
-
-        function updateChartsTheme() {
-            if (!chartLineInstance) return;
-            const newOpts = getChartOptions();
-            [chartLineInstance, chartProductosInstance, chartCategoriasInstance, chartBarInstance].forEach(chart => {
-                if(chart) {
-                    chart.options.scales = newOpts.scales;
-                    chart.options.plugins.legend = newOpts.plugins.legend;
-                    chart.update();
-                }
-            });
-        }
 
         document.getElementById('btnEjecutar').addEventListener('click', async () => {
             const btn = document.getElementById('btnEjecutar');
@@ -285,6 +182,7 @@
                 const data = await response.json();
 
                 if(data.success) {
+                    // Carga de datos textuales
                     document.getElementById('txtPrediccion').innerText = data.prediccion_resultado + " Unidades";
                     document.getElementById('txtRegistros').innerText = data.total_registros.toLocaleString();
                     document.getElementById('txtMedia').innerText = data.media_ventas;
@@ -295,14 +193,13 @@
 
                     results.style.display = 'block';
 
+                    // Limpieza previa de gráficos
                     if(chartBarInstance) chartBarInstance.destroy();
                     if(chartLineInstance) chartLineInstance.destroy();
                     if(chartProductosInstance) chartProductosInstance.destroy();
                     if(chartCategoriasInstance) chartCategoriasInstance.destroy();
 
-                    const baseOpts = getChartOptions();
-
-                    // 1. Gráfico de Líneas
+                    // 1. Gráfico de Líneas (Tendencia)
                     const ctxLine = document.getElementById('chartLineas').getContext('2d');
                     chartLineInstance = new Chart(ctxLine, {
                         type: 'line',
@@ -320,10 +217,10 @@
                                 pointRadius: 5
                             }]
                         },
-                        options: baseOpts
+                        options: { responsive: true, maintainAspectRatio: false }
                     });
 
-                    // 2. Gráfico Productos
+                    // 2. Gráfico Productos (Barras Horizontales)
                     const ctxProd = document.getElementById('chartProductos').getContext('2d');
                     chartProductosInstance = new Chart(ctxProd, {
                         type: 'bar',
@@ -337,13 +234,14 @@
                             }]
                         },
                         options: { 
-                            ...baseOpts,
                             indexAxis: 'y',
+                            responsive: true, 
+                            maintainAspectRatio: false, 
                             plugins: { legend: { display: false } } 
                         }
                     });
 
-                    // 3. Gráfico Categorías
+                    // 3. Gráfico Categorías (Circular / Doughnut)
                     const ctxCat = document.getElementById('chartCategorias').getContext('2d');
                     chartCategoriasInstance = new Chart(ctxCat, {
                         type: 'doughnut',
@@ -353,17 +251,17 @@
                                 data: [42, 26, 18, 14],
                                 backgroundColor: ['#0284c7', '#2563eb', '#7c3aed', '#10b981'],
                                 borderWidth: 2,
-                                borderColor: document.documentElement.getAttribute('data-theme') === 'dark' ? '#111827' : '#ffffff'
+                                borderColor: '#ffffff'
                             }]
                         },
                         options: { 
-                            ...baseOpts,
-                            scales: { x: { display: false }, y: { display: false } },
-                            plugins: { legend: { position: 'bottom', labels: { color: getChartOptions().plugins.legend.labels.color } } }
+                            responsive: true, 
+                            maintainAspectRatio: false,
+                            plugins: { legend: { position: 'bottom' } }
                         }
                     });
 
-                    // 4. Gráfico Estadístico
+                    // 4. Gráfico Estadístico (Barras verticales)
                     const ctxBar = document.getElementById('chartBaras').getContext('2d');
                     chartBarInstance = new Chart(ctxBar, {
                         type: 'bar',
@@ -376,7 +274,7 @@
                                 borderRadius: 6
                             }]
                         },
-                        options: { ...baseOpts, plugins: { legend: { display: false } } }
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
                     });
 
                 } else {
