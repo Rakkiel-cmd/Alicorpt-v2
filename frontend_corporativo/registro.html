@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Administrador | Alicorp</title>
+    <link rel="stylesheet" href="estilos.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        .scan-line {
+            position: absolute; top: 0; left: 0; width: 100%; height: 4px;
+            background: rgba(2, 132, 199, 0.8); box-shadow: 0 0 10px rgba(2, 132, 199, 1);
+            display: none; z-index: 10;
+        }
+        @keyframes scan {
+            0% { top: 0%; } 50% { top: calc(100% - 4px); } 100% { top: 0%; }
+        }
+        .scanning { display: block !important; animation: scan 2s infinite ease-in-out; }
+        .face-guide {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 140px; height: 180px; border: 2px dashed rgba(255, 255, 255, 0.7);
+            border-radius: 50%; pointer-events: none; z-index: 5;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box">
+            <h2 style="color: var(--color-primary); margin-bottom: 20px;">Nuevo Administrador</h2>
+            <p>Registro de credenciales y biometría.</p>
+            
+            <div id="paso1">
+                <div style="border: 1px solid #e2e8f0; padding: 20px; border-radius: 10px; text-align: left;">
+                    <h3 style="color: var(--color-primary); margin-bottom: 15px; font-size: 1.1rem;">1. Credenciales</h3>
+                    <input type="text" id="inputUsuario" placeholder="Crea tu Usuario" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #cbd5e1; border-radius: 5px;">
+                    <input type="password" id="inputPassword" placeholder="Crea tu Contraseña" style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #cbd5e1; border-radius: 5px;">
+                    <button id="btnSiguiente" class="btn-primary" style="width: 100%; border: none; cursor: pointer;">Siguiente: Tomar Foto Facial</button>
+                    <p id="errorCredenciales" style="color: red; font-size: 0.85rem; margin-top: 10px; display: none;"></p>
+                </div>
+            </div>
+
+            <div id="paso2" style="display: none;">
+                <div style="border: 1px solid #e2e8f0; padding: 20px; border-radius: 10px;">
+                    <h3 style="color: var(--color-primary); margin-bottom: 15px; font-size: 1.1rem;">2. Captura Facial (Obligatorio)</h3>
+                    
+                    <div class="video-container" style="position: relative; border: 2px dashed var(--color-primary); border-radius: 10px; overflow: hidden; background-color: #000; height: 250px;">
+                        <video id="videoElement" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover; display: block;"></video>
+                        <div class="face-guide"></div>
+                        <div class="scan-line" id="scanLine"></div>
+                        <canvas id="canvasElement" style="display: none;"></canvas>
+                    </div>
+                    
+                    <p id="statusMensaje" style="font-size: 0.9rem; color: #666; margin-bottom: 20px; margin-top: 10px;">
+                        Ubica tu rostro dentro del óvalo.
+                    </p>
+
+                    <div id="botonesCaptura">
+                        <button id="btnTomarFoto" class="btn-primary" style="width: 100%; border: none; cursor: pointer;">Analizar Calidad del Rostro</button>
+                    </div>
+
+                    <div id="botonesConfirmacion" style="display: none; gap: 10px;">
+                        <button id="btnReintentar" class="btn-admin" style="width: 48%; cursor: pointer;">Tomar Otra</button>
+                        <button id="btnGuardar" class="btn-primary" style="width: 48%; border: none; cursor: pointer; background-color: green;">✔ Guardar Registro</button>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 30px;">
+                <a href="admin_login.html" class="btn-admin" style="display: inline-block;">← Cancelar y volver al Login</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const paso1 = document.getElementById('paso1');
+        const paso2 = document.getElementById('paso2');
+        const btnSiguiente = document.getElementById('btnSiguiente');
+        const inputUsuario = document.getElementById('inputUsuario');
+        const inputPassword = document.getElementById('inputPassword');
+        const errorCredenciales = document.getElementById('errorCredenciales');
+
+        const video = document.getElementById('videoElement');
+        const canvas = document.getElementById('canvasElement');
+        const scanLine = document.getElementById('scanLine');
+        const statusMensaje = document.getElementById('statusMensaje');
+        const btnTomarFoto = document.getElementById('btnTomarFoto');
+        
+        const botonesCaptura = document.getElementById('botonesCaptura');
+        const botonesConfirmacion = document.getElementById('botonesConfirmacion');
+        const btnReintentar = document.getElementById('btnReintentar');
+        const btnGuardar = document.getElementById('btnGuardar');
+
+        let imagenFinalBase64 = "";
+
+        // Validar paso 1 y abrir cámara
+        btnSiguiente.addEventListener('click', () => {
+            if (inputUsuario.value.trim() === "" || inputPassword.value.trim() === "") {
+                errorCredenciales.innerHTML = "Debes llenar usuario y contraseña.";
+                errorCredenciales.style.display = "block";
+                return;
+            }
+            errorCredenciales.style.display = "none";
+            
+            // Pasar a paso 2 y prender camara
+            paso1.style.display = 'none';
+            paso2.style.display = 'block';
+
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => { video.srcObject = stream; })
+                .catch(err => {
+                    statusMensaje.innerHTML = "<span style='color:red;'>Error accediendo a la cámara.</span>";
+                    btnTomarFoto.disabled = true;
+                });
+        });
+
+        // Tomar foto y evaluar si es válida
+        btnTomarFoto.addEventListener('click', () => {
+            statusMensaje.innerHTML = "Analizando calidad del rostro... 🤖";
+            scanLine.classList.add('scanning');
+            btnTomarFoto.disabled = true;
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageData = canvas.toDataURL('image/jpeg');
+
+            fetch('/api/verificar_rostro', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: imageData })
+            })
+            .then(res => res.json())
+            .then(data => {
+                scanLine.classList.remove('scanning');
+                if (data.success) {
+                    imagenFinalBase64 = imageData;
+                    statusMensaje.innerHTML = `<span style='color:green;'>✅ ${data.message}</span>`;
+                    video.pause(); // Congelar imagen
+                    botonesCaptura.style.display = 'none';
+                    botonesConfirmacion.style.display = 'flex';
+                } else {
+                    statusMensaje.innerHTML = `<span style='color:red;'>❌ ${data.message} Inténtalo de nuevo.</span>`;
+                    btnTomarFoto.disabled = false;
+                }
+            })
+            .catch(err => {
+                scanLine.classList.remove('scanning');
+                statusMensaje.innerHTML = `<span style='color:red;'>❌ Error de servidor.</span>`;
+                btnTomarFoto.disabled = false;
+            });
+        });
+
+        // Reintentar tomar foto
+        btnReintentar.addEventListener('click', () => {
+            video.play();
+            statusMensaje.innerHTML = "Ubica tu rostro dentro del óvalo.";
+            botonesConfirmacion.style.display = 'none';
+            botonesCaptura.style.display = 'block';
+            btnTomarFoto.disabled = false;
+            imagenFinalBase64 = "";
+        });
+
+        // Guardar definitivamente en Supabase
+        btnGuardar.addEventListener('click', () => {
+            statusMensaje.innerHTML = "Guardando en Supabase... ⏳";
+            btnGuardar.disabled = true;
+            btnReintentar.disabled = true;
+
+            fetch('/api/registrar_admin_web', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    usuario: inputUsuario.value,
+                    password: inputPassword.value,
+                    image: imagenFinalBase64
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    statusMensaje.innerHTML = `<span style='color:green;'>🎉 ¡Registro completado! Redirigiendo al login...</span>`;
+                    setTimeout(() => window.location.href = "admin_login.html", 2000);
+                } else {
+                    statusMensaje.innerHTML = `<span style='color:red;'>❌ Error: ${data.message}</span>`;
+                    btnGuardar.disabled = false;
+                    btnReintentar.disabled = false;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -106,6 +106,83 @@ def login_facial():
     except Exception as e:
         return jsonify({"success": False, "message": f"Error procesando imagen: {str(e)}"})
 
+# Subproyecto 1: Registro Web - Verificar calidad
+@app.route('/api/verificar_rostro', methods=['POST'])
+def verificar_rostro():
+    data = request.json
+    img_b64 = data.get('image')
+    if not img_b64:
+        return jsonify({"success": False, "message": "Falta imagen."})
+    
+    try:
+        header, encoded = img_b64.split(",", 1)
+        decoded_bytes = base64.b64decode(encoded)
+        np_arr = np.frombuffer(decoded_bytes, np.uint8)
+        frame_bgr = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+
+        rostro = capturar_rostro(frame_bgr)
+        if rostro is not None:
+            return jsonify({"success": True, "message": "Rostro detectado correctamente. Calidad óptima."})
+        else:
+            return jsonify({"success": False, "message": "No se detectó rostro o hay mala iluminación."})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)})
+
+# Subproyecto 1: Registro Web - Guardar en Supabase
+@app.route('/api/registrar_admin_web', methods=['POST'])
+def registrar_admin_web():
+    data = request.json
+    usuario = data.get('usuario')
+    password = data.get('password')
+    img_b64 = data.get('image')
+
+    if not usuario or not password or not img_b64:
+        return jsonify({"success": False, "message": "Datos incompletos."})
+
+    try:
+        header, encoded = img_b64.split(",", 1)
+        decoded_bytes = base64.b64decode(encoded)
+        np_arr = np.frombuffer(decoded_bytes, np.uint8)
+        frame_bgr = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+
+        rostro = capturar_rostro(frame_bgr)
+        if rostro is None:
+            return jsonify({"success": False, "message": "Rostro no detectado en la validación final."})
+        
+        # Extraer encodings
+        rgb_rostro = cv2.cvtColor(rostro, cv2.COLOR_BGR2RGB)
+        import face_recognition
+        encodings = face_recognition.face_encodings(rgb_rostro)
+        
+        if len(encodings) > 0:
+            firma = encodings[0].tolist()
+            
+            SUPABASE_URL = os.environ.get("SUPABASE_URL")
+            SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+            from supabase import create_client, Client
+            supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+            
+            # Verificar si usuario ya existe
+            exist = supabase.table('administradores').select('usuario').eq('usuario', usuario).execute()
+            if len(exist.data) > 0:
+                return jsonify({"success": False, "message": "El nombre de usuario ya está en uso."})
+
+            supabase.table('administradores').insert({
+                "usuario": usuario,
+                "password": password,
+                "face_encoding": firma
+            }).execute()
+            
+            # Recargar la caché del modelo
+            from modelo_facial import recargar_autorizados
+            recargar_autorizados()
+            
+            return jsonify({"success": True, "message": "Registro completado."})
+        else:
+            return jsonify({"success": False, "message": "No se pudo extraer la firma biométrica."})
+    except Exception as e:
+        return jsonify({"success": False, "message": f"Error: {str(e)}"})
+
 # Subproyecto 2: API Endpoint para predecir ventas con Red Neuronal
 @app.route('/api/predecir_ventas', methods=['POST'])
 def predecir_ventas():
