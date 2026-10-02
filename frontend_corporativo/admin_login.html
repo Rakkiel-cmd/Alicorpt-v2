@@ -6,6 +6,44 @@
     <title>Acceso Administrador | Alicorp</title>
     <link rel="stylesheet" href="estilos.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        /* Animación del escáner láser */
+        .scan-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: rgba(2, 132, 199, 0.8);
+            box-shadow: 0 0 10px rgba(2, 132, 199, 1), 0 0 20px rgba(2, 132, 199, 0.8);
+            display: none;
+            z-index: 10;
+        }
+        @keyframes scan {
+            0% { top: 0%; }
+            50% { top: calc(100% - 4px); }
+            100% { top: 0%; }
+        }
+        .scanning {
+            display: block !important;
+            animation: scan 2s infinite ease-in-out; /* Velocidad acoplada al tiempo de la IA */
+        }
+        
+        /* Marco guía para el rostro */
+        .face-guide {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 140px;
+            height: 180px;
+            border: 2px dashed rgba(255, 255, 255, 0.7);
+            border-radius: 50%; /* Forma ovalada */
+            pointer-events: none; /* Que no interfiera con clicks */
+            z-index: 5;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.4); /* Oscurece el fondo alrededor */
+        }
+    </style>
 </head>
 <body>
     <div class="login-container">
@@ -37,8 +75,10 @@
                     <button id="btnEncenderCamara" class="btn-admin" style="width: 100%; cursor: pointer; margin-bottom: 15px;">📹 Activar Cámara</button>
 
                     <div id="contenedorVideo" style="display: none; position: relative;">
-                        <div class="video-container" style="position: relative; border: 2px dashed var(--color-primary); border-radius: 10px; overflow: hidden; background-color: #000;">
-                            <video id="videoElement" autoplay playsinline style="width: 100%; max-height: 250px; display: block;"></video>
+                        <div class="video-container" style="position: relative; border: 2px dashed var(--color-primary); border-radius: 10px; overflow: hidden; background-color: #000; height: 250px;">
+                            <video id="videoElement" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover; display: block;"></video>
+                            <div class="face-guide"></div>
+                            <div class="scan-line" id="scanLine"></div>
                             <canvas id="canvasElement" style="display: none;"></canvas>
                         </div>
                         
@@ -112,6 +152,7 @@
         const statusMensaje = document.getElementById('statusMensaje');
         const btnEncenderCamara = document.getElementById('btnEncenderCamara');
         const contenedorVideo = document.getElementById('contenedorVideo');
+        const scanLine = document.getElementById('scanLine');
 
         // Evento para encender la cámara manualmente
         btnEncenderCamara.addEventListener('click', () => {
@@ -133,8 +174,9 @@
 
         // Evento al dar clic en validar
         btnCapturar.addEventListener('click', () => {
-            statusMensaje.innerHTML = "Analizando rostro... 🤖";
+            statusMensaje.innerHTML = "Iniciando escaneo biométrico... 🤖";
             btnCapturar.disabled = true;
+            scanLine.classList.add('scanning'); // Activar efecto láser
 
             // Dibujar el fotograma actual del video en el canvas
             canvas.width = video.videoWidth;
@@ -154,18 +196,20 @@
             })
             .then(response => response.json())
             .then(data => {
+                scanLine.classList.remove('scanning'); // Detener láser
                 if (data.success) {
-                    statusMensaje.innerHTML = `<span style='color:green;'>✅ ${data.message}</span>`;
-                    // Redirigir al dashboard tras 1 segundo
+                    statusMensaje.innerHTML = `<span style='color:green;'>✅ ${data.message}<br><strong style="font-size:1.1rem; color:#0284c7;">Precisión IA: ${data.porcentaje}%</strong></span>`;
+                    // Redirigir al dashboard tras 1.5 segundos para que vean el %
                     setTimeout(() => {
                         window.location.href = data.redirect;
-                    }, 1000);
+                    }, 1500);
                 } else {
                     statusMensaje.innerHTML = `<span style='color:red;'>❌ ${data.message}</span>`;
                     btnCapturar.disabled = false;
                 }
             })
             .catch(error => {
+                scanLine.classList.remove('scanning'); // Detener láser
                 statusMensaje.innerHTML = `<span style='color:red;'>❌ Error de red con el servidor Python.</span>`;
                 btnCapturar.disabled = false;
             });

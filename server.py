@@ -83,9 +83,20 @@ def login_facial():
         rostro = capturar_rostro(frame_bgr)
         if rostro is not None:
             # Validar con la base de datos de Supabase en modelo_facial
-            es_valido = validar_rostro(rostro)
-            if es_valido:
-                return jsonify({"success": True, "message": "¡Identidad confirmada!", "redirect": "dashboard.html"})
+            # IMPORTANTE: Usamos validar_rostro_detalle para obtener la distancia
+            from modelo_facial import validar_rostro_detalle
+            detalle = validar_rostro_detalle(rostro)
+            
+            if detalle["autorizado"]:
+                distancia = detalle["distancia"]
+                # Convertimos la distancia a un porcentaje (0 distancia = 100%)
+                porcentaje = round(max(0, (1 - distancia)) * 100, 2)
+                return jsonify({
+                    "success": True, 
+                    "message": "¡Identidad confirmada!", 
+                    "porcentaje": porcentaje,
+                    "redirect": "dashboard.html"
+                })
             else:
                 return jsonify({"success": False, "message": "Rostro no autorizado."})
         else:
