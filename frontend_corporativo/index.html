@@ -3,70 +3,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alicorp | Alimentamos el mañana</title>
+    <title>Alicorp | Alimentamos un Mañana Mejor</title>
     <link rel="stylesheet" href="estilos.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
-    <!-- Navegación -->
+    <!-- Navbar -->
     <header class="navbar">
         <div class="container nav-container">
             <div class="logo">
-                <span class="logo-red">Ali</span><span class="logo-blue">corp</span>
+                <a href="index.html" style="text-decoration: none;">
+                    <span class="logo-red">à</span><span class="logo-blue">licorp</span>
+                </a>
             </div>
             <nav class="nav-links">
-                <a href="#nosotros">Nosotros</a>
-                <a href="#marcas">Nuestras Marcas</a>
-                <a href="#sostenibilidad">Sostenibilidad</a>
+                <a href="#inversionistas">Inversionistas</a>
+                <a href="#clientes">Clientes y proveedores</a>
                 <a href="#contacto">Contacto</a>
+                <a href="#etica">Unico Ética Alicorp</a>
+                <a href="#peru">Perú ▾</a>
             </nav>
-            <a href="admin_login.html" class="btn-admin">Personal Autorizado</a>
+            <div class="nav-actions">
+                <a href="admin_login.html" class="btn-outline">Personal Autorizado</a>
+            </div>
         </div>
     </header>
 
-    <!-- Sección Hero -->
-    <section class="hero">
+    <!-- Hero Section -->
+    <section class="hero-alicorp">
         <div class="container hero-content">
-            <h1>Alimentamos el mañana</h1>
-            <p>Llevamos nutrición, innovación y bienestar a millones de hogares a través de marcas que inspiran confianza y calidad.</p>
-            <a href="#marcas" class="btn-primary">Descubre Nuestras Marcas</a>
+            <h1>Ollas que desarrollan: Acompañamos a las ollas comunes del país</h1>
+            <p>Contribuimos con las comunidades a través de entrega de alimentos, equipamiento y capacitaciones.</p>
+            <a href="#mas" class="btn-pill btn-primary">Ver más</a>
         </div>
     </section>
 
-    <!-- Contenedor Dinámico de Marcas (JSON) -->
-    <section id="marcas" class="section">
+    <!-- Sección Institucional -->
+    <section class="section about-section">
+        <div class="container grid-2">
+            <div class="about-text">
+                <h2 class="section-title left">Bienvenidos a Alicorp</h2>
+                <p class="institucional-text">
+                    Empezamos como una compañía de aceite y jabones, nos expandimos al rubro de alimentos, cuidado del hogar y personal. Hoy alimentamos el crecimiento de cada país donde estamos y mejoramos la calidad de vida de nuestros colaboradores, proveedores, inversionistas, consumidores y comunidades.
+                </p>
+                <a href="#quienes-somos" class="btn-pill btn-outline-dark">Quiénes somos</a>
+            </div>
+            <div class="about-image">
+                <img src="https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80" alt="Panadería y alimentos">
+            </div>
+        </div>
+    </section>
+
+    <!-- Sección de Sostenibilidad -->
+    <section class="section sustainability-section">
         <div class="container">
-            <h2 class="section-title">Nuestras Categorías Destacadas</h2>
-            <div id="marcas-container" class="grid-container">
-                <!-- El contenido se inyectará aquí vía JavaScript -->
+            <div class="sustainability-box">
+                <h2 class="sustainability-title">
+                    <span class="green-bullet"></span> Sostenibilidad
+                </h2>
+                <p>
+                    Nuestra estrategia de sostenibilidad responde a un proceso de análisis de la materialidad de los temas ambientales, sociales y de gobierno corporativo (ASG)...
+                </p>
+                <a href="#sostenibilidad" class="btn-pill btn-primary">Ver más</a>
             </div>
         </div>
     </section>
 
-    <!-- Footer Corporativo -->
+    <!-- Footer -->
     <footer class="footer">
-        <div class="container footer-content">
-            <div class="footer-col">
-                <h3>Alicorp</h3>
-                <p>Innovando para construir un futuro más sostenible y nutritivo.</p>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-col">
+                    <h3 class="logo"><span class="logo-red">à</span>licorp</h3>
+                    <p style="margin-top: 15px; color: #cbd5e1; font-size: 0.9rem;">
+                        Alimentamos un mañana mejor.
+                    </p>
+                </div>
+                <div class="footer-col">
+                    <h3>Empresa</h3>
+                    <a href="#">Quiénes somos</a>
+                    <a href="#">Nuestras marcas</a>
+                    <a href="#">Sostenibilidad</a>
+                </div>
+                <div class="footer-col">
+                    <h3>Enlaces Rápidos</h3>
+                    <a href="#">Trabaja con nosotros</a>
+                    <a href="#">Inversionistas</a>
+                    <a href="admin_login.html">Acceso Personal Autorizado</a>
+                </div>
             </div>
-            <div class="footer-col">
-                <h3>Enlaces</h3>
-                <a href="#">Sostenibilidad</a>
-                <a href="#">Inversionistas</a>
-                <a href="#">Trabaja con nosotros</a>
+            <div class="footer-bottom">
+                &copy; 2026 Alicorp S.A.A. Todos los derechos reservados.
             </div>
-            <div class="footer-col">
-                <h3>Contacto</h3>
-                <p>📍 Sede Principal</p>
-                <p>✉️ contacto@alicorp.com</p>
-            </div>
-        </div>
-        <div class="footer-bottom">
-            <p>&copy; 2026 Alicorp. Proyecto Académico. Todos los derechos reservados.</p>
         </div>
     </footer>
-
-    <script src="script.js"></script>
 </body>
 </html>

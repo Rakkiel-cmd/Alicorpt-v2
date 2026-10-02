@@ -1,8 +1,11 @@
 :root {
-    --color-primary: #1e3a8a; /* Azul corporativo */
-    --color-secondary: #e02b20; /* Rojo corporativo */
+    --color-primary: #1e3a8a; /* Azul corporativo login/dashboard */
+    --color-secondary: #e31b23; /* Rojo corporativo Alicorp */
+    --color-green: #008a3b; /* Verde sostenibilidad */
     --color-bg: #f8f9fa;
+    --color-pink-pastel: #fce4ec; /* Rosa pastel institucional */
     --color-text: #333333;
+    --color-text-light: #666666;
     --color-light: #ffffff;
     --font-main: 'Inter', sans-serif;
 }
@@ -26,10 +29,10 @@ body {
     padding: 0 20px;
 }
 
-/* Navbar */
+/* NAVBAR ALICORP */
 .navbar {
     background-color: var(--color-light);
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
     position: sticky;
     top: 0;
     z-index: 1000;
@@ -39,21 +42,27 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    height: 80px;
+    height: 90px;
 }
 
 .logo {
-    font-size: 2rem;
+    font-size: 2.2rem;
     font-weight: 800;
+    letter-spacing: -1px;
 }
 
 .logo-red { color: var(--color-secondary); }
-.logo-blue { color: var(--color-primary); }
+.logo-blue { color: var(--color-text); }
+
+.nav-links {
+    display: flex;
+    gap: 25px;
+}
 
 .nav-links a {
     text-decoration: none;
-    color: var(--color-text);
-    margin: 0 15px;
+    color: var(--color-text-light);
+    font-size: 0.95rem;
     font-weight: 600;
     transition: color 0.3s ease;
 }
@@ -62,142 +71,199 @@ body {
     color: var(--color-secondary);
 }
 
-.btn-admin {
-    background-color: transparent;
-    color: var(--color-primary);
-    border: 2px solid var(--color-primary);
-    padding: 8px 20px;
-    border-radius: 5px;
-    text-decoration: none;
+/* BOTONES GLOBALES */
+.btn-pill {
+    display: inline-block;
+    padding: 12px 30px;
+    border-radius: 50px;
     font-weight: 600;
+    text-decoration: none;
     transition: all 0.3s ease;
-}
-
-.btn-admin:hover {
-    background-color: var(--color-primary);
-    color: var(--color-light);
-}
-
-/* Hero Section */
-.hero {
-    background: linear-gradient(rgba(30, 58, 138, 0.9), rgba(30, 58, 138, 0.7)), url('https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1920&q=80') center/cover;
-    color: var(--color-light);
-    text-align: center;
-    padding: 150px 20px;
-}
-
-.hero h1 {
-    font-size: 3.5rem;
-    margin-bottom: 20px;
-}
-
-.hero p {
-    font-size: 1.2rem;
-    max-width: 600px;
-    margin: 0 auto 40px auto;
+    cursor: pointer;
+    font-size: 1rem;
+    border: none;
 }
 
 .btn-primary {
     background-color: var(--color-secondary);
     color: var(--color-light);
-    padding: 15px 30px;
-    text-decoration: none;
-    border-radius: 5px;
-    font-weight: 600;
-    font-size: 1.1rem;
-    transition: background 0.3s;
 }
 
 .btn-primary:hover {
-    background-color: #c0241b;
+    background-color: #bd141b;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(227, 27, 35, 0.3);
 }
 
-/* Secciones y Grid */
+.btn-outline {
+    background-color: transparent;
+    color: var(--color-text);
+    border: 2px solid #e2e8f0;
+    padding: 10px 25px;
+    border-radius: 50px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.btn-outline:hover {
+    border-color: var(--color-secondary);
+    color: var(--color-secondary);
+}
+
+.btn-outline-dark {
+    background-color: transparent;
+    color: var(--color-text);
+    border: 2px solid var(--color-text);
+}
+.btn-outline-dark:hover {
+    background-color: var(--color-text);
+    color: var(--color-light);
+}
+
+/* HERO SECTION */
+.hero-alicorp {
+    position: relative;
+    background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.6)), url('https://images.unsplash.com/photo-1593113565214-80afcb4a4571?auto=format&fit=crop&w=1920&q=80') center/cover;
+    height: 80vh;
+    min-height: 600px;
+    display: flex;
+    align-items: center;
+    color: var(--color-light);
+}
+
+.hero-content {
+    max-width: 800px;
+}
+
+.hero-content h1 {
+    font-size: clamp(2.5rem, 5vw, 4.5rem);
+    line-height: 1.1;
+    margin-bottom: 25px;
+    font-weight: 800;
+}
+
+.hero-content p {
+    font-size: 1.3rem;
+    margin-bottom: 40px;
+    font-weight: 300;
+}
+
+/* SECCIONES Y GRID */
 .section {
-    padding: 80px 0;
+    padding: 100px 0;
+}
+
+.grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: center;
 }
 
 .section-title {
-    text-align: center;
     font-size: 2.5rem;
-    color: var(--color-primary);
-    margin-bottom: 50px;
+    color: var(--color-text);
+    margin-bottom: 30px;
+    font-weight: 700;
+}
+.section-title.left {
+    text-align: left;
 }
 
-.grid-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 30px;
-}
-
-.card {
-    background: var(--color-light);
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-    transition: transform 0.3s ease;
-}
-
-.card:hover {
-    transform: translateY(-10px);
-}
-
-.card-img {
-    width: 100%;
-    height: 200px;
-    object-fit: cover;
-}
-
-.card-content {
-    padding: 20px;
-}
-
-.card-content h3 {
-    color: var(--color-primary);
-    margin-bottom: 10px;
-}
-
-/* Footer */
-.footer {
-    background-color: var(--color-primary);
-    color: var(--color-light);
-    padding: 60px 0 20px;
-}
-
-.footer-content {
-    display: flex;
-    justify-content: space-between;
-    flex-wrap: wrap;
+.institucional-text {
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: var(--color-text-light);
     margin-bottom: 40px;
 }
 
-.footer-col {
-    flex: 1;
-    min-width: 250px;
-    margin-bottom: 20px;
+.about-image img {
+    width: 100%;
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+}
+
+/* SOSTENIBILIDAD */
+.sustainability-section {
+    background-color: var(--color-pink-pastel);
+}
+
+.sustainability-box {
+    background: var(--color-light);
+    padding: 60px;
+    border-radius: 20px;
+    box-shadow: 0 15px 30px rgba(0,0,0,0.05);
+    max-width: 900px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.sustainability-title {
+    font-size: 2rem;
+    margin-bottom: 25px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+}
+
+.green-bullet {
+    width: 15px;
+    height: 15px;
+    background-color: var(--color-green);
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.sustainability-box p {
+    font-size: 1.1rem;
+    color: var(--color-text-light);
+    margin-bottom: 35px;
+    line-height: 1.8;
+}
+
+/* FOOTER */
+.footer {
+    background-color: #1a1a1a;
+    color: var(--color-light);
+    padding: 80px 0 30px;
+}
+
+.footer-content {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 40px;
+    margin-bottom: 60px;
 }
 
 .footer-col h3 {
-    margin-bottom: 20px;
-    color: var(--color-light);
+    margin-bottom: 25px;
+    font-size: 1.2rem;
+    font-weight: 600;
 }
 
 .footer-col a {
-    color: #cbd5e1;
+    color: #9ca3af;
     text-decoration: none;
     display: block;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
+    transition: color 0.3s;
+}
+
+.footer-col a:hover {
+    color: var(--color-light);
 }
 
 .footer-bottom {
     text-align: center;
     border-top: 1px solid rgba(255,255,255,0.1);
-    padding-top: 20px;
+    padding-top: 30px;
     font-size: 0.9rem;
-    color: #cbd5e1;
+    color: #9ca3af;
 }
 
-/* Login Admin */
+/* ====== ESTILOS MANTENIDOS PARA EL LOGIN Y REGISTRO ====== */
 .login-container {
     display: flex;
     justify-content: center;
@@ -224,14 +290,27 @@ body {
     background-color: #000;
 }
 
-#videoCanvas {
-    width: 100%;
-    max-height: 300px;
-    display: block;
+.btn-admin {
+    background-color: transparent;
+    color: var(--color-primary);
+    border: 2px solid var(--color-primary);
+    padding: 10px 20px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
+.btn-admin:hover {
+    background-color: var(--color-primary);
+    color: var(--color-light);
+}
+
+/* RESPONSIVE MOBILE FIRST */
+@media (max-width: 900px) {
     .nav-links { display: none; }
-    .hero h1 { font-size: 2.5rem; }
+    .grid-2 { grid-template-columns: 1fr; gap: 40px; }
+    .footer-content { grid-template-columns: 1fr; }
+    .sustainability-box { padding: 40px 20px; }
+    .hero-alicorp { height: 60vh; min-height: 500px; }
 }
