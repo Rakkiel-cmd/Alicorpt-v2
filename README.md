@@ -76,8 +76,10 @@ python server.py
 *(También puedes usar `gunicorn server:app` si estás en un entorno de producción como Linux).*
 
 ### Paso 7: Acceder al Sistema
-Abre tu navegador web y entra a:
-[http://localhost:10000](http://localhost:10000)
+Abre tu navegador web y entra a la dirección local predeterminada de Flask:
+👉 **[http://localhost:5000](http://localhost:5000)**
+
+*(Nota: Si el terminal te indica que el servidor se abrió en otro puerto como el 8000 o el 10000, simplemente usa esa dirección en su lugar).*
 
 1. **Página Principal:** Verás la landing page institucional.
 2. **Registro:** Ve a "Personal Autorizado" > "✚ Nuevo Registro". Ingresa un usuario, contraseña y escanea tu rostro con la cámara.
