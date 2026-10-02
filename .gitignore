@@ -5,3 +5,4 @@ __pycache__/
 .vscode/
 rostros_autorizados/
 .env
+.guia_reconocimiento_facial.md
