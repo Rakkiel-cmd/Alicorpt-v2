@@ -76,7 +76,7 @@ EXTENSIONES_VALIDAS = (".jpg", ".jpeg", ".png", ".bmp", ".webp")
 # Distancia euclidiana maxima entre embeddings para aceptar a alguien.
 # face_recognition usa 0.6 por defecto; 0.5 es mas estricto (mejor para login).
 # Bajalo (0.45) si acepta impostores; subelo (0.55) si te rechaza a ti.
-UMBRAL_DISTANCIA = 0.5
+UMBRAL_DISTANCIA = 0.45
 
 _log = logging.getLogger("modelo_facial")
 
