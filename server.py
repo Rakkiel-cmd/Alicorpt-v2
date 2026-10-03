@@ -18,6 +18,12 @@ except ImportError:
 
 app = Flask(__name__, static_folder='frontend_corporativo')
 
+# Limpiar y forzar cabeceras de seguridad para evitar errores de Permissions-Policy ('join-ad-interest-group')
+@app.after_request
+def add_security_headers(response):
+    response.headers['Permissions-Policy'] = "camera=(self), microphone=(), geolocation=()"
+    return response
+
 # Ruta para servir la página principal
 @app.route('/')
 def index():
