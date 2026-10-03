@@ -1,10 +1,13 @@
 flask
 opencv-python-headless<5.0.0
-face_recognition
+dlib-bin
 numpy
-gunicorn
-setuptools<70.0.0
-supabase
 pandas
 scikit-learn
+supabase
 python-dotenv
+setuptools<70.0.0
+Click
+Pillow
+face_recognition_models
+gunicorn; sys_platform != "win32"
