@@ -42,10 +42,8 @@ source venv/bin/activate
 ### Paso 3: Instalar Dependencias
 Instala todas las librerías necesarias ejecutando:
 ```bash
-pip install -r requirements.txt
+python instalar.py
 ```
-*(Nota: Instalar `dlib` y `face_recognition` en Windows puede requerir tener instalado CMake y Visual Studio C++ Build Tools).*
-
 ### Paso 4: Configurar la Base de Datos (Supabase)
 El proyecto usa Supabase para guardar los usuarios y las firmas matemáticas de sus rostros (encodings), **NO** guarda las fotos por motivos de seguridad.
 
@@ -59,7 +57,7 @@ SUPABASE_KEY=tu-clave-anon-publica
    - `id` (int8 o UUID, autogenerado)
    - `usuario` (text)
    - `password` (text)
-   - `face_encoding` (json o text, para guardar el vector matemático)
+   - `face_encoding` (json , para guardar el vector matemático)
 
 ### Paso 5: ¿Dónde se guardan los rostros?
 El sistema tiene dos capas:
