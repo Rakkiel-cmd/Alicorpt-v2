@@ -99,7 +99,7 @@ def login_facial():
             
             if detalle["autorizado"]:
                 distancia = detalle["distancia"]
-                # Ajuste de escala para que una distancia aceptable (ej. 0.45) se mapee a >90%
+                # Ajuste de escala para que una distancia aceptable (ej. 0.42) se mapee a >90%
                 # Matemática de presentación: 100 - (distancia * 20)
                 porcentaje = round(max(0, min(100, 100 - (distancia * 20))), 2)
                 return jsonify({
