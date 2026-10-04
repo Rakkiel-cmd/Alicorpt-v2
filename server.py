@@ -119,6 +119,9 @@ def login_facial():
 # Subproyecto 1: Registro Web - Verificar calidad
 @app.route('/api/verificar_rostro', methods=['POST'])
 def verificar_rostro():
+    if not capturar_rostro:
+        return jsonify({"success": False, "message": "La IA está apagada. Activa el entorno virtual (venv)."})
+        
     data = request.json
     img_b64 = data.get('image')
     if not img_b64:
@@ -141,6 +144,9 @@ def verificar_rostro():
 # Subproyecto 1: Registro Web - Guardar en Supabase
 @app.route('/api/registrar_admin_web', methods=['POST'])
 def registrar_admin_web():
+    if not capturar_rostro:
+        return jsonify({"success": False, "message": "La IA está apagada. Activa el entorno virtual (venv)."})
+
     data = request.json
     usuario = data.get('usuario')
     password = data.get('password')
