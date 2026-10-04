@@ -18,6 +18,10 @@ except ImportError:
 
 app = Flask(__name__, static_folder='frontend_corporativo')
 
+# Subproyecto 2: endpoints extra del dashboard de ventas (productos y simulador)
+from ventas_extra import ventas_extra
+app.register_blueprint(ventas_extra)
+
 # Limpiar y forzar cabeceras de seguridad para evitar errores de Permissions-Policy ('join-ad-interest-group')
 @app.after_request
 def add_security_headers(response):
@@ -229,30 +233,31 @@ def predecir_ventas():
         mediana_ventas = float(round(df['ventas_totales'].median(), 2))
         desviacion_ventas = float(round(df['ventas_totales'].std(), 2))
 
-        # Modelo ML
-        df['producto_code'] = df['producto'].astype('category').cat.codes
-        df['tienda_code'] = df['tienda'].astype('category').cat.codes
-        df['dia_anio'] = pd.to_datetime(df['fecha']).dt.dayofyear
+        # Modelo ML: red neuronal que predice ventas totales (S/.)
+        from sklearn.pipeline import make_pipeline
+        from sklearn.compose import TransformedTargetRegressor
+        from sklearn.metrics import mean_squared_error
 
-        X = df[['precio_unitario', 'stock_actual', 'temperatura_zona', 'producto_code', 'tienda_code', 'dia_anio']]
-        y = df['cantidad_vendida']
+        f = pd.to_datetime(df['fecha'])
+        df['mes'] = f.dt.month
+        df['dia_semana'] = f.dt.dayofweek
 
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=42)
-        scaler = StandardScaler()
-        X_train_scaled = scaler.fit_transform(X_train)
+        X = pd.get_dummies(df[['precio_unitario', 'stock_actual', 'temperatura_zona', 'mes', 'dia_semana', 'producto', 'tienda']]).astype(float)
+        y = df['ventas_totales']
 
-        red_neuronal = MLPRegressor(hidden_layer_sizes=(16, 8), max_iter=25, random_state=42)
-        red_neuronal.fit(X_train_scaled, y_train)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-        X_test_scaled = scaler.transform(X_test)
-        y_pred = red_neuronal.predict(X_test_scaled)
-        mse = float(round(np.mean((y_pred - y_test) ** 2), 2))
-        r2 = float(round(red_neuronal.score(X_test_scaled, y_test), 4))
+        red_neuronal = TransformedTargetRegressor(
+            regressor=make_pipeline(StandardScaler(), MLPRegressor(hidden_layer_sizes=(32, 16), max_iter=300, early_stopping=True, random_state=42)),
+            transformer=StandardScaler())
+        red_neuronal.fit(X_train, y_train)
 
-        # Predicción de ejemplo
-        escenario_prueba = np.array([[8.5, 200, 22.0, 0, 1, 150]])
-        escenario_scaled = scaler.transform(escenario_prueba)
-        prediccion_resultado = float(round(red_neuronal.predict(escenario_scaled)[0], 2))
+        y_pred = red_neuronal.predict(X_test)
+        mse = float(round(mean_squared_error(y_test, y_pred), 2))
+        r2 = float(round(red_neuronal.score(X_test, y_test), 4))
+
+        escenario_prueba = X_train.mean().to_frame().T
+        prediccion_resultado = float(round(red_neuronal.predict(escenario_prueba)[0], 2))
 
         return jsonify({
             "success": True,
