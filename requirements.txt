@@ -1,6 +1,8 @@
 flask
 opencv-python-headless<5.0.0
-dlib-bin
+dlib-bin; sys_platform == "win32"
+dlib; sys_platform != "win32"
+face_recognition
 numpy
 pandas
 scikit-learn
