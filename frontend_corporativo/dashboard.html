@@ -165,6 +165,23 @@
         .result-big small { color: #94a3b8; font-size: 13px; }
         .result-big.cargando h2 { opacity: .35; }
 
+        /* ===== EXTRAS: anillo, escenarios, columnas ===== */
+        .chart-card.c4 { grid-column: span 4; }
+        .chart-card.c8 { grid-column: span 8; }
+        .ring-wrap { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+        .ring { --p: 0; width: 150px; height: 150px; border-radius: 50%; background: conic-gradient(#10b981 calc(var(--p) * 1%), #e2e8f0 0); display: flex; align-items: center; justify-content: center; position: relative; box-shadow: 0 10px 25px -10px rgba(16,185,129,0.5); }
+        .ring::before { content: ''; position: absolute; inset: 15px; background: #fff; border-radius: 50%; }
+        .ring b { position: relative; font-size: 30px; font-weight: 800; color: var(--primary); }
+        .hint { margin: 12px 0 0; font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+        .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+        .chips button { background: #f1f5f9; border: 1px solid var(--border); color: var(--text-main); font-size: 12px; font-weight: 700; padding: 9px 14px; border-radius: 30px; cursor: pointer; transition: all .2s ease; }
+        .chips button:hover { border-color: var(--accent); color: var(--accent); }
+        .chips button.active { background: var(--accent-gradient); border-color: transparent; color: #fff; }
+        @media(max-width: 900px) { .sidebar { padding-top: 76px; } }
+        .stat b { font-variant-numeric: tabular-nums; }
+        .stat { transition: transform .25s ease; }
+        .stat:hover { transform: translateY(-4px); }
+
         /* ===== PIE DE PÁGINA ===== */
         .footer { background: var(--primary); color: #94a3b8; padding: 40px 40px 24px; font-size: 13px; }
         .footer-grid { max-width: 1300px; margin: auto; display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 30px; }
@@ -289,6 +306,11 @@
                     <div class="chart-card"><h4>📦 Unidades vendidas por producto</h4><div class="chart-container"><canvas id="chartUnidades"></canvas></div></div>
                     <div class="chart-card"><h4>🏬 Ventas por tienda (S/.)</h4><div class="chart-container"><canvas id="chartTiendasBar"></canvas></div></div>
                     <div class="chart-card full">
+                        <h4>📈 Más stock, más unidades vendidas</h4>
+                        <div class="chart-container" style="height: 260px;"><canvas id="chartStock"></canvas></div>
+                        <p class="hint">Es la única relación fuerte que hay en los datos: cuando el stock es alto, se vende en promedio más por transacción. Por eso el stock es la segunda variable que más pesa en la predicción.</p>
+                    </div>
+                    <div class="chart-card full">
                         <h4>📋 Detalle por producto</h4>
                         <div class="table-wrap">
                             <table>
@@ -317,9 +339,9 @@
 
                 <div id="results-container">
                     <div class="hero-banner">
-                        <span>Venta estimada por transacción (Red Neuronal)</span>
+                        <span>Venta promedio estimada por la red neuronal</span>
                         <h2 id="txtPrediccion">S/. --</h2>
-                        <small>Predicción para un escenario promedio. Pruébalo con tus propios datos en el Simulador.</small>
+                        <small>Es el promedio de lo que predice el modelo sobre datos de prueba. Compáralo con la venta promedio real y pruébalo en el Simulador.</small>
                     </div>
                     <div class="metrics-grid">
                         <div class="metric-card"><h4>Registros del dataset</h4><p id="txtRegistros">--</p><small>El modelo entrena con 15,000</small></div>
@@ -340,6 +362,31 @@
                     <div class="chart-card"><h4>🍩 Participación de ventas por tienda</h4><div class="chart-container"><canvas id="chartTiendas"></canvas></div></div>
                     <div class="chart-card"><h4>🏆 Ventas por producto (S/.)</h4><div class="chart-container"><canvas id="chartProductosResumen"></canvas></div></div>
                 </div>
+
+                <div class="bloque" style="margin-top: 15px;">
+                    <h2 class="section-title">¿Cómo piensa la red neuronal?</h2>
+                    <p class="section-sub">Tres gráficos para entender qué tan bien predice y qué variables pesan más.</p>
+                    <p id="explicStatus" class="loading-text">Entrenando la red neuronal para explicarla... la primera vez puede tardar hasta 30 segundos ⏳</p>
+                    <div class="charts-grid">
+                        <div class="chart-card c4">
+                            <h4>🎯 Precisión del modelo</h4>
+                            <div class="ring-wrap">
+                                <div class="ring" id="ring"><b id="ringTxt">--</b></div>
+                                <p id="ringDetalle" class="hint" style="margin:0; flex:1; min-width:130px;">R² medido con datos que la red neuronal no vio al entrenar.</p>
+                            </div>
+                        </div>
+                        <div class="chart-card c8">
+                            <h4>🔵 Predicción vs. venta real (datos de prueba)</h4>
+                            <div class="chart-container" style="height: 260px;"><canvas id="chartDispersion"></canvas></div>
+                            <p class="hint">Cada punto es una venta. Mientras más cerca de la línea roja, mejor acertó la red neuronal.</p>
+                        </div>
+                        <div class="chart-card full">
+                            <h4>🧠 ¿Qué variables influyen más en la predicción?</h4>
+                            <div class="chart-container" style="height: 280px;"><canvas id="chartImportancia"></canvas></div>
+                            <p class="hint">Mide cuánto empeora la predicción si se "desordena" esa variable. El precio pesa muchísimo porque la venta es cantidad × precio.</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -353,6 +400,11 @@
             <div class="contenido">
                 <div class="sim-layout">
                     <div class="panel">
+                        <div class="chips">
+                            <button data-escenario="economico">💸 Precio bajo, poco stock</button>
+                            <button data-escenario="promedio" class="active">⚖️ Escenario promedio</button>
+                            <button data-escenario="premium">💎 Precio alto, mucho stock</button>
+                        </div>
                         <div class="two-cols">
                             <div class="field"><label>Producto</label><select id="simProducto"></select></div>
                             <div class="field"><label>Tienda</label><select id="simTienda"></select></div>
@@ -416,6 +468,7 @@
 
         /* ---------- Menú lateral / vistas ---------- */
         let simListo = false;
+        let explicacionLista = false;
         function mostrarVista(nombre) {
             if (!VISTAS.includes(nombre)) return;
             document.querySelectorAll('.vista').forEach(v => v.classList.toggle('active', v.id === 'vista-' + nombre));
@@ -425,6 +478,7 @@
             window.scrollTo(0, 0);
             Object.values(charts).forEach(c => c.resize());
             if (nombre === 'simulador' && !simListo) simular();
+            if (nombre === 'prediccion' && !explicacionLista) cargarExplicacion();
         }
         document.addEventListener('click', e => {
             const destino = e.target.closest('[data-go]');
@@ -476,10 +530,10 @@
                 const nombresTienda = d.tiendas.map(t => t.nombre);
 
                 // Inicio: cifras y productos
-                $('hVentas').textContent = 'S/. ' + Math.round(d.ventas_totales).toLocaleString('es-PE');
-                $('hRegistros').textContent = d.total_registros.toLocaleString('es-PE');
-                $('hProductos').textContent = d.productos.length;
-                $('hTiendas').textContent = d.tiendas.length;
+                contar('hVentas', d.ventas_totales, 'S/. ');
+                contar('hRegistros', d.total_registros, '');
+                contar('hProductos', d.productos.length, '');
+                contar('hTiendas', d.tiendas.length, '');
                 $('marcasGrid').innerHTML = d.productos.map(p =>
                     `<button class="tile" data-go="productos"><em>${icono(p.nombre)}</em>${esc(p.nombre)}</button>`).join('');
 
@@ -520,6 +574,18 @@
                         <td class="num">${p.stock_promedio}</td>
                         <td class="num">${p.participacion}%</td></tr>`).join('');
 
+                // Productos: stock vs. unidades vendidas
+                dibujar('chartStock', {
+                    type: 'bar',
+                    data: {
+                        labels: d.stock_niveles.map(n => 'Stock ' + n),
+                        datasets: [{ label: 'Unidades promedio por transacción', data: d.stock_unidades,
+                            backgroundColor: ['#bae6fd', '#7dd3fc', '#38bdf8', '#0284c7', '#0c4a6e'], borderRadius: 8 }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true, title: { display: true, text: 'Unidades promedio' } } } }
+                });
+
                 // Simulador: llenar listas
                 $('simProducto').innerHTML = nombresProd.slice().sort().map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
                 $('simTienda').innerHTML = nombresTienda.slice().sort().map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
@@ -542,6 +608,7 @@
             if (!producto) return;
             const mi = ++simSeq;
             $('simCaja').classList.add('cargando');
+            if (!simListo) $('simUnidades').textContent = 'Entrenando la red neuronal... la primera vez puede tardar hasta 30 segundos';
             try {
                 const resp = await fetch('/api/simular', {
                     method: 'POST',
@@ -593,6 +660,84 @@
         });
         etiquetasSim();
 
+        /* ---------- Extras: contadores, anillo, explicación y escenarios ---------- */
+        function contar(id, destino, prefijo) {
+            const el = $(id);
+            const t0 = performance.now(), dur = 1200;
+            function paso(t) {
+                const k = Math.min((t - t0) / dur, 1);
+                el.textContent = prefijo + Math.round(destino * (1 - Math.pow(1 - k, 3))).toLocaleString('es-PE');
+                if (k < 1) requestAnimationFrame(paso);
+            }
+            requestAnimationFrame(paso);
+        }
+
+        function animarAnillo(r2) {
+            const objetivo = Math.max(0, Math.min(r2, 1)) * 100;
+            const t0 = performance.now(), dur = 1300;
+            function paso(t) {
+                const k = Math.min((t - t0) / dur, 1);
+                const v = objetivo * (1 - Math.pow(1 - k, 3));
+                $('ring').style.setProperty('--p', v.toFixed(1));
+                $('ringTxt').textContent = (v / 100).toFixed(2);
+                if (k < 1) requestAnimationFrame(paso);
+            }
+            requestAnimationFrame(paso);
+        }
+
+        async function cargarExplicacion() {
+            $('explicStatus').style.display = 'block';
+            try {
+                const resp = await fetch('/api/explicar_modelo');
+                const d = await resp.json();
+                if (!d.success) throw new Error(d.message || 'sin datos');
+                explicacionLista = true;
+
+                animarAnillo(d.r2);
+                $('ringDetalle').textContent = 'R² = ' + d.r2 + ' medido con ' + d.n_prueba.toLocaleString('es-PE') + ' ventas que la red neuronal no vio al entrenar.';
+
+                const maximo = Math.max(...d.puntos.map(p => Math.max(p.x, p.y)));
+                dibujar('chartDispersion', {
+                    type: 'scatter',
+                    data: { datasets: [
+                        { label: 'Ventas de prueba', data: d.puntos, backgroundColor: 'rgba(2,132,199,0.45)', pointRadius: 3 },
+                        { type: 'line', label: 'Predicción perfecta', data: [{ x: 0, y: 0 }, { x: maximo, y: maximo }], borderColor: '#ef4444', borderDash: [6, 4], borderWidth: 2, pointRadius: 0 }
+                    ] },
+                    options: { responsive: true, maintainAspectRatio: false,
+                        scales: { x: { title: { display: true, text: 'Venta real (S/.)' } }, y: { title: { display: true, text: 'Venta predicha (S/.)' } } } }
+                });
+
+                dibujar('chartImportancia', {
+                    type: 'bar',
+                    data: { labels: d.variables, datasets: [{ label: 'Influencia (%)', data: d.importancia,
+                        backgroundColor: ['#0284c7', '#2563eb', '#7c3aed', '#10b981', '#ea580c', '#db2777', '#64748b'], borderRadius: 6 }] },
+                    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+                        scales: { x: { title: { display: true, text: 'Influencia en la predicción (%)' } } } }
+                });
+                $('explicStatus').style.display = 'none';
+            } catch (err) {
+                $('explicStatus').textContent = 'No se pudo cargar la explicación del modelo: ' + err.message;
+            }
+        }
+
+        const ESCENARIOS = { economico: { precio: 4.2, stock: 100 }, promedio: { precio: 8.5, stock: 275 }, premium: { precio: 15, stock: 450 } };
+        document.querySelectorAll('[data-escenario]').forEach(b => b.addEventListener('click', () => {
+            const e = ESCENARIOS[b.dataset.escenario];
+            $('simPrecio').value = e.precio;
+            $('simStock').value = e.stock;
+            document.querySelectorAll('[data-escenario]').forEach(x => x.classList.toggle('active', x === b));
+            etiquetasSim();
+            simular();
+        }));
+
+        // Entrena el modelo en segundo plano para que el Simulador responda rápido
+        function precalentar() {
+            fetch('/api/simular', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ producto: $('simProducto').value, tienda: $('simTienda').value, precio_unitario: 8.5, stock_actual: 275, temperatura_zona: 24, mes: 6, dia_semana: 2 })
+            }).catch(() => {});
+        }
+
         /* ---------- Botón: entrenar y mostrar métricas del modelo ---------- */
         $('btnEjecutar').addEventListener('click', async () => {
             const btn = $('btnEjecutar');
@@ -643,7 +788,7 @@
         });
 
         /* ---------- Inicio ---------- */
-        cargarResumen();
+        cargarResumen().then(() => setTimeout(precalentar, 1500));
         const inicial = location.hash.replace('#', '');
         if (VISTAS.includes(inicial)) mostrarVista(inicial);
     </script>

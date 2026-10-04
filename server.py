@@ -256,8 +256,8 @@ def predecir_ventas():
         mse = float(round(mean_squared_error(y_test, y_pred), 2))
         r2 = float(round(red_neuronal.score(X_test, y_test), 4))
 
-        escenario_prueba = X_train.mean().to_frame().T
-        prediccion_resultado = float(round(red_neuronal.predict(escenario_prueba)[0], 2))
+        # Venta promedio que predice la red neuronal sobre los datos de prueba
+        prediccion_resultado = float(round(float(y_pred.mean()), 2))
 
         return jsonify({
             "success": True,
