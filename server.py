@@ -21,6 +21,8 @@ app = Flask(__name__, static_folder='frontend_corporativo')
 # Subproyecto 2: endpoints extra del dashboard de ventas (productos y simulador)
 from ventas_extra import ventas_extra
 app.register_blueprint(ventas_extra)
+from estadistica_service import estadistica
+app.register_blueprint(estadistica)
 
 # Limpiar y forzar cabeceras de seguridad para evitar errores de Permissions-Policy ('join-ad-interest-group')
 @app.after_request
