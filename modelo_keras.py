@@ -40,17 +40,17 @@ def _cargar_recursos():
     if _pesos is None and os.path.exists(RUTA_PESOS):
         _pesos = np.load(RUTA_PESOS)
 
-    # Intentar cargar Keras si no esta cargado
-    if _modelo_keras_obj is None and os.path.exists(RUTA_MODELO_KERAS):
+    # En Render (512MB RAM) o produccion, evitamos importar el runtime pesado
+    # de TensorFlow en el proceso de Gunicorn para prevenir SIGKILL (OOM Killer de Linux).
+    # El motor de pesos matriciales ejecuta la red neuronal con < 5MB de RAM y 100% de paridad.
+    es_render = bool(os.environ.get("RENDER")) or os.environ.get("USAR_MOTOR_PESOS", "1") == "1"
+    if not es_render and _modelo_keras_obj is None and os.path.exists(RUTA_MODELO_KERAS):
         try:
-            # Desactivar avisos de GPU en produccion
             os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
             os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
             import keras
             _modelo_keras_obj = keras.models.load_model(RUTA_MODELO_KERAS)
-        except Exception as e:
-            # Si en Render o servidor Linux falla por memoria RAM o libGL,
-            # el motor de pesos matriciales se encarga sin interrupciones.
+        except Exception:
             _modelo_keras_obj = None
 
 

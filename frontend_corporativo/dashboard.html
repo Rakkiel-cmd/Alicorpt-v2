@@ -883,6 +883,10 @@
         async function inicializarKeras() {
             try {
                 const resp = await fetch('/api/keras/info');
+                if (!resp.ok) {
+                    console.warn('API /api/keras/info no respondió 200:', resp.status);
+                    return;
+                }
                 const d = await resp.json();
                 if (d.success) {
                     $('kR2').textContent = (d.metricas.r2 * 100).toFixed(2) + '%';
@@ -928,6 +932,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
+                if (!r1.ok) throw new Error('Servidor retornó ' + r1.status);
                 const d1 = await r1.json();
                 if (mi !== kSeq) return;
                 if (!d1.success) throw new Error(d1.message);
@@ -942,6 +947,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
+                if (!r2.ok) return;
                 const d2 = await r2.json();
                 if (mi !== kSeq) return;
 
