@@ -1,0 +1,78 @@
+{
+  "framework": "TensorFlow & Keras",
+  "keras_version": "3.15.1",
+  "total_registros_entrenamiento": 100000,
+  "n_train": 80000,
+  "n_test": 20000,
+  "input_dim": 14,
+  "feature_names": [
+    "precio_unitario",
+    "stock_actual",
+    "temperatura_zona",
+    "mes",
+    "dia_semana",
+    "producto_Aceite Primor 1L",
+    "producto_Detergente Bolívar 2kg",
+    "producto_Fideos Don Vittorio 500g",
+    "producto_Harina Blanca Flor 1kg",
+    "producto_Mayonesa Alacena 500g",
+    "tienda_Hipermercado Centro",
+    "tienda_Mayorista San Martín",
+    "tienda_Supermercado Lima Norte",
+    "tienda_Tienda Express Los Olivos"
+  ],
+  "scaler_mean": [
+    8.01729625,
+    274.9097125,
+    23.994598875,
+    6.49785,
+    3.001,
+    0.199975,
+    0.1988,
+    0.200225,
+    0.2006875,
+    0.2003125,
+    0.2493375,
+    0.2508625,
+    0.2499125,
+    0.2498875
+  ],
+  "scaler_scale": [
+    3.756832371125432,
+    129.71360187222982,
+    3.465944784484994,
+    3.441525152821057,
+    2.005074562204608,
+    0.3999812487792397,
+    0.39909718114764986,
+    0.40016865116473077,
+    0.4005147030306752,
+    0.40023418437678465,
+    0.43262953100054324,
+    0.4335095224948929,
+    0.4329621719547217,
+    0.4329477304984402
+  ],
+  "target_mean": 138.06716918945312,
+  "target_std": 74.0541000366211,
+  "metricas": {
+    "r2": 0.7798,
+    "mae": 25.07,
+    "rmse": 34.79,
+    "mse": 1210.02
+  },
+  "productos": [
+    "Aceite Primor 1L",
+    "Detergente Bolívar 2kg",
+    "Fideos Don Vittorio 500g",
+    "Harina Blanca Flor 1kg",
+    "Mayonesa Alacena 500g"
+  ],
+  "tiendas": [
+    "Hipermercado Centro",
+    "Mayorista San Martín",
+    "Supermercado Lima Norte",
+    "Tienda Express Los Olivos"
+  ],
+  "fecha_entrenamiento": "2026-10-18 13:46:28"
+}

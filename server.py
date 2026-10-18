@@ -23,6 +23,8 @@ from ventas_extra import ventas_extra
 app.register_blueprint(ventas_extra)
 from estadistica_service import estadistica
 app.register_blueprint(estadistica)
+from modelo_keras import modelo_keras
+app.register_blueprint(modelo_keras)
 
 # Limpiar y forzar cabeceras de seguridad para evitar errores de Permissions-Policy ('join-ad-interest-group')
 @app.after_request

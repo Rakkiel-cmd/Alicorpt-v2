@@ -219,6 +219,7 @@
             <button data-go="productos"><span class="ico">🛒</span> Productos</button>
             <button data-go="prediccion"><span class="ico">📈</span> Predicción de ventas</button>
             <button data-go="simulador"><span class="ico">🧪</span> Simulador</button>
+            <button data-go="keras"><span class="ico">🧠</span> Deep Learning (Keras)</button>
         </nav>
         <div class="sb-foot">
             <div class="sb-user"><i>👤</i><div><b>Administrador</b>Sesión activa</div></div>
@@ -434,12 +435,93 @@
             </div>
         </section>
 
+        <!-- ================= VISTA: TENSORFLOW & KERAS (DEEP LEARNING) ================= -->
+        <section id="vista-keras" class="vista">
+            <div class="page-hero">
+                <div class="crumbs">Inicio / <b>Deep Learning con TensorFlow & Keras</b></div>
+                <span class="chip" style="margin-bottom:8px;">Subproyecto 2 · Modelo Entrenado con 100k Registros Supabase</span>
+                <h1>Red Neuronal Profunda (Keras Sequential)</h1>
+                <p>Modelo de Deep Learning entrenado con las 100,000 transacciones históricas de Supabase para predecir ventas corporativas y analizar demanda multivariable.</p>
+            </div>
+            <div class="contenido">
+                <div class="metrics-grid" style="margin-bottom:25px;">
+                    <div class="metric-card" style="--accent: #ea580c;">
+                        <h4>Framework & Motor</h4>
+                        <p style="font-size:18px;">TensorFlow / Keras 3</p>
+                        <small id="kMotor">Keras Sequential DNN</small>
+                    </div>
+                    <div class="metric-card" style="--accent: #10b981;">
+                        <h4>Precisión del Modelo (R²)</h4>
+                        <p id="kR2">77.98%</p>
+                        <small>Evaluado sobre 20,000 datos de prueba</small>
+                    </div>
+                    <div class="metric-card" style="--accent: #0284c7;">
+                        <h4>Error Absoluto Medio (MAE)</h4>
+                        <p id="kMAE">S/. 25.07</p>
+                        <small>Desviación media de predicción</small>
+                    </div>
+                    <div class="metric-card" style="--accent: #7c3aed;">
+                        <h4>Dataset en Base de Datos</h4>
+                        <p id="kRegistros">100,000</p>
+                        <small>Tabla transacciones_alicorp (PostgreSQL)</small>
+                    </div>
+                </div>
+
+                <div class="sim-layout">
+                    <div class="panel">
+                        <h3 style="margin-top:0;color:var(--primary);font-size:18px;">🧪 Inferencia en Tiempo Real</h3>
+                        <p style="color:var(--text-muted);font-size:13px;margin-bottom:18px;">Ajuste los parámetros para consultar la Red Neuronal de Keras:</p>
+                        <div class="two-cols">
+                            <div class="field"><label>Producto</label><select id="kProducto"></select></div>
+                            <div class="field"><label>Tienda</label><select id="kTienda"></select></div>
+                        </div>
+                        <div class="field"><label>Precio unitario <b id="kvPrecio">S/. 8.5</b></label><input type="range" id="kPrecio" min="4" max="15" step="0.1" value="8.5"></div>
+                        <div class="field"><label>Stock actual <b id="kvStock">250 unid.</b></label><input type="range" id="kStock" min="50" max="500" step="5" value="250"></div>
+                        <div class="field"><label>Temperatura zona <b id="kvTemp">24.0 °C</b></label><input type="range" id="kTemp" min="18" max="30" step="0.5" value="24"></div>
+                        <div class="two-cols">
+                            <div class="field"><label>Mes</label>
+                                <select id="kMes"><option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option><option value="4">Abril</option><option value="5">Mayo</option><option value="6" selected>Junio</option><option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select>
+                            </div>
+                            <div class="field"><label>Día de la semana</label>
+                                <select id="kDia"><option value="0">Lunes</option><option value="1">Martes</option><option value="2" selected>Miércoles</option><option value="3">Jueves</option><option value="4">Viernes</option><option value="5">Sábado</option><option value="6">Domingo</option></select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <div id="kResultBox" class="result-big" style="background: linear-gradient(135deg, #1e1b4b, #312e81);">
+                            <span>Predicción Keras Sequential (S/.)</span>
+                            <h2 id="kResultado">S/. --</h2>
+                            <small id="kUnidades">Calculando predicción...</small>
+                        </div>
+                        <h4 style="margin:0 0 10px;color:var(--primary);font-size:15px;">Comparación de Demanda por Producto (Keras)</h4>
+                        <div class="chart-container" style="height: 240px;"><canvas id="chartKerasSim"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="bloque">
+                    <div class="bienvenida" style="grid-template-columns: 1fr;">
+                        <div>
+                            <h3 style="margin-top:0;color:var(--primary);">📐 Ficha Técnica de la Arquitectura Keras</h3>
+                            <p style="font-size:13px;color:var(--text-muted);line-height:1.7;margin:0;">
+                                • <b>Tipo de Modelo:</b> Deep Neural Network (DNN) con <code>tf.keras.Sequential</code>.<br>
+                                • <b>Capas:</b> <code>Input(14)</code> ➔ <code>Dense(64, ReLU)</code> ➔ <code>BatchNormalization()</code> ➔ <code>Dropout(0.1)</code> ➔ <code>Dense(32, ReLU)</code> ➔ <code>Dense(16, ReLU)</code> ➔ <code>Dense(1, Linear)</code>.<br>
+                                • <b>Optimizador:</b> Adam (Learning Rate = 0.002 con reducción por meseta <code>ReduceLROnPlateau</code>).<br>
+                                • <b>Entrenamiento Masivo:</b> 100,000 registros procesados desde Supabase PostgreSQL (80% Entrenamiento, 20% Prueba con EarlyStopping).<br>
+                                • <b>Optimización para la Nube (Render):</b> Arquitectura Dual-Engine que preserva el archivo nativo <code>modelo_ventas_keras.keras</code> y utiliza pesos matriciales exportados para garantizar alta velocidad con menos de 10 MB de RAM.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- ================= PIE DE PÁGINA ================= -->
         <footer class="footer">
             <div class="footer-grid">
                 <div><h5>Alicorp Intelligence</h5><p>Proyecto SENATI · Subproyecto 2: Predicción de ventas con Redes Neuronales.<br>Datos simulados con fines académicos.</p></div>
-                <div><h5>Secciones</h5><button data-go="inicio">Inicio</button><button data-go="productos">Productos</button><button data-go="prediccion">Predicción de ventas</button><button data-go="simulador">Simulador</button></div>
-                <div><h5>Tecnología</h5><p>Python · Flask<br>scikit-learn (MLPRegressor)<br>Chart.js</p></div>
+                <div><h5>Secciones</h5><button data-go="inicio">Inicio</button><button data-go="productos">Productos</button><button data-go="prediccion">Predicción de ventas</button><button data-go="simulador">Simulador</button><button data-go="keras">Deep Learning (Keras)</button></div>
+                <div><h5>Tecnología</h5><p>Python · Flask<br>TensorFlow & Keras<br>scikit-learn · Chart.js</p></div>
             </div>
             <div class="copy">© 2026 Proyecto académico SENATI. No es un sitio oficial de Alicorp.</div>
         </footer>
@@ -449,7 +531,7 @@
         const charts = {};
         const COLORES = ['#0284c7', '#2563eb', '#7c3aed', '#10b981', '#ea580c'];
         const ICONOS = { 'Aceite': '🫒', 'Fideos': '🍝', 'Mayonesa': '🥫', 'Detergente': '🧼', 'Harina': '🌾' };
-        const VISTAS = ['inicio', 'productos', 'prediccion', 'simulador'];
+        const VISTAS = ['inicio', 'productos', 'prediccion', 'simulador', 'keras'];
         const $ = id => document.getElementById(id);
         const fmt = n => Number(n).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -470,6 +552,7 @@
         /* ---------- Menú lateral / vistas ---------- */
         let simListo = false;
         let explicacionLista = false;
+        let kerasListo = false;
         function mostrarVista(nombre) {
             if (!VISTAS.includes(nombre)) return;
             document.querySelectorAll('.vista').forEach(v => v.classList.toggle('active', v.id === 'vista-' + nombre));
@@ -480,6 +563,7 @@
             Object.values(charts).forEach(c => c.resize());
             if (nombre === 'simulador' && !simListo) simular();
             if (nombre === 'prediccion' && !explicacionLista) cargarExplicacion();
+            if (nombre === 'keras' && !kerasListo) inicializarKeras();
         }
         document.addEventListener('click', e => {
             const destino = e.target.closest('[data-go]');
@@ -786,6 +870,112 @@
                 btn.disabled = false;
                 status.style.display = 'none';
             }
+        });
+
+        /* ---------- Deep Learning con TensorFlow & Keras (Integrante 4) ---------- */
+        let kTimer = null, kSeq = 0;
+        function etiquetasKeras() {
+            $('kvPrecio').textContent = 'S/. ' + Number($('kPrecio').value).toFixed(1);
+            $('kvStock').textContent = $('kStock').value + ' unid.';
+            $('kvTemp').textContent = Number($('kTemp').value).toFixed(1) + ' °C';
+        }
+
+        async function inicializarKeras() {
+            try {
+                const resp = await fetch('/api/keras/info');
+                const d = await resp.json();
+                if (d.success) {
+                    $('kR2').textContent = (d.metricas.r2 * 100).toFixed(2) + '%';
+                    $('kMAE').textContent = 'S/. ' + d.metricas.mae;
+                    $('kRegistros').textContent = d.total_registros_entrenamiento.toLocaleString('es-PE');
+                    $('kMotor').textContent = d.motor_activo;
+                    if (d.productos && d.tiendas) {
+                        $('kProducto').innerHTML = d.productos.map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join('');
+                        $('kTienda').innerHTML = d.tiendas.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
+                    }
+                }
+            } catch (e) {
+                console.warn('No se pudo cargar info de Keras:', e);
+            }
+            etiquetasKeras();
+            simularKeras();
+        }
+
+        async function simularKeras() {
+            etiquetasKeras();
+            const producto = $('kProducto').value;
+            const tienda = $('kTienda').value;
+            if (!producto || !tienda) return;
+
+            const mi = ++kSeq;
+            $('kResultBox').classList.add('cargando');
+            $('kUnidades').textContent = 'Consultando Red Neuronal Keras...';
+
+            const payload = {
+                producto: producto,
+                tienda: tienda,
+                precio_unitario: $('kPrecio').value,
+                stock_actual: $('kStock').value,
+                temperatura_zona: $('kTemp').value,
+                mes: $('kMes').value,
+                dia_semana: $('kDia').value
+            };
+
+            try {
+                // 1. Prediccion individual
+                const r1 = await fetch('/api/keras/predecir', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const d1 = await r1.json();
+                if (mi !== kSeq) return;
+                if (!d1.success) throw new Error(d1.message);
+
+                kerasListo = true;
+                $('kResultado').textContent = 'S/. ' + fmt(d1.prediccion_soles);
+                $('kUnidades').textContent = '≈ ' + d1.unidades_estimadas + ' unidades estimadas · Motor: ' + d1.motor;
+
+                // 2. Comparativa entre todos los productos
+                const r2 = await fetch('/api/keras/simular_todos', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const d2 = await r2.json();
+                if (mi !== kSeq) return;
+
+                if (d2.success && d2.comparativa) {
+                    const etiquetas = d2.comparativa.map(x => x.producto);
+                    const valores = d2.comparativa.map(x => x.prediccion_soles);
+                    const colores = etiquetas.map(n => n === producto ? '#ea580c' : '#818cf8');
+
+                    if (charts.chartKerasSim) {
+                        charts.chartKerasSim.data.labels = etiquetas;
+                        charts.chartKerasSim.data.datasets[0].data = valores;
+                        charts.chartKerasSim.data.datasets[0].backgroundColor = colores;
+                        charts.chartKerasSim.update();
+                    } else {
+                        dibujar('chartKerasSim', {
+                            type: 'bar',
+                            data: { labels: etiquetas, datasets: [{ label: 'Venta estimada (S/.)', data: valores, backgroundColor: colores, borderRadius: 6 }] },
+                            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                        });
+                    }
+                }
+            } catch (err) {
+                if (mi === kSeq) $('kUnidades').textContent = 'Error: ' + err.message;
+            } finally {
+                if (mi === kSeq) $('kResultBox').classList.remove('cargando');
+            }
+        }
+
+        ['kProducto', 'kTienda', 'kPrecio', 'kStock', 'kTemp', 'kMes', 'kDia'].forEach(id => {
+            $(id).addEventListener('input', () => {
+                etiquetasKeras();
+                clearTimeout(kTimer);
+                kTimer = setTimeout(simularKeras, 300);
+            });
         });
 
         /* ---------- Inicio ---------- */
