@@ -182,6 +182,26 @@
         .stat { transition: transform .25s ease; }
         .stat:hover { transform: translateY(-4px); }
 
+               /* ================= INICIO DEl integrante 6(Reporte mensual) ================= */
+
+        /* Badge = la etiquetita redonda de la columna "Estado de rentabilidad" */
+        .rm-badge { display: inline-block; padding: 5px 14px; border-radius: 30px; font-size: 12px; font-weight: 800; }
+        .rm-badge.ganancia { background: #dcfce7; color: #15803d; }  /* verde: ganancia (> +2%) */
+        .rm-badge.neutro   { background: #e2e8f0; color: #475569; }  /* gris: neutro (-2% a +2%) */
+        .rm-badge.perdida  { background: #fee2e2; color: #b91c1c; }  /* rojo: pérdida (< -2%) */
+
+        /* Colores del porcentaje en la columna "Variación estimada (%)" */
+        .rm-pos { color: #15803d; font-weight: 800; }  /* positivo = verde */
+        .rm-neg { color: #b91c1c; font-weight: 800; }  /* negativo = rojo */
+
+        /* Ancho y separación del selector de mes */
+        .rm-filtro { max-width: 260px; margin-bottom: 25px; }
+
+        /* Aviso amarillo de "datos de ejemplo" (empieza escondido, el JS lo muestra) */
+        .rm-demo { display: none; background: #fffbeb; border: 1px solid #fde68a; color: #92400e; border-radius: 12px; padding: 12px 16px; font-size: 13px; margin-bottom: 20px; }
+
+        /* ================= FIN DEL INTEGRANTE 6  ================= */
+
         /* ===== PIE DE PÁGINA ===== */
         .footer { background: var(--primary); color: #94a3b8; padding: 40px 40px 24px; font-size: 13px; }
         .footer-grid { max-width: 1300px; margin: auto; display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 30px; }
@@ -220,6 +240,7 @@
             <button data-go="prediccion"><span class="ico">📈</span> Predicción de ventas</button>
             <button data-go="simulador"><span class="ico">🧪</span> Simulador</button>
             <button data-go="keras"><span class="ico">🧠</span> Deep Learning (Keras)</button>
+            <button data-go="reporte"><span class="ico">📅</span> Reporte mensual</button>
         </nav>
         <div class="sb-foot">
             <div class="sb-user"><i>👤</i><div><b>Administrador</b>Sesión activa</div></div>
@@ -516,6 +537,61 @@
             </div>
         </section>
 
+                <!-- ================= VISTA: REPORTE MENSUAL (Integrante 6) ================= -->
+        <section id="vista-reporte" class="vista">
+            <div class="page-hero">
+                <div class="crumbs">Inicio / <b>Reporte mensual</b></div>
+                <h1>Reporte mensual y proyección</h1>
+                <p>Rendimiento de cada producto en el mes elegido, su precio proyectado con Regresión Lineal y el porcentaje de ganancia o pérdida esperado.</p>
+            </div>
+            <div class="contenido">
+                <div id="rmDemo" class="rm-demo"></div>
+
+                <div class="field rm-filtro">
+                    <label for="selectMesReporte">Mes a consultar</label>
+                    <select id="selectMesReporte"></select>
+                </div>
+
+                <div class="metrics-grid">
+                    <div class="metric-card" style="--accent: #0284c7;">
+                        <h4>Venta total del mes</h4>
+                        <p id="rmVentaTotal">S/. --</p>
+                        <small>Suma de las ventas de todos los productos</small>
+                    </div>
+                    <div class="metric-card" id="rmMargenCard" style="--accent: #10b981;">
+                        <h4>Indicador lineal: margen promedio proyectado</h4>
+                        <p id="rmMargen">--</p>
+                        <small id="rmMargenDetalle">Predicción de la Regresión Lineal</small>
+                    </div>
+                    <div class="metric-card" style="--accent: #dc2626;">
+                        <h4>Producto con mayor riesgo</h4>
+                        <p id="rmRiesgo" style="font-size:18px;">--</p>
+                        <small id="rmRiesgoDetalle">Mayor caída proyectada</small>
+                    </div>
+                </div>
+
+                <div class="charts-grid">
+                    <div class="chart-card full">
+                        <h4>📋 Rendimiento y proyección por producto</h4>
+                        <div class="table-wrap">
+                            <table>
+                                <thead><tr>
+                                    <th>Producto</th><th>Categoría</th>
+                                    <th class="num">Precio actual (S/.)</th>
+                                    <th class="num">Precio futuro proyectado (S/.)</th>
+                                    <th class="num">Variación estimada (%)</th>
+                                    <th class="num">Ventas del mes (S/.)</th>
+                                    <th>Estado de rentabilidad</th>
+                                </tr></thead>
+                                <tbody id="tablaReporte"><tr><td colspan="7">Elige un mes para ver el reporte.</td></tr></tbody>
+                            </table>
+                        </div>
+                        <p class="hint">Variación = (precio futuro − precio actual) ÷ precio actual × 100. Ganancia si es mayor a +2%, pérdida si es menor a −2%, y neutro entre ambos.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- ================= PIE DE PÁGINA ================= -->
         <footer class="footer">
             <div class="footer-grid">
@@ -531,7 +607,7 @@
         const charts = {};
         const COLORES = ['#0284c7', '#2563eb', '#7c3aed', '#10b981', '#ea580c'];
         const ICONOS = { 'Aceite': '🫒', 'Fideos': '🍝', 'Mayonesa': '🥫', 'Detergente': '🧼', 'Harina': '🌾' };
-        const VISTAS = ['inicio', 'productos', 'prediccion', 'simulador', 'keras'];
+        const VISTAS = ['inicio', 'productos', 'prediccion', 'simulador', 'keras', 'reporte'];
         const $ = id => document.getElementById(id);
         const fmt = n => Number(n).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -553,6 +629,7 @@
         let simListo = false;
         let explicacionLista = false;
         let kerasListo = false;
+        let reporteListo = false; //integrante 6 
         function mostrarVista(nombre) {
             if (!VISTAS.includes(nombre)) return;
             document.querySelectorAll('.vista').forEach(v => v.classList.toggle('active', v.id === 'vista-' + nombre));
@@ -564,6 +641,7 @@
             if (nombre === 'simulador' && !simListo) simular();
             if (nombre === 'prediccion' && !explicacionLista) cargarExplicacion();
             if (nombre === 'keras' && !kerasListo) inicializarKeras();
+            if (nombre === 'reporte' && !reporteListo) inicializarReporte();   // integrante 6 
         }
         document.addEventListener('click', e => {
             const destino = e.target.closest('[data-go]');
@@ -984,6 +1062,121 @@
             });
         });
 
+          /* ================= INICIO DE LO MÍO (Reporte mensual - Integrante 6) ================= */
+
+        // Rango de meses que aparece en el selector. Cámbialo si tu tabla de Supabase tiene otras fechas.
+        const MES_INICIO = { anio: 2024, mes: 1 };
+        const MES_FIN    = { anio: 2025, mes: 12 };
+        const NOMBRES_MES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+        // Decide el estado según la regla del docente:
+        // Ganancia si sube más de 2% | Neutro entre -2% y +2% | Pérdida si baja más de 2%
+        function estadoRentabilidad(variacion) {
+            if (variacion > 2)  return { clase: 'ganancia', texto: '🟢 Ganancia' };
+            if (variacion < -2) return { clase: 'perdida',  texto: '🔴 Pérdida' };
+            return { clase: 'neutro', texto: '⚪ Neutro' };
+        }
+
+        // Datos de ejemplo, solo se usan si el backend todavía no tiene el endpoint listo
+        function reporteDemo() {
+            return [
+                { producto: 'Aceite Primor 1L',     precio_actual: 8.50,  precio_futuro: 8.92,  ventas_mes: 15240.50 },
+                { producto: 'Fideos Don Vittorio',  precio_actual: 3.20,  precio_futuro: 3.21,  ventas_mes: 9870.10 },
+                { producto: 'Mayonesa Alacena',     precio_actual: 6.90,  precio_futuro: 7.10,  ventas_mes: 8120.00 },
+                { producto: 'Detergente Bolívar',   precio_actual: 12.90, precio_futuro: 12.20, ventas_mes: 7420.00 },
+                { producto: 'Harina Blanca Flor',   precio_actual: 4.80,  precio_futuro: 4.55,  ventas_mes: 5310.75 }
+            ];
+        }
+
+        // Se ejecuta la primera vez que abres la pantalla: llena el selector con los meses
+        function inicializarReporte() {
+            const opciones = ['<option value="">Elige un mes</option>'];
+            let a = MES_INICIO.anio, m = MES_INICIO.mes;
+            while (a < MES_FIN.anio || (a === MES_FIN.anio && m <= MES_FIN.mes)) {
+                const valor = a + '-' + String(m).padStart(2, '0');   // ej: "2024-06"
+                opciones.push(`<option value="${valor}">${NOMBRES_MES[m - 1]} ${a}</option>`);
+                if (++m > 12) { m = 1; a++; }
+            }
+            $('selectMesReporte').innerHTML = opciones.join('');
+            reporteListo = true;
+        }
+
+        // Pide los datos del mes al backend. Si falla, usa los datos de ejemplo y avisa.
+        async function cargarReporte(mes) {
+            const tbody = $('tablaReporte');
+            tbody.innerHTML = '<tr><td colspan="7">Cargando reporte...</td></tr>';
+            $('rmDemo').style.display = 'none';
+
+            let filas, regresion = null;
+            try {
+                const resp = await fetch('/api/reporte_mensual?mes=' + encodeURIComponent(mes));
+                if (!resp.ok) throw new Error('Servidor retornó ' + resp.status);
+                const d = await resp.json();
+                if (d.success === false) throw new Error(d.message || 'sin datos');
+                // Acepta un arreglo directo o { productos: [...], regresion: { m, b, r2 } }
+                filas = Array.isArray(d) ? d : d.productos;
+                regresion = Array.isArray(d) ? null : d.regresion;
+            } catch (err) {
+                console.warn('Reporte mensual: usando datos de ejemplo.', err);
+                filas = reporteDemo();
+                $('rmDemo').textContent = 'Estás viendo datos de EJEMPLO: el endpoint /api/reporte_mensual todavía no responde (' + err.message + ').';
+                $('rmDemo').style.display = 'block';
+            }
+            pintarReporte(filas, regresion);
+        }
+
+        // Calcula todo y pinta la tabla y las 3 tarjetas
+        function pintarReporte(filas, regresion) {
+            const tbody = $('tablaReporte');
+            if (!filas || !filas.length) {
+                tbody.innerHTML = '<tr><td colspan="7">No hay ventas registradas en este mes.</td></tr>';
+                $('rmVentaTotal').textContent = 'S/. 0.00';
+                $('rmMargen').textContent = '--';
+                $('rmRiesgo').textContent = '--';
+                return;
+            }
+
+            // Variación % = ((precio futuro - precio actual) / precio actual) * 100
+            const datos = filas.map(f => {
+                const actual = Number(f.precio_actual), futuro = Number(f.precio_futuro);
+                const variacion = actual ? ((futuro - actual) / actual) * 100 : 0;
+                return { producto: f.producto, actual, futuro, ventas: Number(f.ventas_mes), variacion, estado: estadoRentabilidad(variacion) };
+            });
+
+            // Tabla: una fila por producto
+            tbody.innerHTML = datos.map(d => `
+                <tr>
+                    <td><b>${icono(d.producto)} ${esc(d.producto)}</b></td>
+                    <td>${nombreCategoria(d.producto)}</td>
+                    <td class="num">${fmt(d.actual)}</td>
+                    <td class="num">${fmt(d.futuro)}</td>
+                    <td class="num ${d.variacion >= 0 ? 'rm-pos' : 'rm-neg'}">${d.variacion >= 0 ? '+' : ''}${fmt(d.variacion)}%</td>
+                    <td class="num">${fmt(d.ventas)}</td>
+                    <td><span class="rm-badge ${d.estado.clase}">${d.estado.texto}</span></td>
+                </tr>`).join('');
+
+            // Tarjeta 1: venta total del mes (suma de todas las ventas)
+            $('rmVentaTotal').textContent = 'S/. ' + fmt(datos.reduce((s, d) => s + d.ventas, 0));
+
+            // Tarjeta 2: indicador lineal = promedio de las variaciones
+            const margen = datos.reduce((s, d) => s + d.variacion, 0) / datos.length;
+            $('rmMargen').textContent = (margen >= 0 ? '+' : '') + fmt(margen) + '%';
+            $('rmMargenCard').style.setProperty('--accent', margen >= 0 ? '#10b981' : '#dc2626');
+            $('rmMargenDetalle').textContent = regresion
+                ? `y = ${fmt(regresion.m)}x + ${fmt(regresion.b)} · R² = ${fmt(regresion.r2)}`
+                : 'Predicción de la Regresión Lineal';
+
+            // Tarjeta 3: producto con mayor riesgo = el que tiene la peor variación
+            const peor = datos.reduce((a, b) => (b.variacion < a.variacion ? b : a));
+            $('rmRiesgo').textContent = peor.producto;
+            $('rmRiesgoDetalle').textContent = 'Variación proyectada: ' + fmt(peor.variacion) + '%';
+        }
+
+        // Cuando eliges un mes en el selector, carga su reporte
+        $('selectMesReporte').addEventListener('change', e => { if (e.target.value) cargarReporte(e.target.value); });
+
+        /* ================= FIN DE LO MÍO ================= */
+    
         /* ---------- Inicio ---------- */
         cargarResumen().then(() => setTimeout(precalentar, 1500));
         const inicial = location.hash.replace('#', '');
