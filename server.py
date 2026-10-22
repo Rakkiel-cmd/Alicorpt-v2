@@ -256,5 +256,6 @@ def predecir_ventas():
         return jsonify({"success": False, "message": str(e)})
 
 if __name__ == '__main__':
-    print("Iniciando servidor unificado (Web + IA)...")
-    app.run(debug=True, port=5000)
+    port = int(os.environ.get("PORT", 7860))
+    print(f"Iniciando servidor unificado (Web + IA) en el puerto {port}...")
+    app.run(host="0.0.0.0", port=port, debug=False)
