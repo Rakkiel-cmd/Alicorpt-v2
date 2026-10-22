@@ -1,14 +1,19 @@
 """Graficos analiticos del dataset de transacciones."""
 
 import io
+import logging
 import os
 
 import numpy as np
 import pandas as pd
 from flask import Blueprint, Response, jsonify, request, send_file
 from sklearn.linear_model import LinearRegression
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
+from sklearn.preprocessing import StandardScaler
 
 graficos_analysis = Blueprint("graficos_analysis", __name__)
+_log = logging.getLogger(__name__)
 
 RUTA_CSV = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -25,19 +30,63 @@ _COLUMNAS = [
 ]
 
 
-def _cargar_datos():
+def _limite_datos():
     limite = request.args.get("limite", default=15000, type=int)
-    limite = max(100, min(limite, 15000))
+    return max(100, min(limite, 15000))
+
+
+def _cargar_datos_supabase(limite):
+    url = os.environ.get("SUPABASE_URL")
+    key = os.environ.get("SUPABASE_KEY")
+    if not url or not key:
+        raise RuntimeError("Supabase no configurado.")
+
+    from supabase import Client, create_client
+
+    supabase: Client = create_client(url, key)
+    filas = []
+    tamano_lote = 1000
+    for inicio in range(0, limite, tamano_lote):
+        fin = min(inicio + tamano_lote - 1, limite - 1)
+        respuesta = (
+            supabase.table("transacciones_alicorp")
+            .select(",".join(_COLUMNAS))
+            .range(inicio, fin)
+            .execute()
+        )
+        lote = respuesta.data or []
+        filas.extend(lote)
+        if len(lote) < tamano_lote:
+            break
+
+    if not filas:
+        raise RuntimeError("Supabase no devolvio transacciones para segmentar.")
+    return pd.DataFrame(filas, columns=_COLUMNAS).dropna()
+
+
+def _cargar_datos():
+    limite = _limite_datos()
+    try:
+        datos = _cargar_datos_supabase(limite)
+        datos.attrs["fuente"] = "Supabase PostgreSQL (transacciones_alicorp)"
+        return datos
+    except Exception as error:
+        _log.warning("No se pudo cargar Supabase para graficos; se usara respaldo local: %s", error)
+
     if os.path.exists(RUTA_CSV):
         try:
-            return pd.read_csv(RUTA_CSV, usecols=_COLUMNAS, nrows=limite).dropna()
+            datos = pd.read_csv(RUTA_CSV, usecols=_COLUMNAS, nrows=limite).dropna()
+            datos.attrs["fuente"] = "CSV local"
+            return datos
         except Exception:
             pass
 
     ruta_alt = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "transacciones_alicorp_100k.csv")
     if os.path.exists(ruta_alt):
         try:
-            return pd.read_csv(ruta_alt, usecols=_COLUMNAS, nrows=limite).dropna()
+            datos = pd.read_csv(ruta_alt, usecols=_COLUMNAS, nrows=limite).dropna()
+            datos.attrs["fuente"] = "CSV local alternativo"
+            return datos
         except Exception:
             pass
 
@@ -49,13 +98,15 @@ def _cargar_datos():
     temps = np.random.uniform(18.0, 30.0, n)
     cantidades = np.random.poisson(lam=15, size=n) + (stocks * 0.01).astype(int)
     ventas = cantidades * precios
-    return pd.DataFrame({
+    datos = pd.DataFrame({
         "precio_unitario": precios,
         "stock_actual": stocks,
         "temperatura_zona": temps,
         "cantidad_vendida": cantidades,
         "ventas_totales": ventas
     })
+    datos.attrs["fuente"] = "Datos simulados"
+    return datos
 
 
 def _figura_png(figura) -> Response:
@@ -187,3 +238,79 @@ def grafico_probabilidades():
         return _figura_png(crear_campana_probabilidades(_cargar_datos()))
     except Exception as error:
         return _error_grafico(error)
+
+
+@graficos_analysis.get("/api/segmentacion")
+def segmentacion_no_supervisada():
+    """Segmenta transacciones sin etiquetas usando K-Means."""
+    try:
+        datos = _cargar_datos()
+        columnas = ["precio_unitario", "stock_actual", "cantidad_vendida", "ventas_totales"]
+        matriz = datos[columnas].astype(float)
+        numero_clusters = request.args.get("clusters", default=3, type=int)
+        numero_clusters = max(2, min(numero_clusters, 5))
+
+        if len(matriz) <= numero_clusters:
+            raise ValueError("No hay suficientes registros para crear los segmentos.")
+
+        escalador = StandardScaler()
+        matriz_escalada = escalador.fit_transform(matriz)
+        modelo = KMeans(n_clusters=numero_clusters, random_state=42, n_init=10)
+        etiquetas = modelo.fit_predict(matriz_escalada)
+        datos = datos.copy()
+        datos["segmento"] = etiquetas
+
+        promedios = datos.groupby("segmento")[columnas].mean()
+        orden = promedios["ventas_totales"].sort_values().index.tolist()
+        nombres = {
+            segmento: f"Segmento {posicion + 1}"
+            for posicion, segmento in enumerate(orden)
+        }
+        datos["segmento_nombre"] = datos["segmento"].map(nombres)
+
+        resumen = []
+        for posicion, segmento in enumerate(orden):
+            grupo = datos[datos["segmento"] == segmento]
+            if posicion == 0:
+                significado = "Baja demanda: ventas promedio más bajas"
+                recomendacion = "Revisar promociones, precio y nivel de stock."
+            elif posicion == len(orden) - 1:
+                significado = "Alta demanda: ventas promedio más altas"
+                recomendacion = "Priorizar abastecimiento para evitar quiebres."
+            else:
+                significado = "Demanda media: comportamiento intermedio"
+                recomendacion = "Monitorear evolución de ventas y stock."
+            resumen.append({
+                "segmento": nombres[segmento],
+                "significado": significado,
+                "recomendacion": recomendacion,
+                "registros": int(len(grupo)),
+                "ventas_promedio": round(float(grupo["ventas_totales"].mean()), 2),
+                "stock_promedio": round(float(grupo["stock_actual"].mean()), 2),
+                "cantidad_promedio": round(float(grupo["cantidad_vendida"].mean()), 2),
+                "precio_promedio": round(float(grupo["precio_unitario"].mean()), 2),
+            })
+
+        puntos = datos[["ventas_totales", "stock_actual", "segmento_nombre"]].head(1000)
+        return jsonify({
+            "success": True,
+            "metodo": "K-Means",
+            "tipo": "Aprendizaje no supervisado",
+            "fuente_datos": datos.attrs.get("fuente", "Desconocida"),
+            "variables": columnas,
+            "clusters": numero_clusters,
+            "silueta": round(float(silhouette_score(matriz_escalada, etiquetas)), 4),
+            "segmentos": resumen,
+            "puntos": [
+                {
+                    "ventas": round(float(fila["ventas_totales"]), 2),
+                    "stock": round(float(fila["stock_actual"]), 2),
+                    "segmento": fila["segmento_nombre"],
+                }
+                for _, fila in puntos.iterrows()
+            ],
+        })
+    except ValueError as error:
+        return jsonify({"success": False, "message": str(error)}), 400
+    except Exception as error:
+        return jsonify({"success": False, "message": f"Error en segmentación: {error}"}), 500

@@ -598,6 +598,7 @@
             <button data-go="prediccion"><span class="ico">📈</span> Predicción de ventas</button>
             <button data-go="simulador"><span class="ico">🧪</span> Simulador</button>
             <button data-go="keras"><span class="ico">🧠</span> Deep Learning (Keras)</button>
+            <button data-go="segmentacion"><span class="ico">🧩</span> Segmentación no supervisada</button>
             <button data-go="reporte"><span class="ico">📅</span> Reporte mensual</button>
         </nav>
         <div class="sb-foot">
@@ -982,6 +983,53 @@
             </div>
         </section>
 
+                <!-- ================= VISTA: APRENDIZAJE NO SUPERVISADO ================= -->
+                <section id="vista-segmentacion" class="vista">
+                    <div class="page-hero">
+                        <div class="crumbs">Inicio / <b>Segmentación no supervisada</b></div>
+                        <span class="chip" style="margin-bottom:8px;">Requisito académico · Clustering</span>
+                        <h1>Aprendizaje no supervisado con K-Means</h1>
+                        <p>El algoritmo agrupa las transacciones por similitud, sin utilizar una etiqueta previamente conocida,
+                            para identificar perfiles de ventas, stock y demanda.</p>
+                    </div>
+                    <div class="contenido">
+                        <div class="nota">
+                            <b>¿Cómo funciona?</b> K-Means estandariza las variables y encuentra grupos similares
+                            usando precio unitario, stock actual, cantidad vendida y ventas totales. El segmento se
+                            interpreta después de observar sus promedios; no se le entrega una categoría al algoritmo.
+                        </div>
+                        <div class="metrics-grid">
+                            <div class="metric-card" style="--accent:#7c3aed;">
+                                <h4>Método</h4><p id="segMetodo">K-Means</p><small>Clustering no supervisado</small>
+                            </div>
+                            <div class="metric-card" style="--accent:#0284c7;">
+                                <h4>Segmentos encontrados</h4><p id="segCantidad">--</p><small>Grupos de transacciones</small>
+                            </div>
+                            <div class="metric-card" style="--accent:#10b981;">
+                                <h4>Coeficiente de silueta</h4><p id="segSilueta">--</p><small>Calidad de agrupamiento</small>
+                            </div>
+                            <div class="metric-card" style="--accent:#ea580c;">
+                                <h4>Fuente de datos</h4><p id="segFuente" style="font-size:15px;">--</p><small>Origen usado por K-Means</small>
+                            </div>
+                        </div>
+                        <div class="charts-grid">
+                            <div class="chart-card full">
+                                <h4>🧩 Mapa de segmentos: ventas frente a stock</h4>
+                                <div class="chart-container" style="height:340px;"><canvas id="chartSegmentacion"></canvas></div>
+                            </div>
+                            <div class="chart-card full">
+                                <h4>📋 Perfil y significado de cada segmento</h4>
+                                <div class="table-wrap">
+                                    <table>
+                                        <thead><tr><th>Segmento</th><th>Significado en el negocio</th><th class="num">Registros</th><th class="num">Ventas promedio</th><th class="num">Stock promedio</th><th class="num">Cantidad promedio</th><th class="num">Precio promedio</th><th>Recomendación</th></tr></thead>
+                                        <tbody id="tablaSegmentacion"><tr><td colspan="8">Cargando segmentación...</td></tr></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
                 <!-- ================= VISTA: REPORTE MENSUAL (Integrante 6) ================= -->
         <section id="vista-reporte" class="vista">
             <div class="page-hero">
@@ -1041,7 +1089,7 @@
         <footer class="footer">
             <div class="footer-grid">
                 <div><h5>Alicorp Intelligence</h5><p>Plataforma de Inteligencia de Negocios · Redes Neuronales y Machine Learning conectadas a base de datos Supabase.</p></div>
-                <div><h5>Secciones</h5><button data-go="inicio">Inicio</button><button data-go="productos">Productos</button><button data-go="prediccion">Predicción de ventas</button><button data-go="simulador">Simulador</button><button data-go="keras">Deep Learning (Keras)</button></div>
+                <div><h5>Secciones</h5><button data-go="inicio">Inicio</button><button data-go="productos">Productos</button><button data-go="prediccion">Predicción de ventas</button><button data-go="simulador">Simulador</button><button data-go="keras">Deep Learning (Keras)</button><button data-go="segmentacion">Segmentación no supervisada</button></div>
                 <div><h5>Tecnología</h5><p>Python · Flask<br>TensorFlow & Keras<br>scikit-learn · Chart.js</p></div>
             </div>
             <div class="copy">© 2026 Corporación Alicorp S.A.A. · Todos los derechos reservados · Business Intelligence & Machine Learning</div>
@@ -1123,7 +1171,7 @@
         const charts = {};
         const COLORES = ['#0284c7', '#2563eb', '#7c3aed', '#10b981', '#ea580c'];
         const ICONOS = { 'Aceite': '🫒', 'Fideos': '🍝', 'Mayonesa': '🥫', 'Detergente': '🧼', 'Harina': '🌾' };
-        const VISTAS = ['inicio', 'productos', 'prediccion', 'simulador', 'keras', 'reporte'];
+        const VISTAS = ['inicio', 'productos', 'prediccion', 'simulador', 'keras', 'segmentacion', 'reporte'];
         const $ = id => document.getElementById(id);
         const fmt = n => Number(n).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -1227,6 +1275,7 @@
         let simListo = false;
         let explicacionLista = false;
         let kerasListo = false;
+        let segmentacionLista = false;
         let reporteListo = false; //integrante 6 
         function mostrarVista(nombre) {
             if (!VISTAS.includes(nombre)) return;
@@ -1239,6 +1288,7 @@
             if (nombre === 'simulador' && !simListo) simular();
             if (nombre === 'prediccion' && !explicacionLista) cargarExplicacion();
             if (nombre === 'keras' && !kerasListo) inicializarKeras();
+            if (nombre === 'segmentacion' && !segmentacionLista) inicializarSegmentacion();
             if (nombre === 'reporte' && !reporteListo) inicializarReporte();   // integrante 6 
         }
         document.addEventListener('click', e => {
@@ -1661,6 +1711,58 @@
                 kTimer = setTimeout(simularKeras, 300);
             });
         });
+
+        /* ---------- Aprendizaje no supervisado: segmentación K-Means ---------- */
+        async function inicializarSegmentacion() {
+            try {
+                const respuesta = await fetch('/api/segmentacion?clusters=3&limite=15000');
+                if (!respuesta.ok) throw new Error('Servidor retornó ' + respuesta.status);
+                const datos = await respuesta.json();
+                if (!datos.success) throw new Error(datos.message || 'No se pudo segmentar el dataset.');
+
+                segmentacionLista = true;
+                $('segMetodo').textContent = datos.metodo;
+                $('segCantidad').textContent = datos.clusters;
+                $('segSilueta').textContent = Number(datos.silueta).toFixed(4);
+                $('segFuente').textContent = datos.fuente_datos || 'No disponible';
+                $('tablaSegmentacion').innerHTML = datos.segmentos.map(segmento => `
+                    <tr>
+                        <td><b>${esc(segmento.segmento)}</b></td>
+                        <td>${esc(segmento.significado)}</td>
+                        <td class="num">${segmento.registros.toLocaleString('es-PE')}</td>
+                        <td class="num">S/. ${fmt(segmento.ventas_promedio)}</td>
+                        <td class="num">${fmt(segmento.stock_promedio)}</td>
+                        <td class="num">${fmt(segmento.cantidad_promedio)}</td>
+                        <td class="num">S/. ${fmt(segmento.precio_promedio)}</td>
+                        <td>${esc(segmento.recomendacion)}</td>
+                    </tr>
+                `).join('');
+
+                const nombres = datos.segmentos.map(segmento => segmento.segmento);
+                const puntosPorSegmento = nombres.map((nombre, indice) => ({
+                    label: nombre,
+                    data: datos.puntos
+                        .filter(punto => punto.segmento === nombre)
+                        .map(punto => ({ x: punto.stock, y: punto.ventas })),
+                    backgroundColor: COLORES[indice % COLORES.length],
+                    pointRadius: 3
+                }));
+                dibujar('chartSegmentacion', {
+                    type: 'scatter',
+                    data: { datasets: puntosPorSegmento },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: { title: { display: true, text: 'Stock actual' } },
+                            y: { title: { display: true, text: 'Ventas totales (S/.)' } }
+                        }
+                    }
+                });
+            } catch (error) {
+                $('tablaSegmentacion').innerHTML = `<tr><td colspan="8">${esc(error.message)}</td></tr>`;
+            }
+        }
 
           /* ================= INICIO DE LO MÍO (Reporte mensual - Integrante 6) ================= */
 
