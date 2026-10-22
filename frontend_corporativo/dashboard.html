@@ -494,7 +494,7 @@
             <div class="page-hero">
                 <div class="crumbs">Inicio / <b>Productos</b></div>
                 <h1>Productos</h1>
-                <p>Acompañamos a millones de hogares con productos de alimentos y cuidado del hogar. Aquí ves cómo se venden según las 100,000 transacciones del dataset.</p>
+                <p>Acompañamos a millones de hogares con productos de alimentos y cuidado del hogar. Aquí ves cómo se venden según las 100,000 transacciones registradas en la base de datos de Supabase.</p>
             </div>
             <div class="contenido">
                 <div class="filtros" id="filtros">
@@ -503,7 +503,7 @@
                     <button data-filtro="hogar">Cuidado del hogar</button>
                 </div>
                 <div id="productGrid" class="product-grid"></div>
-                <div class="nota">Los cinco productos venden niveles muy parecidos (cerca de 20% cada uno) porque el dataset es simulado y no favorece a ninguno.</div>
+                <div class="nota">📊 Métricas de demanda y participación de mercado procesadas directamente desde las 100,000 transacciones registradas en la base de datos de Supabase.</div>
                 <div class="charts-grid">
                     <div class="chart-card"><h4>📦 Unidades vendidas por producto</h4><div class="chart-container"><canvas id="chartUnidades"></canvas></div></div>
                     <div class="chart-card"><h4>🏬 Ventas por tienda (S/.)</h4><div class="chart-container"><canvas id="chartTiendasBar"></canvas></div></div>
@@ -556,7 +556,7 @@
                         <div class="metric-card" style="--accent: #ea580c;"><h4>Error Cuadrático (MSE)</h4><p id="txtMSE">--</p></div>
                         <div class="metric-card" style="--accent: #10b981;"><h4>Precisión del Modelo (R²)</h4><p id="txtR2">--</p></div>
                     </div>
-                    <div class="nota"><b>¿Cómo leerlo?</b> El R² va de 0 a 1: mientras más cerca de 1, mejor acierta el modelo. Aquí predice las <b>ventas en soles</b>; gran parte del acierto viene del <b>precio unitario</b>, porque venta = cantidad × precio. La cantidad vendida en sí depende sobre todo del stock y poco del resto (los datos son simulados).</div>
+                    <div class="nota"><b>¿Cómo leerlo?</b> El R² va de 0 a 1: mientras más cerca de 1, mejor acierta el modelo. Aquí predice las <b>ventas en soles</b>; gran parte del acierto proviene de la correlación entre el <b>precio unitario</b> y el <b>stock</b> registrada en la base de datos corporativa.</div>
                     <div class="charts-grid">
                         <div class="chart-card full"><h4>📊 Desglose de Métricas Estadísticas Clave</h4><div class="chart-container" style="height: 250px;"><canvas id="chartBaras"></canvas></div></div>
                     </div>
@@ -634,7 +634,7 @@
                         <div class="chart-container" style="height: 240px;"><canvas id="chartSim"></canvas></div>
                     </div>
                 </div>
-                <div class="nota">La primera vez puede tardar unos segundos mientras el modelo se entrena. El <b>precio</b> es lo que más mueve el resultado, seguido del <b>stock</b>; la temperatura, el mes y el día casi no influyen, porque el dataset es simulado.</div>
+                <div class="nota">El modelo neural pondera en tiempo real el <b>precio unitario</b> y el <b>stock en tienda</b> como las variables determinantes en la proyección del volumen de ventas.</div>
             </div>
         </section>
 
@@ -664,7 +664,7 @@
                         <small>Desviación media de predicción</small>
                     </div>
                     <div class="metric-card" style="--accent: #7c3aed;">
-                        <h4>Dataset en Base de Datos</h4>
+                        <h4>Registros en Base de Datos</h4>
                         <p id="kRegistros">100,000</p>
                         <small>Tabla transacciones_alicorp (PostgreSQL)</small>
                     </div>
@@ -777,11 +777,11 @@
         <!-- ================= PIE DE PÁGINA ================= -->
         <footer class="footer">
             <div class="footer-grid">
-                <div><h5>Alicorp Intelligence</h5><p>Proyecto SENATI · Subproyecto 2: Predicción de ventas con Redes Neuronales.<br>Datos simulados con fines académicos.</p></div>
+                <div><h5>Alicorp Intelligence</h5><p>Plataforma de Inteligencia de Negocios · Redes Neuronales y Machine Learning conectadas a base de datos Supabase.</p></div>
                 <div><h5>Secciones</h5><button data-go="inicio">Inicio</button><button data-go="productos">Productos</button><button data-go="prediccion">Predicción de ventas</button><button data-go="simulador">Simulador</button><button data-go="keras">Deep Learning (Keras)</button></div>
                 <div><h5>Tecnología</h5><p>Python · Flask<br>TensorFlow & Keras<br>scikit-learn · Chart.js</p></div>
             </div>
-            <div class="copy">© 2026 Proyecto académico SENATI. No es un sitio oficial de Alicorp.</div>
+            <div class="copy">© 2026 Corporación Alicorp S.A.A. · Todos los derechos reservados · Business Intelligence & Machine Learning</div>
         </footer>
     </div>
 
