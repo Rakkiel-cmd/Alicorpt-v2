@@ -93,11 +93,23 @@ COLUMNAS_MODELO = ['precio_unitario', 'stock_actual', 'temperatura_zona',
                    'mes', 'dia_semana', 'producto', 'tienda']
 
 
+RUTA_MODELO_MLP = os.path.join(os.path.dirname(os.path.abspath(__file__)), "modelo_mlp_cache.joblib")
+
+
 def _obtener_modelo():
     global _modelo_cache
     with _candado:
         if _modelo_cache is not None:
             return _modelo_cache
+
+        # 1. Cargar modelo pre-entrenado (.joblib) si existe para 0 latencia y 0 consumo excesivo de RAM
+        if os.path.exists(RUTA_MODELO_MLP):
+            try:
+                import joblib
+                _modelo_cache = joblib.load(RUTA_MODELO_MLP)
+                return _modelo_cache
+            except Exception as e:
+                print("[!] Aviso al cargar joblib cache:", e)
 
         from sklearn.compose import TransformedTargetRegressor
         from sklearn.model_selection import train_test_split
@@ -105,14 +117,17 @@ def _obtener_modelo():
         from sklearn.pipeline import make_pipeline
         from sklearn.preprocessing import StandardScaler
 
-        # Carga los registros desde Supabase
+        # Carga los 100k registros desde Supabase
         df = obtener_transacciones().copy()
         fecha = pd.to_datetime(df['fecha'])
         df['mes'] = fecha.dt.month
         df['dia_semana'] = fecha.dt.dayofweek
 
-        X = pd.get_dummies(df[COLUMNAS_MODELO]).astype(float)
-        y = df['ventas_totales']
+        # Entrenar de forma eficiente (muestra de 15,000) para evitar desborde de 512MB RAM en Render
+        df_sample = df.sample(n=min(15000, len(df)), random_state=42)
+        X_all = pd.get_dummies(df[COLUMNAS_MODELO]).astype(float)
+        X = pd.get_dummies(df_sample[COLUMNAS_MODELO]).astype(float)
+        y = df_sample['ventas_totales']
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
         modelo = TransformedTargetRegressor(
@@ -124,13 +139,20 @@ def _obtener_modelo():
 
         _modelo_cache = {
             'modelo': modelo,
-            'columnas': list(X.columns),
+            'columnas': list(X_all.columns),
             'r2': float(round(modelo.score(X_test, y_test), 4)),
             'X_test': X_test,
             'y_test': y_test,
             'productos': sorted(df['producto'].unique()),
             'tiendas': sorted(df['tienda'].unique()),
         }
+
+        try:
+            import joblib
+            joblib.dump(_modelo_cache, RUTA_MODELO_MLP, compress=3)
+        except Exception:
+            pass
+
         return _modelo_cache
 
 

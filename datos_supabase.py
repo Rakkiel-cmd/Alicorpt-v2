@@ -28,11 +28,11 @@ _cliente_supabase = None
 
 
 def obtener_cliente_supabase():
-    """Retorna la instancia del cliente de Supabase."""
+    """Retorna la instancia del cliente de Supabase si estan configuradas las credenciales."""
     global _cliente_supabase
     if _cliente_supabase is None:
         if not SUPABASE_URL or not SUPABASE_KEY:
-            raise ValueError("Faltan las variables SUPABASE_URL o SUPABASE_KEY en el archivo .env")
+            return None
         from supabase import create_client
         _cliente_supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
     return _cliente_supabase
@@ -89,15 +89,29 @@ def obtener_transacciones():
         if _df_cache is not None:
             return _df_cache
 
-        # 1. Si existe cache binario sincronizado desde Supabase, cargarlo
+        # 1. Si existe cache binario parquet sincronizado desde Supabase, cargarlo de inmediato (<0.05s)
         if os.path.exists(ARCHIVO_CACHE_PARQUET):
             try:
                 _df_cache = pd.read_parquet(ARCHIVO_CACHE_PARQUET)
-                return _df_cache
-            except Exception:
-                pass
+                if len(_df_cache) >= 100000:
+                    return _df_cache
+            except Exception as e:
+                print("[!] Aviso al leer parquet cache:", e)
 
-        # 2. Si no, descargarlo directamente de Supabase
+        # 2. Si existe el CSV de los 100k en el servidor, cargarlo de forma segura
+        ruta_csv = os.path.join(os.path.dirname(os.path.abspath(__file__)), "transacciones_alicorp_100k.csv")
+        if os.path.exists(ruta_csv):
+            try:
+                _df_cache = pd.read_csv(ruta_csv)
+                try:
+                    _df_cache.to_parquet(ARCHIVO_CACHE_PARQUET, index=False)
+                except Exception:
+                    pass
+                return _df_cache
+            except Exception as e:
+                print("[!] Aviso al leer CSV fallback:", e)
+
+        # 3. Si no existe cache local, descargar desde Supabase
         _df_cache = descargar_todos_de_supabase()
         return _df_cache
 
