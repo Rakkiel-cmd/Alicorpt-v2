@@ -20,7 +20,8 @@ load_dotenv()
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
-ARCHIVO_CACHE_PARQUET = os.path.join(os.path.dirname(os.path.abspath(__file__)), "transacciones_supabase_cache.parquet")
+import tempfile
+ARCHIVO_CACHE_PARQUET = os.path.join(tempfile.gettempdir(), "transacciones_supabase_runtime.parquet")
 
 _df_cache = None
 _candado_datos = threading.Lock()
@@ -32,7 +33,7 @@ def obtener_cliente_supabase():
     global _cliente_supabase
     if _cliente_supabase is None:
         if not SUPABASE_URL or not SUPABASE_KEY:
-            return None
+            raise ValueError("Faltan las variables SUPABASE_URL o SUPABASE_KEY en el entorno para conectar a la API.")
         from supabase import create_client
         _cliente_supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
     return _cliente_supabase
@@ -40,11 +41,12 @@ def obtener_cliente_supabase():
 
 def descargar_todos_de_supabase():
     """
-    Descarga los 100,000 registros completos desde la tabla transacciones_alicorp
-    en Supabase en lotes paralelos ultra-rapidos.
+    Descarga los 100,000 registros completos directamente desde la API REST
+    de la tabla transacciones_alicorp en Supabase en lotes concurrentes.
+    Cumple con la norma de privacidad: los datos viajan por API y no se guardan en el repositorio.
     """
     sb = obtener_cliente_supabase()
-    print("[*] Conectando a Supabase para sincronizar los 100,000 registros...")
+    print("[*] Conectando a la API de Supabase para consultar los 100,000 registros...")
     t0 = time.time()
 
     def fetch_chunk(start):
@@ -69,49 +71,37 @@ def descargar_todos_de_supabase():
     df["cantidad_vendida"] = df["cantidad_vendida"].astype(int)
     df["ventas_totales"] = df["ventas_totales"].astype(float)
 
-    # Persistir cache binario optimizado para no re-descargar por red en cada reinicio
+    # Persistir unicamente en memoria temporal de ejecucion (/tmp) fuera del repositorio
     try:
         df.to_parquet(ARCHIVO_CACHE_PARQUET, index=False)
-        print(f"[OK] 100,000 registros sincronizados de Supabase en {time.time()-t0:.2f}s.")
+        print(f"[OK] 100,000 registros obtenidos de la API de Supabase en {time.time()-t0:.2f}s.")
     except Exception as e:
-        print("[!] Aviso al guardar cache parquet:", e)
+        print("[!] Aviso al guardar cache en /tmp:", e)
 
     return df
 
 
 def obtener_transacciones():
     """
-    Retorna el DataFrame con los 100,000 registros originados en Supabase.
-    Mantiene los datos en memoria RAM (apenas ~8 MB) para respuesta en milisegundos.
+    Retorna el DataFrame con los 100,000 registros descargados via API desde Supabase.
+    Mantiene los datos en memoria RAM (apenas ~8 MB) para respuesta inmediata sin exponer
+    archivos de datos privados en el repositorio Git.
     """
     global _df_cache
     with _candado_datos:
         if _df_cache is not None:
             return _df_cache
 
-        # 1. Si existe cache binario parquet sincronizado desde Supabase, cargarlo de inmediato (<0.05s)
+        # 1. Si existe cache temporal en /tmp (creado en tiempo de ejecucion), usarlo
         if os.path.exists(ARCHIVO_CACHE_PARQUET):
             try:
                 _df_cache = pd.read_parquet(ARCHIVO_CACHE_PARQUET)
                 if len(_df_cache) >= 100000:
                     return _df_cache
             except Exception as e:
-                print("[!] Aviso al leer parquet cache:", e)
+                print("[!] Aviso leyendo cache temporal:", e)
 
-        # 2. Si existe el CSV de los 100k en el servidor, cargarlo de forma segura
-        ruta_csv = os.path.join(os.path.dirname(os.path.abspath(__file__)), "transacciones_alicorp_100k.csv")
-        if os.path.exists(ruta_csv):
-            try:
-                _df_cache = pd.read_csv(ruta_csv)
-                try:
-                    _df_cache.to_parquet(ARCHIVO_CACHE_PARQUET, index=False)
-                except Exception:
-                    pass
-                return _df_cache
-            except Exception as e:
-                print("[!] Aviso al leer CSV fallback:", e)
-
-        # 3. Si no existe cache local, descargar desde Supabase
+        # 2. Descargar directamente desde la API de Supabase
         _df_cache = descargar_todos_de_supabase()
         return _df_cache
 
