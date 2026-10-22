@@ -209,14 +209,24 @@ def registrar_admin_web():
 @app.route('/api/predecir_ventas', methods=['POST'])
 def predecir_ventas():
     try:
-        from datos_supabase import obtener_transacciones
-        from estadistica_service import calcular_estadisticas
-        from ventas_extra import _obtener_modelo
+        ruta_json = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resumen_100k_supabase.json")
+        stats = None
+        if os.path.exists(ruta_json):
+            try:
+                import json
+                with open(ruta_json, "r", encoding="utf-8") as f:
+                    stats = json.load(f)["estadisticas"]
+            except Exception:
+                pass
 
-        df = obtener_transacciones()
-        stats = calcular_estadisticas(df)
+        if stats is None:
+            from datos_supabase import obtener_transacciones
+            from estadistica_service import calcular_estadisticas
+            df = obtener_transacciones()
+            stats = calcular_estadisticas(df)
 
         # Usar el modelo entrenado con los datos reales
+        from ventas_extra import _obtener_modelo
         modelo_info = _obtener_modelo()
         y_test = modelo_info['y_test']
         X_test = modelo_info['X_test']
@@ -230,7 +240,7 @@ def predecir_ventas():
 
         return jsonify({
             "success": True,
-            "total_registros": int(len(df)),
+            "total_registros": int(stats.get("n", 100000)),
             "media_ventas": stats['media'],
             "mediana_ventas": stats['mediana'],
             "desviacion_ventas": stats['desviacion_estandar'],

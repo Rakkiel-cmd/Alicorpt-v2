@@ -121,13 +121,43 @@ def obtener_reporte_mensual_supabase(mes_str):
     calcula precio actual, ventas totales, y proyecta el precio futuro usando
     la tendencia y regresion lineal.
     """
-    df = obtener_transacciones().copy()
-    df["mes_formato"] = pd.to_datetime(df["fecha"]).dt.strftime("%Y-%m")
+    df_mes = None
+    sb = obtener_cliente_supabase()
+    if sb:
+        try:
+            # Consulta directa y rapida a Supabase solo para el mes solicitado (< 1s)
+            import calendar
+            partes = mes_str.split("-")
+            anio, mes_num = int(partes[0]), int(partes[1])
+            ultimo_dia = calendar.monthrange(anio, mes_num)[1]
+            fecha_fin = f"{anio}-{mes_num:02d}-{ultimo_dia:02d}"
 
-    # Filtrar mes
-    df_mes = df[df["mes_formato"] == mes_str]
-    if df_mes.empty:
-        # Si el mes no tiene registros, buscar el mes mas cercano o retornar vacio
+            res = (
+                sb.table("transacciones_alicorp")
+                .select("producto,precio_unitario,stock_actual,ventas_totales,cantidad_vendida")
+                .gte("fecha", f"{mes_str}-01")
+                .lte("fecha", fecha_fin)
+                .limit(5000)
+                .execute()
+            )
+            if res.data:
+                df_mes = pd.DataFrame(res.data)
+                df_mes["precio_unitario"] = df_mes["precio_unitario"].astype(float)
+                df_mes["stock_actual"] = df_mes["stock_actual"].astype(int)
+                df_mes["ventas_totales"] = df_mes["ventas_totales"].astype(float)
+                df_mes["cantidad_vendida"] = df_mes["cantidad_vendida"].astype(int)
+        except Exception as e:
+            print("[!] Aviso consultando mes en Supabase:", e)
+
+    if df_mes is None or df_mes.empty:
+        try:
+            df = obtener_transacciones().copy()
+            df["mes_formato"] = pd.to_datetime(df["fecha"]).dt.strftime("%Y-%m")
+            df_mes = df[df["mes_formato"] == mes_str]
+        except Exception:
+            pass
+
+    if df_mes is None or df_mes.empty:
         return {
             "success": True,
             "mes": mes_str,

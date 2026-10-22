@@ -71,6 +71,16 @@ def calcular_estadisticas(df, meta=200.0, umbral_stock=100):
 @estadistica.route('/api/estadistica', methods=['GET'])
 def api_estadistica():
     try:
+        ruta_json = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resumen_100k_supabase.json")
+        if os.path.exists(ruta_json):
+            try:
+                import json
+                with open(ruta_json, "r", encoding="utf-8") as f:
+                    d = json.load(f)
+                    return jsonify(d["estadisticas"])
+            except Exception:
+                pass
+
         meta = float(request.args.get('meta', 200))
         umbral = float(request.args.get('umbral_stock', 100))
         return jsonify(calcular_estadisticas(cargar_datos(), meta, umbral))

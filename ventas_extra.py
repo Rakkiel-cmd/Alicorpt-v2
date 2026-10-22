@@ -48,13 +48,23 @@ def _grupo_a_lista(df, columna):
 
 
 def _calcular_resumen():
-    # Obtiene los 100,000 registros completos desde Supabase
+    # 1. Cargar el resumen precalculado de los 100k registros de Supabase si existe
+    ruta_json = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resumen_100k_supabase.json")
+    if os.path.exists(ruta_json):
+        try:
+            import json
+            with open(ruta_json, "r", encoding="utf-8") as f:
+                d = json.load(f)
+                return d["resumen"]
+        except Exception as e:
+            print("[!] Aviso leyendo resumen JSON:", e)
+
+    # 2. Si no, calcularlo sobre los datos de Supabase
     columnas = ['fecha', 'producto', 'tienda', 'precio_unitario', 'stock_actual',
                 'cantidad_vendida', 'ventas_totales']
     df = obtener_transacciones()[columnas].copy()
     df['mes'] = pd.to_datetime(df['fecha']).dt.strftime('%Y-%m')
     por_mes = df.groupby('mes')['ventas_totales'].sum()
-    # Relacion real de los datos: mas stock -> mas unidades vendidas
     df['nivel_stock'] = pd.cut(df['stock_actual'], bins=[0, 150, 250, 350, 450, 1000],
                                labels=['50-149', '150-249', '250-349', '350-449', '450-500'], right=False)
     por_stock = df.groupby('nivel_stock', observed=True).agg(
@@ -180,10 +190,11 @@ def simular():
         datos = request.get_json(silent=True) or {}
         m = _obtener_modelo()
 
-        producto = datos.get('producto')
-        tienda = datos.get('tienda')
+        producto = datos.get('producto') or (m['productos'][0] if m.get('productos') else 'Aceite Primor 1L')
+        tienda = datos.get('tienda') or (m['tiendas'][0] if m.get('tiendas') else 'Mayorista San Martín')
         if producto not in m['productos'] or tienda not in m['tiendas']:
-            return jsonify({'success': False, 'message': 'Producto o tienda no valido.'}), 400
+            producto = m['productos'][0]
+            tienda = m['tiendas'][0]
 
         precio = _numero(datos, 'precio_unitario', 1, 50)
         stock = _numero(datos, 'stock_actual', 0, 1000)

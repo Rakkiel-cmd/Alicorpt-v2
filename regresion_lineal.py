@@ -98,6 +98,17 @@ def api_regresion_simple():
                 'message': f"variable debe ser una de: {', '.join(VARIABLES_SIMPLES_PERMITIDAS)}",
             }), 400
 
+        if variable == 'stock_actual':
+            ruta_json = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resumen_100k_supabase.json")
+            if os.path.exists(ruta_json):
+                try:
+                    import json
+                    with open(ruta_json, "r", encoding="utf-8") as f:
+                        d = json.load(f)
+                        return jsonify(d["regresion_simple"])
+                except Exception:
+                    pass
+
         with _candado:
             if variable not in _cache_simple:
                 _cache_simple[variable] = _entrenar_simple(variable)
@@ -112,6 +123,16 @@ def api_regresion_simple():
 # 2) Regresion lineal multiple: y = b0 + b1*x1 + b2*x2 + ...
 # ---------------------------------------------------------------------------
 def _entrenar_multiple():
+    ruta_json = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resumen_100k_supabase.json")
+    if os.path.exists(ruta_json):
+        try:
+            import json
+            with open(ruta_json, "r", encoding="utf-8") as f:
+                d = json.load(f)
+                return d["regresion_multiple"], None, d["regresion_multiple"]["variables"]
+        except Exception:
+            pass
+
     df = cargar_datos()
     X = pd.get_dummies(df[COLUMNAS_MULTIPLE_NUM + COLUMNAS_MULTIPLE_CAT],
                         columns=COLUMNAS_MULTIPLE_CAT).astype(float)
