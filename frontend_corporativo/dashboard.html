@@ -785,6 +785,77 @@
         </footer>
     </div>
 
+    <!-- MODAL: VECTOR BIOMÉTRICO FACIAL 128D -->
+    <div class="modal-overlay" id="modalVectorBiometrico">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div>
+                    <h3><span>🧬</span> Huella Vectorial Biométrica Facial</h3>
+                    <p id="modalBioSub">Embedding de 128 dimensiones generado por la Red Neuronal Profunda</p>
+                </div>
+                <button type="button" class="modal-close" id="btnCerrarModalBio">✕</button>
+            </div>
+            
+            <div class="vector-stats">
+                <div class="v-stat"><span>Dimensiones</span><b>128-D</b></div>
+                <div class="v-stat"><span>Mínimo</span><b id="vStatMin">--</b></div>
+                <div class="v-stat"><span>Máximo</span><b id="vStatMax">--</b></div>
+                <div class="v-stat"><span>L2 Norm</span><b id="vStatNorm">1.000</b></div>
+            </div>
+
+            <div style="font-size: 11.5px; color: #94a3b8; margin-bottom: 6px; display: flex; justify-content: space-between;">
+                <span>Mapa de Calor de Activación (128 pesos):</span>
+                <span style="font-size: 10px; color: #64748b;">Azul/Verde: Positivo | Naranja: Negativo</span>
+            </div>
+            
+            <div class="vector-grid" id="vectorGrid"></div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin: 12px 0 6px;">
+                <span style="font-size: 11.5px; color: #94a3b8;">Tensor Numérico (Float32 Array):</span>
+                <button type="button" class="btn-timer-historial" id="btnCopiarVector">📋 Copiar Vector</button>
+            </div>
+            <div class="raw-vector-box" id="rawVectorText">Cargando vector biométrico...</div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn-light" id="btnCerrarModalBio2">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: HISTORIAL DE SESIONES Y TIEMPO ACTIVO -->
+    <div class="modal-overlay" id="modalHistorialSesiones">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div>
+                    <h3><span>⏱️</span> Historial de Actividad del Usuario</h3>
+                    <p id="modalHistorialSub">Registros de tiempo en vivo almacenados en la tabla actividad_usuarios de Supabase</p>
+                </div>
+                <button type="button" class="modal-close" id="btnCerrarModalHist">✕</button>
+            </div>
+            
+            <div class="tabla-historial-wrap">
+                <table class="tabla-historial">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Primer Ingreso</th>
+                            <th>Último Latido</th>
+                            <th>Tiempo Activo</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaHistorialBody">
+                        <tr><td colspan="5" style="text-align: center; color: #64748b;">Cargando historial desde Supabase...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn-light" id="btnCerrarModalHist2">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const charts = {};
         const COLORES = ['#0284c7', '#2563eb', '#7c3aed', '#10b981', '#ea580c'];
@@ -1531,9 +1602,12 @@
         });
 
         // 3.1: Visualizador de Vectores Biométricos Faciales (128 Dimensiones)
-        $('btnVerVectores').addEventListener('click', () => {
-            mostrarModalVectorBiometrico();
-        });
+        const btnVec = $('btnVerVectores');
+        if (btnVec) {
+            btnVec.addEventListener('click', () => {
+                mostrarModalVectorBiometrico();
+            });
+        }
 
         function mostrarModalVectorBiometrico() {
             const modal = $('modalVectorBiometrico');
@@ -1586,52 +1660,66 @@
             };
         }
 
-        $('btnCerrarModalBio').addEventListener('click', () => $('modalVectorBiometrico').classList.remove('open'));
-        $('btnCerrarModalBio2').addEventListener('click', () => $('modalVectorBiometrico').classList.remove('open'));
+        const btnCloseBio = $('btnCerrarModalBio');
+        if (btnCloseBio) btnCloseBio.addEventListener('click', () => $('modalVectorBiometrico') && $('modalVectorBiometrico').classList.remove('open'));
+        const btnCloseBio2 = $('btnCerrarModalBio2');
+        if (btnCloseBio2) btnCloseBio2.addEventListener('click', () => $('modalVectorBiometrico') && $('modalVectorBiometrico').classList.remove('open'));
 
         // Modal Historial de Sesiones en Supabase
-        $('btnVerHistorial').addEventListener('click', async () => {
-            const modal = $('modalHistorialSesiones');
-            modal.classList.add('open');
-            $('modalHistorialSub').textContent = `Historial de actividad de ${sesionUsuario.nombre_completo || sesionUsuario.usuario} (@${sesionUsuario.usuario})`;
+        const btnHist = $('btnVerHistorial');
+        if (btnHist) {
+            btnHist.addEventListener('click', async () => {
+                const modal = $('modalHistorialSesiones');
+                if (!modal) return;
+                modal.classList.add('open');
+                if ($('modalHistorialSub')) {
+                    $('modalHistorialSub').textContent = `Historial de actividad de ${sesionUsuario.nombre_completo || sesionUsuario.usuario} (@${sesionUsuario.usuario})`;
+                }
 
-            const tbody = $('tablaHistorialBody');
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #94a3b8; padding: 16px;">Consultando Supabase... ⏳</td></tr>';
+                const tbody = $('tablaHistorialBody');
+                if (tbody) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #94a3b8; padding: 16px;">Consultando Supabase... ⏳</td></tr>';
+                }
 
-            try {
-                const res = await fetch(`/api/actividad/historial?usuario=${encodeURIComponent(sesionUsuario.usuario)}`);
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.success && data.historial && data.historial.length > 0) {
-                        tbody.innerHTML = data.historial.map(h => {
-                            const tiempoTxt = formatearTiempoTexto(h.tiempo_segundos || 0);
-                            const primer = h.primer_ingreso ? new Date(h.primer_ingreso).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }) : '--:--';
-                            const ultimo = h.ultimo_latido ? new Date(h.ultimo_latido).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }) : '--:--';
-                            const esHoy = h.fecha === fechaSesionActual;
-                            const estadoBadge = esHoy 
-                                ? '<span style="color:#10b981; font-weight:700;">🟢 En curso</span>' 
-                                : '<span style="color:#94a3b8;">Cerrada</span>';
-                            return `
-                                <tr>
-                                    <td><strong>${h.fecha}</strong> ${esHoy ? '<span class="badge-role">Hoy</span>' : ''}</td>
-                                    <td>${primer}</td>
-                                    <td>${ultimo}</td>
-                                    <td style="color:#38bdf8; font-weight:700;">${tiempoTxt}</td>
-                                    <td>${estadoBadge}</td>
-                                </tr>
-                            `;
-                        }).join('');
-                    } else {
-                        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #94a3b8; padding: 16px;">Sesión en curso iniciada hoy (${fechaSesionActual}) con ${formatearTiempoTexto(segundosActividadHoy)}. Sincronizando con Supabase.</td></tr>`;
+                try {
+                    const res = await fetch(`/api/actividad/historial?usuario=${encodeURIComponent(sesionUsuario.usuario)}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (tbody && data.success && data.historial && data.historial.length > 0) {
+                            tbody.innerHTML = data.historial.map(h => {
+                                const tiempoTxt = formatearTiempoTexto(h.tiempo_segundos || 0);
+                                const primer = h.primer_ingreso ? new Date(h.primer_ingreso).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }) : '--:--';
+                                const ultimo = h.ultimo_latido ? new Date(h.ultimo_latido).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }) : '--:--';
+                                const esHoy = h.fecha === fechaSesionActual;
+                                const estadoBadge = esHoy 
+                                    ? '<span style="color:#10b981; font-weight:700;">🟢 En curso</span>' 
+                                    : '<span style="color:#94a3b8;">Cerrada</span>';
+                                return `
+                                    <tr>
+                                        <td><strong>${h.fecha}</strong> ${esHoy ? '<span class="badge-role">Hoy</span>' : ''}</td>
+                                        <td>${primer}</td>
+                                        <td>${ultimo}</td>
+                                        <td style="color:#38bdf8; font-weight:700;">${tiempoTxt}</td>
+                                        <td>${estadoBadge}</td>
+                                    </tr>
+                                `;
+                            }).join('');
+                        } else if (tbody) {
+                            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #94a3b8; padding: 16px;">Sesión en curso iniciada hoy (${fechaSesionActual}) con ${formatearTiempoTexto(segundosActividadHoy)}. Sincronizando con Supabase.</td></tr>`;
+                        }
+                    }
+                } catch (e) {
+                    if (tbody) {
+                        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #ef4444; padding: 16px;">Error consultando base de datos. Tiempo local activo: ${formatearTiempoTexto(segundosActividadHoy)}.</td></tr>`;
                     }
                 }
-            } catch (e) {
-                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #ef4444; padding: 16px;">Error consultando base de datos. Tiempo local activo: ${formatearTiempoTexto(segundosActividadHoy)}.</td></tr>`;
-            }
-        });
+            });
+        }
 
-        $('btnCerrarModalHist').addEventListener('click', () => $('modalHistorialSesiones').classList.remove('open'));
-        $('btnCerrarModalHist2').addEventListener('click', () => $('modalHistorialSesiones').classList.remove('open'));
+        const btnCloseHist = $('btnCerrarModalHist');
+        if (btnCloseHist) btnCloseHist.addEventListener('click', () => $('modalHistorialSesiones') && $('modalHistorialSesiones').classList.remove('open'));
+        const btnCloseHist2 = $('btnCerrarModalHist2');
+        if (btnCloseHist2) btnCloseHist2.addEventListener('click', () => $('modalHistorialSesiones') && $('modalHistorialSesiones').classList.remove('open'));
 
         // Cerrar modales con clic afuera o ESC
         window.addEventListener('click', e => {
@@ -1646,10 +1734,13 @@
         });
 
         // Limpiar sesión en logout
-        $('btnLogout').addEventListener('click', () => {
-            enviarLatidoActividad();
-            try { sessionStorage.clear(); } catch (e) {}
-        });
+        const btnLogoutEl = $('btnLogout');
+        if (btnLogoutEl) {
+            btnLogoutEl.addEventListener('click', () => {
+                enviarLatidoActividad();
+                try { sessionStorage.clear(); } catch (e) {}
+            });
+        }
 
         // Inicializar perfil en el arranque del dashboard
         inicializarPerfilUsuario();
@@ -1659,76 +1750,5 @@
         const inicial = location.hash.replace('#', '');
         if (VISTAS.includes(inicial)) mostrarVista(inicial);
     </script>
-
-    <!-- MODAL: VECTOR BIOMÉTRICO FACIAL 128D -->
-    <div class="modal-overlay" id="modalVectorBiometrico">
-        <div class="modal-card">
-            <div class="modal-header">
-                <div>
-                    <h3><span>🧬</span> Huella Vectorial Biométrica Facial</h3>
-                    <p id="modalBioSub">Embedding de 128 dimensiones generado por la Red Neuronal Profunda</p>
-                </div>
-                <button type="button" class="modal-close" id="btnCerrarModalBio">✕</button>
-            </div>
-            
-            <div class="vector-stats">
-                <div class="v-stat"><span>Dimensiones</span><b>128-D</b></div>
-                <div class="v-stat"><span>Mínimo</span><b id="vStatMin">--</b></div>
-                <div class="v-stat"><span>Máximo</span><b id="vStatMax">--</b></div>
-                <div class="v-stat"><span>L2 Norm</span><b id="vStatNorm">1.000</b></div>
-            </div>
-
-            <div style="font-size: 11.5px; color: #94a3b8; margin-bottom: 6px; display: flex; justify-content: space-between;">
-                <span>Mapa de Calor de Activación (128 pesos):</span>
-                <span style="font-size: 10px; color: #64748b;">Azul/Verde: Positivo | Naranja: Negativo</span>
-            </div>
-            
-            <div class="vector-grid" id="vectorGrid"></div>
-
-            <div style="display: flex; justify-content: space-between; align-items: center; margin: 12px 0 6px;">
-                <span style="font-size: 11.5px; color: #94a3b8;">Tensor Numérico (Float32 Array):</span>
-                <button type="button" class="btn-timer-historial" id="btnCopiarVector">📋 Copiar Vector</button>
-            </div>
-            <div class="raw-vector-box" id="rawVectorText">Cargando vector biométrico...</div>
-
-            <div class="modal-actions">
-                <button type="button" class="btn-light" id="btnCerrarModalBio2">Cerrar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL: HISTORIAL DE SESIONES Y TIEMPO ACTIVO -->
-    <div class="modal-overlay" id="modalHistorialSesiones">
-        <div class="modal-card">
-            <div class="modal-header">
-                <div>
-                    <h3><span>⏱️</span> Historial de Actividad del Usuario</h3>
-                    <p id="modalHistorialSub">Registros de tiempo en vivo almacenados en la tabla actividad_usuarios de Supabase</p>
-                </div>
-                <button type="button" class="modal-close" id="btnCerrarModalHist">✕</button>
-            </div>
-            
-            <div class="tabla-historial-wrap">
-                <table class="tabla-historial">
-                    <thead>
-                        <tr>
-                            <th>Fecha</th>
-                            <th>Primer Ingreso</th>
-                            <th>Último Latido</th>
-                            <th>Tiempo Activo</th>
-                            <th>Estado</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tablaHistorialBody">
-                        <tr><td colspan="5" style="text-align: center; color: #64748b;">Cargando historial desde Supabase...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="modal-actions">
-                <button type="button" class="btn-light" id="btnCerrarModalHist2">Cerrar</button>
-            </div>
-        </div>
-    </div>
 </body>
 </html>
