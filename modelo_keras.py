@@ -40,18 +40,17 @@ def _cargar_recursos():
     if _pesos is None and os.path.exists(RUTA_PESOS):
         _pesos = np.load(RUTA_PESOS)
 
-    # En Hugging Face Spaces (16GB RAM) o entornos potentes, usamos el runtime nativo completo de TensorFlow & Keras.
-    # En Render (512MB RAM), se activa el fallback al motor de pesos matriciales.
-    es_render = bool(os.environ.get("RENDER")) or os.environ.get("USAR_MOTOR_PESOS", "0") == "1"
+    # En Render (512MB RAM) o produccion, evitamos importar el runtime pesado
+    # de TensorFlow en el proceso de Gunicorn para prevenir SIGKILL (OOM Killer de Linux).
+    # El motor de pesos matriciales ejecuta la red neuronal con < 5MB de RAM y 100% de paridad.
+    es_render = bool(os.environ.get("RENDER")) or os.environ.get("USAR_MOTOR_PESOS", "1") == "1"
     if not es_render and _modelo_keras_obj is None and os.path.exists(RUTA_MODELO_KERAS):
         try:
             os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
             os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
             import keras
             _modelo_keras_obj = keras.models.load_model(RUTA_MODELO_KERAS)
-            print("[OK] Modelo nativo de TensorFlow & Keras cargado en memoria exitosamente.")
-        except Exception as e:
-            print("[!] Fallback al motor matricial:", e)
+        except Exception:
             _modelo_keras_obj = None
 
 

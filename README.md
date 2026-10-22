@@ -1,13 +1,3 @@
----
-title: Alicorp Intelligence BI
-emoji: 🏢
-colorFrom: blue
-colorTo: indigo
-sdk: docker
-app_port: 7860
-pinned: false
----
-
 # Alicorp v2 - Sistema Corporativo con Reconocimiento Facial
 
 Este es el sistema de intranet y landing page corporativa de Alicorp, el cual incluye un panel de administración (Dashboard) y un sistema de Login de Alta Seguridad protegido por Reconocimiento Facial y Supabase.
