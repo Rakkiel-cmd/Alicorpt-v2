@@ -12,13 +12,13 @@ from flask import Blueprint, jsonify, request
 
 estadistica = Blueprint('estadistica', __name__)
 
-RUTA_CSV = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'transacciones_alicorp_100k.csv')
+from datos_supabase import obtener_transacciones
 
 
 def cargar_datos():
-    # Por ahora lee el CSV. Cuando el Integrante 1 conecte Supabase,
-    # solo hay que cambiar esta funcion para que devuelva el mismo DataFrame.
-    return pd.read_csv(RUTA_CSV, usecols=['tienda', 'stock_actual', 'ventas_totales'])
+    # Carga los 100,000 registros originados en la base de datos Supabase
+    df = obtener_transacciones()
+    return df[['tienda', 'stock_actual', 'ventas_totales']]
 
 
 def prob_mayor_que(valor, media, desviacion):

@@ -209,74 +209,33 @@ def registrar_admin_web():
 @app.route('/api/predecir_ventas', methods=['POST'])
 def predecir_ventas():
     try:
-        import pandas as pd
-        from sklearn.neural_network import MLPRegressor
-        from sklearn.model_selection import train_test_split
-        from sklearn.preprocessing import StandardScaler
+        from datos_supabase import obtener_transacciones
+        from estadistica_service import calcular_estadisticas
+        from ventas_extra import _obtener_modelo
 
-        # Intentar cargar CSV local, si no existe generamos uno ficticio
-        try:
-            # ¡TRUCO DE OPTIMIZACIÓN! Leer solo una muestra aleatoria o los primeros 15,000 registros
-            # para evitar que el servidor gratuito de Render (512MB RAM) colapse o haga timeout.
-            df = pd.read_csv('transacciones_alicorp_100k.csv', nrows=15000)
-            # Simulamos que leyó 100k para que el frontend mantenga el diseño original
-            total_registros_simulados = 100000
-        except FileNotFoundError:
-            np.random.seed(42)
-            n_registros = 15000
-            total_registros_simulados = 100000
-            productos = ['Aceite Primor 1L', 'Fideos Don Vittorio 500g', 'Mayonesa Alacena 500g', 'Detergente Bolívar 2kg', 'Harina Blanca Flor 1kg']
-            tiendas = ['Supermercado Lima Norte', 'Hipermercado Centro', 'Tienda Express Los Olivos', 'Mayorista San Martín']
-            fechas = pd.date_range(start='2024-01-01', periods=730, freq='D')
-            data = {
-                'id_transaccion': range(1, n_registros + 1),
-                'fecha': np.random.choice(fechas, n_registros),
-                'producto': np.random.choice(productos, n_registros),
-                'tienda': np.random.choice(tiendas, n_registros),
-                'precio_unitario': np.random.choice([8.5, 4.2, 7.0, 15.0, 5.5], n_registros),
-                'stock_actual': np.random.randint(50, 500, n_registros),
-                'temperatura_zona': np.random.uniform(18.0, 30.0, n_registros)
-            }
-            df = pd.DataFrame(data)
-            df['cantidad_vendida'] = np.random.poisson(lam=15, size=n_registros) + (df['stock_actual'] * 0.01).astype(int)
-            df['ventas_totales'] = df['cantidad_vendida'] * df['precio_unitario']
+        df = obtener_transacciones()
+        stats = calcular_estadisticas(df)
 
-        media_ventas = float(round(df['ventas_totales'].mean(), 2))
-        mediana_ventas = float(round(df['ventas_totales'].median(), 2))
-        desviacion_ventas = float(round(df['ventas_totales'].std(), 2))
+        # Usar el modelo entrenado con los datos reales
+        modelo_info = _obtener_modelo()
+        y_test = modelo_info['y_test']
+        X_test = modelo_info['X_test']
+        modelo = modelo_info['modelo']
 
-        # Modelo ML: red neuronal que predice ventas totales (S/.)
-        from sklearn.pipeline import make_pipeline
-        from sklearn.compose import TransformedTargetRegressor
         from sklearn.metrics import mean_squared_error
-
-        f = pd.to_datetime(df['fecha'])
-        df['mes'] = f.dt.month
-        df['dia_semana'] = f.dt.dayofweek
-
-        X = pd.get_dummies(df[['precio_unitario', 'stock_actual', 'temperatura_zona', 'mes', 'dia_semana', 'producto', 'tienda']]).astype(float)
-        y = df['ventas_totales']
-
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-        red_neuronal = TransformedTargetRegressor(
-            regressor=make_pipeline(StandardScaler(), MLPRegressor(hidden_layer_sizes=(32, 16), max_iter=300, early_stopping=True, random_state=42)),
-            transformer=StandardScaler())
-        red_neuronal.fit(X_train, y_train)
-
-        y_pred = red_neuronal.predict(X_test)
+        y_pred = modelo.predict(X_test)
         mse = float(round(mean_squared_error(y_test, y_pred), 2))
-        r2 = float(round(red_neuronal.score(X_test, y_test), 4))
-
-        # Venta promedio que predice la red neuronal sobre los datos de prueba
+        r2 = float(round(modelo_info['r2'], 4))
         prediccion_resultado = float(round(float(y_pred.mean()), 2))
 
         return jsonify({
             "success": True,
-            "total_registros": total_registros_simulados,
-            "media_ventas": media_ventas,
-            "mediana_ventas": mediana_ventas,
-            "desviacion_ventas": desviacion_ventas,
+            "total_registros": int(len(df)),
+            "media_ventas": stats['media'],
+            "mediana_ventas": stats['mediana'],
+            "desviacion_ventas": stats['desviacion_estandar'],
+            "varianza": stats['varianza'],
+            "prob_venta_mayor_meta": stats['prob_venta_mayor_meta'],
             "mse": mse,
             "r2": r2,
             "prediccion_resultado": prediccion_resultado
@@ -285,36 +244,6 @@ def predecir_ventas():
         import traceback
         traceback.print_exc()
         return jsonify({"success": False, "message": str(e)})
-    if not capturar_rostro or not validar_rostro:
-        return jsonify({"success": False, "message": "Módulos de IA no disponibles."}), 500
-
-    data = request.json
-    if not data or 'image' not in data:
-        return jsonify({"success": False, "message": "No se recibió imagen."}), 400
-
-    try:
-        # 1. Recibimos la imagen base64 de JavaScript y la limpiamos
-        image_data = data['image'].split(',')[1]
-        # 2. La convertimos a formato numpy array que entiende OpenCV
-        nparr = np.frombuffer(base64.b64decode(image_data), np.uint8)
-        frame_bgr = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-
-        if frame_bgr is None:
-            return jsonify({"success": False, "message": "Imagen inválida."}), 400
-
-        # 3. Se la pasamos al código del Integrante 1 (Captura)
-        rostro = capturar_rostro(frame_bgr)
-        if rostro is not None:
-            # 4. Se la pasamos al código del Integrante 2 (Validación)
-            if validar_rostro(rostro):
-                return jsonify({"success": True, "message": "Acceso concedido.", "redirect": "dashboard.html"})
-            else:
-                return jsonify({"success": False, "message": "Acceso denegado. Rostro no reconocido."})
-        else:
-            return jsonify({"success": False, "message": "No se detectó ningún rostro en la foto."})
-            
-    except Exception as e:
-        return jsonify({"success": False, "message": f"Error del servidor: {str(e)}"}), 500
 
 if __name__ == '__main__':
     print("Iniciando servidor unificado (Web + IA)...")

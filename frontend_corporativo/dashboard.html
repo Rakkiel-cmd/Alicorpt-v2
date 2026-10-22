@@ -367,10 +367,12 @@
                         <small>Es el promedio de lo que predice el modelo sobre datos de prueba. Compáralo con la venta promedio real y pruébalo en el Simulador.</small>
                     </div>
                     <div class="metrics-grid">
-                        <div class="metric-card"><h4>Registros del dataset</h4><p id="txtRegistros">--</p><small>El modelo entrena con 15,000</small></div>
+                        <div class="metric-card"><h4>Registros en Supabase</h4><p id="txtRegistros">--</p><small>Base de datos Cloud (100k)</small></div>
                         <div class="metric-card" style="--accent: #2563eb;"><h4>Venta Promedio (Media)</h4><p>S/. <span id="txtMedia">--</span></p></div>
                         <div class="metric-card" style="--accent: #7c3aed;"><h4>Mediana Histórica</h4><p>S/. <span id="txtMediana">--</span></p></div>
                         <div class="metric-card" style="--accent: #db2777;"><h4>Desviación Estándar</h4><p id="txtDesviacion">--</p></div>
+                        <div class="metric-card" style="--accent: #8b5cf6;"><h4>Varianza Muestral</h4><p id="txtVarianza">--</p></div>
+                        <div class="metric-card" style="--accent: #059669;"><h4>Prob. Venta > S/. 200</h4><p id="txtProbMeta">--</p></div>
                         <div class="metric-card" style="--accent: #ea580c;"><h4>Error Cuadrático (MSE)</h4><p id="txtMSE">--</p></div>
                         <div class="metric-card" style="--accent: #10b981;"><h4>Precisión del Modelo (R²)</h4><p id="txtR2">--</p></div>
                     </div>
@@ -921,6 +923,8 @@
                     $('txtMedia').innerText = data.media_ventas;
                     $('txtMediana').innerText = data.mediana_ventas;
                     $('txtDesviacion').innerText = data.desviacion_ventas;
+                    if ($('txtVarianza')) $('txtVarianza').innerText = data.varianza ? data.varianza.toLocaleString('es-PE') : '--';
+                    if ($('txtProbMeta')) $('txtProbMeta').innerText = data.prob_venta_mayor_meta !== undefined ? (data.prob_venta_mayor_meta * 100).toFixed(1) + '%' : '--';
                     $('txtMSE').innerText = data.mse;
                     $('txtR2').innerText = data.r2;
 
@@ -1099,6 +1103,9 @@
             }
             $('selectMesReporte').innerHTML = opciones.join('');
             reporteListo = true;
+            // Seleccionar y cargar junio 2024 por defecto
+            $('selectMesReporte').value = '2024-06';
+            cargarReporte('2024-06');
         }
 
         // Pide los datos del mes al backend. Si falla, usa los datos de ejemplo y avisa.

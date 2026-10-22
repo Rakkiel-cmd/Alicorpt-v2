@@ -27,7 +27,7 @@ from sklearn.metrics import r2_score
 
 regresion_lineal = Blueprint('regresion_lineal', __name__)
 
-RUTA_CSV = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'transacciones_alicorp_100k.csv')
+from datos_supabase import obtener_transacciones
 
 VARIABLES_SIMPLES_PERMITIDAS = ('stock_actual', 'precio_unitario', 'temperatura_zona')
 COLUMNAS_MULTIPLE_NUM = ['precio_unitario', 'stock_actual', 'temperatura_zona', 'mes']
@@ -39,11 +39,10 @@ _candado = threading.Lock()
 
 
 def cargar_datos():
-    # Por ahora lee el CSV. Cuando el Integrante 1 conecte Supabase,
-    # solo hay que cambiar esta funcion para que devuelva el mismo DataFrame.
+    # Carga los 100,000 registros originados en la base de datos Supabase
     columnas = ['fecha', 'tienda', 'precio_unitario', 'stock_actual',
                 'temperatura_zona', 'ventas_totales']
-    df = pd.read_csv(RUTA_CSV, usecols=columnas)
+    df = obtener_transacciones()[columnas].copy()
     df['mes'] = pd.to_datetime(df['fecha']).dt.month
     return df
 

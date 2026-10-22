@@ -12,10 +12,9 @@ import threading
 import numpy as np
 import pandas as pd
 from flask import Blueprint, jsonify, request
+from datos_supabase import obtener_transacciones, obtener_reporte_mensual_supabase
 
 ventas_extra = Blueprint('ventas_extra', __name__)
-
-RUTA_CSV = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'transacciones_alicorp_100k.csv')
 
 _resumen_cache = None
 _modelo_cache = None
@@ -49,9 +48,10 @@ def _grupo_a_lista(df, columna):
 
 
 def _calcular_resumen():
+    # Obtiene los 100,000 registros completos desde Supabase
     columnas = ['fecha', 'producto', 'tienda', 'precio_unitario', 'stock_actual',
                 'cantidad_vendida', 'ventas_totales']
-    df = pd.read_csv(RUTA_CSV, usecols=columnas)
+    df = obtener_transacciones()[columnas].copy()
     df['mes'] = pd.to_datetime(df['fecha']).dt.strftime('%Y-%m')
     por_mes = df.groupby('mes')['ventas_totales'].sum()
     # Relacion real de los datos: mas stock -> mas unidades vendidas
@@ -105,8 +105,8 @@ def _obtener_modelo():
         from sklearn.pipeline import make_pipeline
         from sklearn.preprocessing import StandardScaler
 
-        # Solo 15,000 filas para no saturar el servidor gratuito de Render
-        df = pd.read_csv(RUTA_CSV, nrows=15000)
+        # Carga los registros desde Supabase
+        df = obtener_transacciones().copy()
         fecha = pd.to_datetime(df['fecha'])
         df['mes'] = fecha.dt.month
         df['dia_semana'] = fecha.dt.dayofweek
@@ -249,6 +249,23 @@ def explicar_modelo():
         if _explicacion_cache is None:
             _explicacion_cache = _calcular_explicacion()
         return jsonify(_explicacion_cache)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# 4) Reporte Mensual (Integrante 6: eri07ramirez-cell)
+# ---------------------------------------------------------------------------
+@ventas_extra.route('/api/reporte_mensual', methods=['GET'])
+def api_reporte_mensual():
+    try:
+        mes = request.args.get('mes')
+        if not mes:
+            return jsonify({'success': False, 'message': 'Falta el parametro mes (YYYY-MM)'}), 400
+        reporte = obtener_reporte_mensual_supabase(mes)
+        return jsonify(reporte)
     except Exception as e:
         import traceback
         traceback.print_exc()
