@@ -6,4 +6,5 @@ __pycache__/
 rostros_autorizados/
 .env
 .guia_reconocimiento_facial.md
-*.parquet
+*.csv
+*.parquet
