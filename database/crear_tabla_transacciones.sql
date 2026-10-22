@@ -51,3 +51,63 @@ SELECT
     ROUND(AVG(stock_actual), 1) AS stock_promedio
 FROM public.transacciones_alicorp
 GROUP BY producto, tienda, TO_CHAR(fecha, 'YYYY-MM');
+
+CREATE OR REPLACE VIEW public.vista_totales_dashboard AS
+SELECT COUNT(*) AS total_registros, SUM(ventas_totales) AS ventas_totales
+FROM public.transacciones_alicorp;
+
+CREATE OR REPLACE VIEW public.vista_stock_dashboard AS
+SELECT
+    CASE
+        WHEN stock_actual < 150 THEN '50-149'
+        WHEN stock_actual < 250 THEN '150-249'
+        WHEN stock_actual < 350 THEN '250-349'
+        WHEN stock_actual < 450 THEN '350-449'
+        ELSE '450-500'
+    END AS nivel_stock,
+    AVG(cantidad_vendida) AS unidades_promedio,
+    AVG(ventas_totales) AS ventas_promedio
+FROM public.transacciones_alicorp
+GROUP BY 1
+ORDER BY 1;
+
+CREATE OR REPLACE FUNCTION public.estadisticas_dashboard(
+    meta_venta NUMERIC,
+    umbral_inventario NUMERIC
+)
+RETURNS JSONB
+LANGUAGE SQL
+STABLE
+AS $$
+SELECT jsonb_build_object(
+    'general', (
+        SELECT jsonb_build_object(
+            'n', COUNT(*)::INT,
+            'media', AVG(ventas_totales),
+            'mediana', percentile_cont(0.5) WITHIN GROUP (ORDER BY ventas_totales),
+            'varianza', var_samp(ventas_totales),
+            'desviacion', stddev_samp(ventas_totales),
+            'mayores_meta', COUNT(*) FILTER (WHERE ventas_totales > meta_venta)::INT
+        )
+        FROM public.transacciones_alicorp
+    ),
+    'tiendas', COALESCE((
+        SELECT jsonb_agg(jsonb_build_object(
+            'tienda', tienda,
+            'n', cantidad::INT,
+            'stock_medio', stock_medio,
+            'stock_desviacion', stock_desviacion,
+            'debajo_umbral', debajo_umbral::INT
+        ) ORDER BY tienda)
+        FROM (
+            SELECT tienda,
+                   COUNT(*) AS cantidad,
+                   AVG(stock_actual) AS stock_medio,
+                   stddev_samp(stock_actual) AS stock_desviacion,
+                   COUNT(*) FILTER (WHERE stock_actual < umbral_inventario) AS debajo_umbral
+            FROM public.transacciones_alicorp
+            GROUP BY tienda
+        ) por_tienda
+    ), '[]'::jsonb)
+);
+$$;

@@ -22,7 +22,8 @@ load_dotenv()
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
-RUTA_CSV = os.path.join(os.path.dirname(os.path.abspath(__file__)), "transacciones_alicorp_100k.csv")
+RUTA_PROYECTO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+RUTA_CSV = os.path.join(RUTA_PROYECTO, "data", "transacciones_alicorp_100k.csv")
 BATCH_SIZE = 2000  # Lote óptimo para Supabase REST API (entre 1000 y 2500)
 MAX_RETRIES = 3
 

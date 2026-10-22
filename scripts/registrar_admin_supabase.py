@@ -9,7 +9,7 @@ load_dotenv()
 
 # Importamos la lógica de captura para reciclar código
 try:
-    from Captura import capturar_rostro
+    from backend.Captura import capturar_rostro
     import face_recognition
 except ImportError:
     print("Falta instalar OpenCV o face_recognition")

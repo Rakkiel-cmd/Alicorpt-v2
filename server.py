@@ -10,8 +10,8 @@ load_dotenv()
 
 # Importamos la lógica de IA que hicieron tus compañeros
 try:
-    from Captura import capturar_rostro
-    from modelo_facial import validar_rostro
+    from backend.Captura import capturar_rostro
+    from backend.modelo_facial import validar_rostro
 except ImportError:
     capturar_rostro = None
     validar_rostro = None
@@ -19,12 +19,14 @@ except ImportError:
 app = Flask(__name__, static_folder='frontend_corporativo')
 
 # Subproyecto 2: endpoints extra del dashboard de ventas (productos y simulador)
-from ventas_extra import ventas_extra
+from backend.ventas_extra import ventas_extra
 app.register_blueprint(ventas_extra)
-from estadistica_service import estadistica
+from backend.estadistica_service import estadistica
 app.register_blueprint(estadistica)
-from modelo_keras import modelo_keras
+from backend.modelo_keras import modelo_keras
 app.register_blueprint(modelo_keras)
+from backend.regresion_lineal import regresion_lineal
+app.register_blueprint(regresion_lineal)
 
 # Limpiar y forzar cabeceras de seguridad para evitar errores de Permissions-Policy ('join-ad-interest-group')
 @app.after_request
@@ -98,7 +100,7 @@ def login_facial():
         if rostro is not None:
             # Validar con la base de datos de Supabase en modelo_facial
             # IMPORTANTE: Usamos validar_rostro_detalle para obtener la distancia
-            from modelo_facial import validar_rostro_detalle
+            from backend.modelo_facial import validar_rostro_detalle
             detalle = validar_rostro_detalle(rostro)
             
             if detalle["autorizado"]:
@@ -194,7 +196,7 @@ def registrar_admin_web():
             }).execute()
             
             # Recargar la caché del modelo
-            from modelo_facial import recargar_autorizados
+            from backend.modelo_facial import recargar_autorizados
             recargar_autorizados()
             
             return jsonify({"success": True, "message": "Registro completado."})
@@ -216,7 +218,8 @@ def predecir_ventas():
         try:
             # ¡TRUCO DE OPTIMIZACIÓN! Leer solo una muestra aleatoria o los primeros 15,000 registros
             # para evitar que el servidor gratuito de Render (512MB RAM) colapse o haga timeout.
-            df = pd.read_csv('transacciones_alicorp_100k.csv', nrows=15000)
+            ruta_csv = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'transacciones_alicorp_100k.csv')
+            df = pd.read_csv(ruta_csv, nrows=15000)
             # Simulamos que leyó 100k para que el frontend mantenga el diseño original
             total_registros_simulados = 100000
         except FileNotFoundError:

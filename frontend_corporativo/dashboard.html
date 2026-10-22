@@ -1142,7 +1142,6 @@
                 const variacion = actual ? ((futuro - actual) / actual) * 100 : 0;
                 return { producto: f.producto, actual, futuro, ventas: Number(f.ventas_mes), variacion, estado: estadoRentabilidad(variacion) };
             });
-
             // Tabla: una fila por producto
             tbody.innerHTML = datos.map(d => `
                 <tr>

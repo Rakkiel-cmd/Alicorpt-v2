@@ -44,6 +44,14 @@ Instala todas las librerías necesarias ejecutando:
 ```bash
 python instalar.py
 ```
+
+La estructura principal del proyecto está organizada así:
+
+- `backend/`: API Flask, reconocimiento facial, estadísticas, modelos y regresión.
+- `scripts/`: migración a Supabase, registro de administradores y entrenamiento.
+- `models/`: archivos entrenados de Keras y sus metadatos.
+- `data/`: dataset local y cachés generadas.
+- `database/`: scripts SQL.
 ### Paso 4: Configurar la Base de Datos (Supabase)
 El proyecto usa Supabase para guardar los usuarios y las firmas matemáticas de sus rostros (encodings), **NO** guarda las fotos por motivos de seguridad.
 
@@ -58,6 +66,12 @@ SUPABASE_KEY=tu-clave-anon-publica
    - `usuario` (text)
    - `password` (text)
    - `face_encoding` (json , para guardar el vector matemático)
+
+Para reducir el consumo de memoria en la nube, ejecuta también el contenido de
+[`database/crear_tabla_transacciones.sql`](./database/crear_tabla_transacciones.sql)
+en el SQL Editor de Supabase. Además de la tabla, crea vistas agregadas y una
+función para que el dashboard reciba resúmenes en lugar de descargar los
+100,000 registros completos.
 
 ### Paso 5: ¿Dónde se guardan los rostros?
 El sistema tiene dos capas:
