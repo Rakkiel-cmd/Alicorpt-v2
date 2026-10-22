@@ -25,6 +25,8 @@ from estadistica_service import estadistica
 app.register_blueprint(estadistica)
 from modelo_keras import modelo_keras
 app.register_blueprint(modelo_keras)
+from regresion_lineal import regresion_lineal
+app.register_blueprint(regresion_lineal)
 
 # Limpiar y forzar cabeceras de seguridad para evitar errores de Permissions-Policy ('join-ad-interest-group')
 @app.after_request
