@@ -133,7 +133,17 @@
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    statusTradicional.innerHTML = `<span style='color:green;'>✅ Credenciales correctas. Pase a validación facial...</span>`;
+                    // Guardar perfil y vector de sesión
+                    try {
+                        sessionStorage.setItem('usuario_activo', JSON.stringify({
+                            usuario: data.usuario || inputUsuario.value.trim(),
+                            nombre_completo: data.nombre_completo || data.usuario || inputUsuario.value.trim(),
+                            face_encoding: data.face_encoding
+                        }));
+                        localStorage.setItem('ultimo_usuario', data.usuario || inputUsuario.value.trim());
+                    } catch (e) {}
+
+                    statusTradicional.innerHTML = `<span style='color:green;'>✅ Credenciales válidas para <strong>${data.nombre_completo || data.usuario}</strong>. Pase a validación facial...</span>`;
                     setTimeout(() => {
                         document.getElementById('seccionTradicional').style.opacity = '0.5';
                         document.getElementById('seccionTradicional').style.pointerEvents = 'none';
@@ -204,6 +214,17 @@
             .then(data => {
                 scanLine.classList.remove('scanning'); // Detener láser
                 if (data.success) {
+                    // Guardar perfil y vector
+                    try {
+                        sessionStorage.setItem('usuario_activo', JSON.stringify({
+                            usuario: data.usuario,
+                            nombre_completo: data.nombre_completo || data.usuario,
+                            face_encoding: data.face_encoding,
+                            porcentaje: data.porcentaje
+                        }));
+                        localStorage.setItem('ultimo_usuario', data.usuario);
+                    } catch (e) {}
+
                     statusMensaje.innerHTML = `<span style='color:green;'>✅ ${data.message}<br><strong style="font-size:1.1rem; color:#0284c7;">Precisión IA: ${data.porcentaje}%</strong></span>`;
                     // Redirigir al dashboard tras 1.5 segundos para que vean el %
                     setTimeout(() => {

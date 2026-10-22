@@ -32,9 +32,17 @@
             
             <div id="paso1">
                 <div style="border: 1px solid #e2e8f0; padding: 20px; border-radius: 10px; text-align: left;">
-                    <h3 style="color: var(--color-primary); margin-bottom: 15px; font-size: 1.1rem;">1. Credenciales</h3>
-                    <input type="text" id="inputUsuario" placeholder="Crea tu Usuario" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #cbd5e1; border-radius: 5px;">
-                    <input type="password" id="inputPassword" placeholder="Crea tu Contraseña" style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #cbd5e1; border-radius: 5px;">
+                    <h3 style="color: var(--color-primary); margin-bottom: 15px; font-size: 1.1rem;">1. Credenciales y Datos Personales</h3>
+                    
+                    <label for="inputNombreCompleto" style="display:block; font-size:0.85rem; font-weight:600; color:#475569; margin-bottom:4px;">Nombres y Apellidos Completos:</label>
+                    <input type="text" id="inputNombreCompleto" placeholder="Ej: Manuel Jesús Sánchez Paredes" style="width: 100%; padding: 10px; margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 5px;" required>
+
+                    <label for="inputUsuario" style="display:block; font-size:0.85rem; font-weight:600; color:#475569; margin-bottom:4px;">Usuario (Para el inicio de sesión):</label>
+                    <input type="text" id="inputUsuario" placeholder="Crea tu Usuario (ej: msanchez)" style="width: 100%; padding: 10px; margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 5px;" required>
+
+                    <label for="inputPassword" style="display:block; font-size:0.85rem; font-weight:600; color:#475569; margin-bottom:4px;">Contraseña:</label>
+                    <input type="password" id="inputPassword" placeholder="Crea una contraseña segura" style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #cbd5e1; border-radius: 5px;" required>
+
                     <button id="btnSiguiente" class="btn-primary" style="width: 100%; border: none; cursor: pointer;">Siguiente: Tomar Foto Facial</button>
                     <p id="errorCredenciales" style="color: red; font-size: 0.85rem; margin-top: 10px; display: none;"></p>
                 </div>
@@ -76,6 +84,7 @@
         const paso1 = document.getElementById('paso1');
         const paso2 = document.getElementById('paso2');
         const btnSiguiente = document.getElementById('btnSiguiente');
+        const inputNombreCompleto = document.getElementById('inputNombreCompleto');
         const inputUsuario = document.getElementById('inputUsuario');
         const inputPassword = document.getElementById('inputPassword');
         const errorCredenciales = document.getElementById('errorCredenciales');
@@ -95,8 +104,12 @@
 
         // Validar paso 1 y abrir cámara
         btnSiguiente.addEventListener('click', () => {
-            if (inputUsuario.value.trim() === "" || inputPassword.value.trim() === "") {
-                errorCredenciales.innerHTML = "Debes llenar usuario y contraseña.";
+            const nombre = inputNombreCompleto.value.trim();
+            const usr = inputUsuario.value.trim();
+            const pwd = inputPassword.value.trim();
+
+            if (!nombre || !usr || !pwd) {
+                errorCredenciales.innerHTML = "Por favor completa tus Nombres y Apellidos, Usuario y Contraseña.";
                 errorCredenciales.style.display = "block";
                 return;
             }
@@ -171,7 +184,8 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    usuario: inputUsuario.value,
+                    nombre_completo: inputNombreCompleto.value.trim(),
+                    usuario: inputUsuario.value.trim(),
                     password: inputPassword.value,
                     image: imagenFinalBase64
                 })
@@ -179,7 +193,14 @@
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    statusMensaje.innerHTML = `<span style='color:green;'>🎉 ¡Registro completado! Redirigiendo al login...</span>`;
+                    // Guardar datos en sessionStorage para acceso rápido
+                    try {
+                        sessionStorage.setItem('usuario_activo', JSON.stringify({
+                            usuario: data.usuario || inputUsuario.value.trim(),
+                            nombre_completo: data.nombre_completo || inputNombreCompleto.value.trim()
+                        }));
+                    } catch (e) {}
+                    statusMensaje.innerHTML = `<span style='color:green;'>🎉 ¡Registro completado para ${data.nombre_completo || inputNombreCompleto.value}! Redirigiendo al login...</span>`;
                     setTimeout(() => window.location.href = "admin_login.html", 2000);
                 } else {
                     statusMensaje.innerHTML = `<span style='color:red;'>❌ Error: ${data.message}</span>`;
