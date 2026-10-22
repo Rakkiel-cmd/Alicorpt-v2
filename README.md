@@ -52,6 +52,16 @@ La estructura principal del proyecto está organizada así:
 - `models/`: archivos entrenados de Keras y sus metadatos.
 - `data/`: dataset local y cachés generadas.
 - `database/`: scripts SQL.
+
+El módulo [`backend/graficos_analysis.py`](./backend/graficos_analysis.py) genera los
+gráficos analíticos del integrante 5. Sus rutas son:
+
+- `/api/graficos/regresion`
+- `/api/graficos/correlacion`
+- `/api/graficos/probabilidades`
+
+Cada ruta devuelve una imagen PNG y acepta opcionalmente `limite` (entre 100 y
+15,000 filas) para controlar el uso de memoria.
 ### Paso 4: Configurar la Base de Datos (Supabase)
 El proyecto usa Supabase para guardar los usuarios y las firmas matemáticas de sus rostros (encodings), **NO** guarda las fotos por motivos de seguridad.
 

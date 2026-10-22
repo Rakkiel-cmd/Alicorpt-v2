@@ -2,6 +2,7 @@ flask
 opencv-python-headless<5.0.0
 dlib-bin; sys_platform == "win32"
 dlib; sys_platform != "win32"
+face_recognition
 numpy
 pandas
 scikit-learn
@@ -16,3 +17,4 @@ keras
 tensorflow-cpu; sys_platform != "win32"
 tensorflow; sys_platform == "win32"
 pyarrow
+

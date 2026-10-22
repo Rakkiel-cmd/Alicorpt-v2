@@ -27,6 +27,8 @@ from backend.modelo_keras import modelo_keras
 app.register_blueprint(modelo_keras)
 from backend.regresion_lineal import regresion_lineal
 app.register_blueprint(regresion_lineal)
+from backend.graficos_analysis import graficos_analysis
+app.register_blueprint(graficos_analysis)
 
 # Limpiar y forzar cabeceras de seguridad para evitar errores de Permissions-Policy ('join-ad-interest-group')
 @app.after_request
