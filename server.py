@@ -47,9 +47,9 @@ def serve_static(path):
 # API Endpoint: Login Tradicional (Usuario y Contraseña)
 @app.route('/api/login_password', methods=['POST'])
 def login_password():
-    data = request.json
-    usuario_input = data.get('usuario')
-    password_input = data.get('password')
+    data = request.json or {}
+    usuario_input = data.get('usuario', '').strip()
+    password_input = data.get('password', '')
 
     SUPABASE_URL = os.environ.get("SUPABASE_URL")
     SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
@@ -61,13 +61,44 @@ def login_password():
         from supabase import create_client, Client
         supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
         
-        # Buscar el usuario en la base de datos
-        response = supabase.table('administradores').select('password').eq('usuario', usuario_input).execute()
+        # Buscar el usuario en la base de datos (con soporte para nombre_completo)
+        try:
+            response = supabase.table('administradores').select('usuario, password, nombre_completo, face_encoding').eq('usuario', usuario_input).execute()
+        except Exception:
+            response = supabase.table('administradores').select('usuario, password, face_encoding').eq('usuario', usuario_input).execute()
         
         if len(response.data) > 0:
-            password_real = response.data[0]['password']
+            fila = response.data[0]
+            password_real = fila.get('password')
             if password_input == password_real:
-                return jsonify({"success": True, "message": "Acceso concedido.", "redirect": "dashboard.html"})
+                nombre_completo = fila.get('nombre_completo') or fila.get('usuario')
+                face_encoding = fila.get('face_encoding')
+                
+                # Inicializar o registrar actividad para el día de hoy
+                try:
+                    from datetime import date, datetime
+                    hoy = date.today().isoformat()
+                    now_iso = datetime.utcnow().isoformat()
+                    act_check = supabase.table('actividad_usuarios').select('id').eq('usuario', usuario_input).eq('fecha', hoy).execute()
+                    if not act_check.data:
+                        supabase.table('actividad_usuarios').insert({
+                            'usuario': usuario_input,
+                            'fecha': hoy,
+                            'tiempo_segundos': 0,
+                            'primer_ingreso': now_iso,
+                            'ultimo_latido': now_iso
+                        }).execute()
+                except Exception:
+                    pass
+
+                return jsonify({
+                    "success": True, 
+                    "message": "Acceso concedido.", 
+                    "usuario": fila.get('usuario'),
+                    "nombre_completo": nombre_completo,
+                    "face_encoding": face_encoding,
+                    "redirect": "dashboard.html"
+                })
             else:
                 return jsonify({"success": False, "message": "Contraseña incorrecta."})
         else:
@@ -82,7 +113,7 @@ def login_facial():
     if not validar_rostro or not capturar_rostro:
         return jsonify({"success": False, "message": "El modelo facial no está disponible."})
 
-    data = request.json
+    data = request.json or {}
     imagen_base64 = data.get('image')
 
     if not imagen_base64:
@@ -95,23 +126,58 @@ def login_facial():
         np_arr = np.frombuffer(decoded_bytes, np.uint8)
         frame_bgr = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
-        # Usar la lógica de los compañeros
+        # Usar la lógica de captura
         rostro = capturar_rostro(frame_bgr)
         if rostro is not None:
             # Validar con la base de datos de Supabase en modelo_facial
-            # IMPORTANTE: Usamos validar_rostro_detalle para obtener la distancia
             from modelo_facial import validar_rostro_detalle
             detalle = validar_rostro_detalle(rostro)
             
             if detalle["autorizado"]:
                 distancia = detalle["distancia"]
-                # Ajuste de escala para que una distancia aceptable (ej. 0.45) se mapee a >90%
-                # Matemática de presentación: 100 - (distancia * 20)
                 porcentaje = round(max(0, min(100, 100 - (distancia * 20))), 2)
+                usuario_reconocido = detalle.get("coincide_con")
+
+                # Obtener perfil del usuario desde Supabase
+                nombre_completo = usuario_reconocido
+                face_encoding = None
+                try:
+                    SUPABASE_URL = os.environ.get("SUPABASE_URL")
+                    SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+                    from supabase import create_client, Client
+                    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+                    try:
+                        u_res = supabase.table('administradores').select('usuario, nombre_completo, face_encoding').eq('usuario', usuario_reconocido).execute()
+                    except Exception:
+                        u_res = supabase.table('administradores').select('usuario, face_encoding').eq('usuario', usuario_reconocido).execute()
+                    
+                    if u_res.data:
+                        nombre_completo = u_res.data[0].get('nombre_completo') or usuario_reconocido
+                        face_encoding = u_res.data[0].get('face_encoding')
+                    
+                    # Inicializar actividad de hoy
+                    from datetime import date, datetime
+                    hoy = date.today().isoformat()
+                    now_iso = datetime.utcnow().isoformat()
+                    act_check = supabase.table('actividad_usuarios').select('id').eq('usuario', usuario_reconocido).eq('fecha', hoy).execute()
+                    if not act_check.data:
+                        supabase.table('actividad_usuarios').insert({
+                            'usuario': usuario_reconocido,
+                            'fecha': hoy,
+                            'tiempo_segundos': 0,
+                            'primer_ingreso': now_iso,
+                            'ultimo_latido': now_iso
+                        }).execute()
+                except Exception:
+                    pass
+
                 return jsonify({
                     "success": True, 
-                    "message": "¡Identidad confirmada!", 
+                    "message": f"¡Identidad confirmada! Bienvenido, {nombre_completo}.", 
                     "porcentaje": porcentaje,
+                    "usuario": usuario_reconocido,
+                    "nombre_completo": nombre_completo,
+                    "face_encoding": face_encoding,
                     "redirect": "dashboard.html"
                 })
             else:
@@ -128,7 +194,7 @@ def verificar_rostro():
     if not capturar_rostro:
         return jsonify({"success": False, "message": "La IA está apagada. Activa el entorno virtual (venv)."})
         
-    data = request.json
+    data = request.json or {}
     img_b64 = data.get('image')
     if not img_b64:
         return jsonify({"success": False, "message": "Falta imagen."})
@@ -153,13 +219,14 @@ def registrar_admin_web():
     if not capturar_rostro:
         return jsonify({"success": False, "message": "La IA está apagada. Activa el entorno virtual (venv)."})
 
-    data = request.json
-    usuario = data.get('usuario')
+    data = request.json or {}
+    usuario = (data.get('usuario') or '').strip()
+    nombre_completo = (data.get('nombre_completo') or '').strip() or usuario
     password = data.get('password')
     img_b64 = data.get('image')
 
     if not usuario or not password or not img_b64:
-        return jsonify({"success": False, "message": "Datos incompletos."})
+        return jsonify({"success": False, "message": "Datos incompletos. Llena usuario, nombre completo y contraseña."})
 
     try:
         header, encoded = img_b64.split(",", 1)
@@ -189,21 +256,203 @@ def registrar_admin_web():
             if len(exist.data) > 0:
                 return jsonify({"success": False, "message": "El nombre de usuario ya está en uso."})
 
-            supabase.table('administradores').insert({
+            insert_payload = {
                 "usuario": usuario,
                 "password": password,
-                "face_encoding": firma
-            }).execute()
+                "face_encoding": firma,
+                "nombre_completo": nombre_completo
+            }
+            try:
+                supabase.table('administradores').insert(insert_payload).execute()
+            except Exception as e_col:
+                # Si la columna nombre_completo no existe todavía en Supabase, guardar sin ella
+                if "nombre_completo" in str(e_col):
+                    del insert_payload["nombre_completo"]
+                    supabase.table('administradores').insert(insert_payload).execute()
+                else:
+                    raise e_col
             
             # Recargar la caché del modelo
             from modelo_facial import recargar_autorizados
             recargar_autorizados()
             
-            return jsonify({"success": True, "message": "Registro completado."})
+            return jsonify({
+                "success": True, 
+                "message": f"Registro completado para {nombre_completo}.",
+                "usuario": usuario,
+                "nombre_completo": nombre_completo
+            })
         else:
             return jsonify({"success": False, "message": "No se pudo extraer la firma biométrica."})
     except Exception as e:
         return jsonify({"success": False, "message": f"Error: {str(e)}"})
+
+# Endpoint: Perfil de Usuario (Nombre, Usuario y Vector)
+@app.route('/api/usuario_perfil', methods=['GET'])
+def usuario_perfil():
+    usuario = request.args.get('usuario')
+    if not usuario:
+        return jsonify({"success": False, "message": "Falta parámetro usuario."}), 400
+
+    SUPABASE_URL = os.environ.get("SUPABASE_URL")
+    SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return jsonify({"success": False, "message": "Faltan credenciales de base de datos."}), 500
+
+    try:
+        from supabase import create_client, Client
+        supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+        try:
+            res = supabase.table('administradores').select('usuario, nombre_completo, face_encoding').eq('usuario', usuario).execute()
+        except Exception:
+            res = supabase.table('administradores').select('usuario, face_encoding').eq('usuario', usuario).execute()
+
+        if res.data and len(res.data) > 0:
+            fila = res.data[0]
+            return jsonify({
+                "success": True,
+                "usuario": fila.get("usuario"),
+                "nombre_completo": fila.get("nombre_completo") or fila.get("usuario"),
+                "face_encoding": fila.get("face_encoding")
+            })
+        return jsonify({"success": False, "message": "Usuario no encontrado."}), 404
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+# Endpoint: Obtener tiempo de actividad acumulado hoy
+@app.route('/api/actividad/hoy', methods=['GET'])
+def actividad_hoy():
+    usuario = request.args.get('usuario')
+    if not usuario:
+        return jsonify({"success": False, "message": "Falta parámetro usuario."}), 400
+
+    from datetime import date, datetime
+    hoy = date.today().isoformat()
+    now_iso = datetime.utcnow().isoformat()
+
+    SUPABASE_URL = os.environ.get("SUPABASE_URL")
+    SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return jsonify({"success": True, "usuario": usuario, "fecha": hoy, "tiempo_segundos": 0, "offline": True})
+
+    try:
+        from supabase import create_client, Client
+        supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+        res = supabase.table('actividad_usuarios').select('*').eq('usuario', usuario).eq('fecha', hoy).execute()
+        if res.data and len(res.data) > 0:
+            fila = res.data[0]
+            return jsonify({
+                "success": True,
+                "usuario": usuario,
+                "fecha": fila.get("fecha"),
+                "tiempo_segundos": fila.get("tiempo_segundos", 0),
+                "primer_ingreso": fila.get("primer_ingreso"),
+                "ultimo_latido": fila.get("ultimo_latido")
+            })
+        else:
+            # Crear nueva fila para hoy
+            nuevo = {
+                "usuario": usuario,
+                "fecha": hoy,
+                "tiempo_segundos": 0,
+                "primer_ingreso": now_iso,
+                "ultimo_latido": now_iso
+            }
+            try:
+                supabase.table('actividad_usuarios').insert(nuevo).execute()
+            except Exception:
+                pass
+            return jsonify({
+                "success": True,
+                "usuario": usuario,
+                "fecha": hoy,
+                "tiempo_segundos": 0,
+                "primer_ingreso": now_iso
+            })
+    except Exception as e:
+        return jsonify({
+            "success": True,
+            "usuario": usuario,
+            "fecha": hoy,
+            "tiempo_segundos": 0,
+            "offline": True,
+            "error": str(e)
+        })
+
+# Endpoint: Latido en vivo para registrar tiempo de actividad en Supabase
+@app.route('/api/actividad/latido', methods=['POST'])
+def actividad_latido():
+    data = request.json or {}
+    usuario = (data.get('usuario') or '').strip()
+    tiempo_total_hoy = data.get('tiempo_total_hoy')
+    segundos_delta = int(data.get('segundos_delta', 15))
+
+    if not usuario:
+        return jsonify({"success": False, "message": "Falta parámetro usuario."}), 400
+
+    from datetime import date, datetime
+    hoy = date.today().isoformat()
+    now_iso = datetime.utcnow().isoformat()
+
+    SUPABASE_URL = os.environ.get("SUPABASE_URL")
+    SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return jsonify({"success": True, "offline": True})
+
+    try:
+        from supabase import create_client, Client
+        supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+        # Buscar si ya existe fila para el día de hoy
+        res = supabase.table('actividad_usuarios').select('id, tiempo_segundos').eq('usuario', usuario).eq('fecha', hoy).execute()
+        if res.data and len(res.data) > 0:
+            reg_id = res.data[0]['id']
+            actual = res.data[0].get('tiempo_segundos', 0)
+            nuevo_tiempo = actual + segundos_delta
+            if tiempo_total_hoy is not None and int(tiempo_total_hoy) >= actual:
+                nuevo_tiempo = int(tiempo_total_hoy)
+
+            supabase.table('actividad_usuarios').update({
+                "tiempo_segundos": nuevo_tiempo,
+                "ultimo_latido": now_iso
+            }).eq('id', reg_id).execute()
+
+            return jsonify({"success": True, "fecha": hoy, "tiempo_segundos": nuevo_tiempo})
+        else:
+            # Nuevo registro para hoy (o cambio de medianoche a nuevo día)
+            init_tiempo = int(tiempo_total_hoy) if tiempo_total_hoy is not None else segundos_delta
+            nuevo = {
+                "usuario": usuario,
+                "fecha": hoy,
+                "tiempo_segundos": init_tiempo,
+                "primer_ingreso": now_iso,
+                "ultimo_latido": now_iso
+            }
+            supabase.table('actividad_usuarios').insert(nuevo).execute()
+            return jsonify({"success": True, "fecha": hoy, "tiempo_segundos": init_tiempo})
+    except Exception as e:
+        return jsonify({"success": True, "offline": True, "error": str(e)})
+
+# Endpoint: Historial de sesiones y días activos del usuario
+@app.route('/api/actividad/historial', methods=['GET'])
+def actividad_historial():
+    usuario = request.args.get('usuario')
+    if not usuario:
+        return jsonify({"success": False, "message": "Falta parámetro usuario."}), 400
+
+    SUPABASE_URL = os.environ.get("SUPABASE_URL")
+    SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return jsonify({"success": True, "historial": []})
+
+    try:
+        from supabase import create_client, Client
+        supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+        res = supabase.table('actividad_usuarios').select('*').eq('usuario', usuario).order('fecha', desc=True).limit(30).execute()
+        return jsonify({"success": True, "historial": res.data or []})
+    except Exception as e:
+        return jsonify({"success": True, "historial": [], "error": str(e)})
 
 # Subproyecto 2: API Endpoint para predecir ventas con Red Neuronal
 @app.route('/api/predecir_ventas', methods=['POST'])

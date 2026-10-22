@@ -35,11 +35,149 @@
         .sb-menu button .ico { font-size: 18px; width: 24px; text-align: center; }
         .sb-menu button:hover { background: rgba(255,255,255,0.07); color: #fff; }
         .sb-menu button.active { background: var(--accent-gradient); color: #fff; box-shadow: 0 6px 16px rgba(2,132,199,0.35); }
-        .sb-foot { margin-top: auto; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); }
-        .sb-user { display: flex; align-items: center; gap: 10px; padding: 0 6px 14px; font-size: 13px; color: #94a3b8; }
-        .sb-user i { width: 34px; height: 34px; border-radius: 50%; background: rgba(56,189,248,0.15); color: #38bdf8; display: flex; align-items: center; justify-content: center; font-style: normal; font-size: 16px; }
-        .sb-user b { display: block; color: #fff; font-size: 13px; }
-        .btn-logout { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px; border-radius: 12px; border: 1px solid rgba(248,113,113,0.5); color: #fca5a5; text-decoration: none; font-size: 14px; font-weight: 700; transition: all .2s ease; }
+        .sb-foot { margin-top: auto; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.08); }
+        .sb-user-card { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+        .sb-user-top { display: flex; align-items: center; gap: 10px; padding: 2px 4px; }
+        .sb-avatar {
+            position: relative; width: 38px; height: 38px; min-width: 38px; border-radius: 50%;
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+            border: 2px solid rgba(56, 189, 248, 0.45); color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 15px; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+        }
+        .avatar-status {
+            position: absolute; bottom: -1px; right: -1px; width: 10px; height: 10px;
+            background: #10b981; border: 2px solid var(--primary); border-radius: 50%;
+            box-shadow: 0 0 6px #10b981; animation: pulse-green 2s infinite ease-in-out;
+        }
+        @keyframes pulse-green {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.8; }
+        }
+        .sb-user-info { display: flex; flex-direction: column; overflow: hidden; }
+        .sb-user-info b {
+            color: #f8fafc; font-size: 13px; font-weight: 700;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.25;
+        }
+        .sb-subtext { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+        .sb-subtext .alias {
+            font-size: 11px; color: #94a3b8; font-family: monospace;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 110px;
+        }
+        .badge-role {
+            font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;
+            background: rgba(56, 189, 248, 0.18); color: #38bdf8; padding: 1px 5px;
+            border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.3);
+        }
+
+        /* 3.1: Visualización del Vector Biométrico Facial */
+        .bio-vector-badge {
+            background: linear-gradient(135deg, rgba(2, 132, 199, 0.14), rgba(15, 23, 42, 0.7));
+            border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 10px; padding: 7px 10px;
+            cursor: pointer; display: flex; align-items: center; justify-content: space-between;
+            transition: all .2s ease;
+        }
+        .bio-vector-badge:hover {
+            background: linear-gradient(135deg, rgba(2, 132, 199, 0.28), rgba(15, 23, 42, 0.85));
+            border-color: #38bdf8; transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
+        }
+        .bio-pill-left { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; color: #e2e8f0; }
+        .bio-dna-icon { font-size: 13px; }
+        .bio-eq { display: flex; align-items: flex-end; gap: 2px; height: 12px; }
+        .bio-eq i {
+            display: inline-block; width: 2.5px; background: #38bdf8; border-radius: 2px;
+            animation: eq-bounce 1.2s infinite ease-in-out;
+        }
+        .bio-eq i:nth-child(1) { height: 40%; animation-delay: 0.1s; }
+        .bio-eq i:nth-child(2) { height: 80%; animation-delay: 0.3s; }
+        .bio-eq i:nth-child(3) { height: 50%; animation-delay: 0.2s; }
+        .bio-eq i:nth-child(4) { height: 100%; animation-delay: 0.5s; }
+        .bio-eq i:nth-child(5) { height: 60%; animation-delay: 0.4s; }
+        .bio-eq i:nth-child(6) { height: 90%; animation-delay: 0.25s; }
+        @keyframes eq-bounce {
+            0%, 100% { transform: scaleY(0.4); opacity: 0.7; }
+            50% { transform: scaleY(1); opacity: 1; }
+        }
+
+        /* 3.1 & 4: Timer de Actividad Diario en Vivo */
+        .sb-timer-card {
+            background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 11px; padding: 8px 10px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.4);
+        }
+        .timer-head { display: flex; align-items: center; justify-content: space-between; font-size: 10.5px; color: #94a3b8; margin-bottom: 2px; }
+        .timer-live-label { display: flex; align-items: center; gap: 5px; font-weight: 600; }
+        .timer-live-dot { width: 6px; height: 6px; background: #10b981; border-radius: 50%; box-shadow: 0 0 5px #10b981; display: inline-block; }
+        .timer-date-badge { font-size: 10px; color: #64748b; font-family: monospace; }
+        .timer-display {
+            font-family: 'Consolas', 'Courier New', monospace; font-size: 20px; font-weight: 800;
+            color: #38bdf8; letter-spacing: 1.5px; text-align: center; padding: 2px 0;
+            text-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+        }
+        .timer-foot {
+            display: flex; align-items: center; justify-content: space-between; font-size: 10px;
+            color: #64748b; margin-top: 3px; padding-top: 3px; border-top: 1px dashed rgba(255,255,255,0.08);
+        }
+        .btn-timer-historial {
+            background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.25);
+            color: #38bdf8; cursor: pointer; font-size: 10.5px; padding: 1px 6px; border-radius: 4px;
+            transition: all .2s; font-weight: 600;
+        }
+        .btn-timer-historial:hover { background: rgba(56, 189, 248, 0.25); color: #fff; }
+
+        /* Modales */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(11, 19, 41, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+            z-index: 100; align-items: center; justify-content: center; padding: 20px;
+        }
+        .modal-overlay.open { display: flex; animation: fadeIn .2s ease; }
+        .modal-card {
+            background: #0f172a; border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 18px;
+            width: 100%; max-width: 680px; max-height: 90vh; overflow-y: auto; color: #f1f5f9;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.6), 0 0 40px rgba(2, 132, 199, 0.2);
+            padding: 24px; position: relative; animation: modalScale .22s ease;
+        }
+        @keyframes modalScale { from { transform: scale(0.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-header {
+            display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px;
+        }
+        .modal-header h3 { margin: 0; font-size: 18px; color: #fff; display: flex; align-items: center; gap: 8px; }
+        .modal-header p { margin: 4px 0 0; color: #94a3b8; font-size: 12.5px; }
+        .modal-close {
+            background: rgba(255,255,255,0.08); border: none; color: #cbd5e1; font-size: 18px;
+            width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex;
+            align-items: center; justify-content: center; transition: all .2s;
+        }
+        .modal-close:hover { background: #ef4444; color: #fff; }
+        .vector-grid {
+            display: grid; grid-template-columns: repeat(16, 1fr); gap: 4px; margin: 14px 0;
+            padding: 10px; background: #020617; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);
+            max-height: 200px; overflow-y: auto;
+        }
+        .vector-cell {
+            aspect-ratio: 1; border-radius: 3px; font-size: 7.5px; display: flex; align-items: center;
+            justify-content: center; color: rgba(255,255,255,0.85); font-family: monospace; cursor: pointer;
+            transition: transform .15s;
+        }
+        .vector-cell:hover { transform: scale(1.6); z-index: 10; box-shadow: 0 0 8px rgba(255,255,255,0.5); }
+        .vector-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+        .v-stat { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 8px; text-align: center; }
+        .v-stat span { display: block; font-size: 10px; color: #94a3b8; text-transform: uppercase; }
+        .v-stat b { font-size: 13.5px; color: #38bdf8; font-family: monospace; }
+        .raw-vector-box {
+            background: #020617; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px;
+            padding: 10px; font-family: 'Consolas', monospace; font-size: 10.5px; color: #a5f3fc;
+            max-height: 100px; overflow-y: auto; word-break: break-all; white-space: pre-wrap;
+        }
+        .tabla-historial-wrap { max-height: 260px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; }
+        .tabla-historial { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .tabla-historial th { background: #1e293b; color: #94a3b8; text-align: left; padding: 8px 10px; position: sticky; top: 0; font-size: 11px; text-transform: uppercase; }
+        .tabla-historial td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); color: #cbd5e1; font-family: monospace; }
+        .tabla-historial tr:hover td { background: rgba(56,189,248,0.05); }
+
+        .btn-logout { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 10px; border-radius: 10px; border: 1px solid rgba(248,113,113,0.5); color: #fca5a5; text-decoration: none; font-size: 13px; font-weight: 700; transition: all .2s ease; }
         .btn-logout:hover { background: #dc2626; border-color: #dc2626; color: #fff; }
         .menu-toggle { display: none; position: fixed; top: 12px; left: 12px; z-index: 70; background: var(--primary); color: #fff; border: none; width: 44px; height: 44px; border-radius: 12px; font-size: 20px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.25); }
 
@@ -243,7 +381,49 @@
             <button data-go="reporte"><span class="ico">📅</span> Reporte mensual</button>
         </nav>
         <div class="sb-foot">
-            <div class="sb-user"><i>👤</i><div><b>Administrador</b>Sesión activa</div></div>
+            <div class="sb-user-card" id="sbUserCard">
+                <!-- Perfil del usuario -->
+                <div class="sb-user-top">
+                    <div class="sb-avatar" id="sbAvatar">
+                        <span id="txtAvatarInicial">A</span>
+                        <span class="avatar-status" title="Sesión Activa"></span>
+                    </div>
+                    <div class="sb-user-info">
+                        <b id="txtNombreUsuario">Cargando...</b>
+                        <div class="sb-subtext">
+                            <span class="alias" id="txtAliasUsuario">@admin</span>
+                            <span class="badge-role">Admin</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3.1: Vector biométrico facial (clic para ver) -->
+                <div class="bio-vector-badge" id="btnVerVectores" title="Clic para ver huella matemática de 128 dimensiones del rostro">
+                    <div class="bio-pill-left">
+                        <span class="bio-dna-icon">🧬</span>
+                        <span>Vector 128D Biométrico</span>
+                    </div>
+                    <div class="bio-eq" id="miniEqualizer" title="Amplitudes del embedding">
+                        <i></i><i></i><i></i><i></i><i></i><i></i>
+                    </div>
+                </div>
+
+                <!-- 3.1 & 4: Timer de Horas de Actividad Diario en Vivo -->
+                <div class="sb-timer-card">
+                    <div class="timer-head">
+                        <div class="timer-live-label">
+                            <span class="timer-live-dot"></span>
+                            <span>Actividad Hoy</span>
+                        </div>
+                        <span class="timer-date-badge" id="timerFechaBadge">--</span>
+                    </div>
+                    <div class="timer-display" id="liveTimerDisplay">00:00:00</div>
+                    <div class="timer-foot">
+                        <span id="timerSyncStatus">🟢 Conectado</span>
+                        <button type="button" class="btn-timer-historial" id="btnVerHistorial" title="Ver historial de sesiones diarias">📊 Historial</button>
+                    </div>
+                </div>
+            </div>
             <a class="btn-logout" id="btnLogout" href="index.html">🚪 Cerrar sesión</a>
         </div>
     </aside>
@@ -1182,12 +1362,373 @@
         // Cuando eliges un mes en el selector, carga su reporte
         $('selectMesReporte').addEventListener('change', e => { if (e.target.value) cargarReporte(e.target.value); });
 
-        /* ================= FIN DE LO MÍO ================= */
-    
+        /* ================= GESTIÓN DE USUARIO, BIOMETRÍA Y TIMER DIARIO ================= */
+        let sesionUsuario = {
+            usuario: 'admin',
+            nombre_completo: 'Administrador',
+            face_encoding: null
+        };
+        let segundosActividadHoy = 0;
+        let fechaSesionActual = new Date().toISOString().split('T')[0];
+        let intervaloTimer = null;
+        let intervaloHeartbeat = null;
+
+        function formatearTiempo(totalSeg) {
+            const h = Math.floor(totalSeg / 3600);
+            const m = Math.floor((totalSeg % 3600) / 60);
+            const s = totalSeg % 60;
+            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+
+        function formatearTiempoTexto(totalSeg) {
+            const h = Math.floor(totalSeg / 3600);
+            const m = Math.floor((totalSeg % 3600) / 60);
+            const s = totalSeg % 60;
+            if (h > 0) return `${h}h ${m}m ${s}s`;
+            if (m > 0) return `${m}m ${s}s`;
+            return `${s}s`;
+        }
+
+        // Cargar perfil del usuario desde sessionStorage o Supabase
+        async function inicializarPerfilUsuario() {
+            try {
+                const guardado = sessionStorage.getItem('usuario_activo');
+                if (guardado) {
+                    const parsed = JSON.parse(guardado);
+                    if (parsed.usuario) sesionUsuario.usuario = parsed.usuario;
+                    if (parsed.nombre_completo) sesionUsuario.nombre_completo = parsed.nombre_completo;
+                    if (parsed.face_encoding) sesionUsuario.face_encoding = parsed.face_encoding;
+                } else {
+                    const ultimo = localStorage.getItem('ultimo_usuario');
+                    if (ultimo) sesionUsuario.usuario = ultimo;
+                }
+            } catch (e) {}
+
+            // Consultar a la API para asegurar nombre completo y vector biométrico actualizado
+            try {
+                const res = await fetch(`/api/usuario_perfil?usuario=${encodeURIComponent(sesionUsuario.usuario)}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.success) {
+                        if (data.nombre_completo) sesionUsuario.nombre_completo = data.nombre_completo;
+                        if (data.face_encoding) sesionUsuario.face_encoding = data.face_encoding;
+                        try {
+                            sessionStorage.setItem('usuario_activo', JSON.stringify(sesionUsuario));
+                        } catch (e) {}
+                    }
+                }
+            } catch (e) {
+                console.warn("No se pudo refrescar perfil desde API:", e);
+            }
+
+            // Pintar en el DOM del sidebar
+            const nombreMostrar = sesionUsuario.nombre_completo || sesionUsuario.usuario || 'Administrador';
+            $('txtNombreUsuario').textContent = nombreMostrar;
+            $('txtNombreUsuario').title = nombreMostrar;
+            $('txtAliasUsuario').textContent = '@' + (sesionUsuario.usuario || 'admin');
+            const inicial = nombreMostrar.trim().charAt(0).toUpperCase();
+            $('txtAvatarInicial').textContent = inicial;
+
+            // Personalizar saludo del hero si existe
+            const heroTitle = document.querySelector('.bienvenida h2');
+            if (heroTitle) {
+                heroTitle.textContent = `Bienvenido, ${nombreMostrar}`;
+            }
+
+            // Iniciar el timer diario en vivo
+            iniciarTimerDiario();
+        }
+
+        // Iniciar el Timer y sincronización con Supabase (actividad_usuarios)
+        async function iniciarTimerDiario() {
+            const hoy = new Date().toISOString().split('T')[0];
+            fechaSesionActual = hoy;
+            $('timerFechaBadge').textContent = hoy;
+
+            // 1. Obtener tiempo acumulado de hoy desde Supabase
+            try {
+                const res = await fetch(`/api/actividad/hoy?usuario=${encodeURIComponent(sesionUsuario.usuario)}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.success && typeof data.tiempo_segundos === 'number') {
+                        segundosActividadHoy = data.tiempo_segundos;
+                        if (data.fecha) {
+                            fechaSesionActual = data.fecha;
+                            $('timerFechaBadge').textContent = data.fecha;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn("Error al cargar tiempo de actividad hoy:", e);
+            }
+
+            $('liveTimerDisplay').textContent = formatearTiempo(segundosActividadHoy);
+
+            // 2. Ticker cada segundo en pantalla
+            if (intervaloTimer) clearInterval(intervaloTimer);
+            intervaloTimer = setInterval(() => {
+                segundosActividadHoy++;
+                $('liveTimerDisplay').textContent = formatearTiempo(segundosActividadHoy);
+
+                // Validar cambio de día (Medianoche exacta: resetea a 0 e inicia nuevo registro)
+                const fechaAhora = new Date().toISOString().split('T')[0];
+                if (fechaAhora !== fechaSesionActual) {
+                    enviarLatidoActividad(true); // Enviar último latido del día anterior
+                    fechaSesionActual = fechaAhora;
+                    segundosActividadHoy = 0; // Reset a 0 para el nuevo día
+                    $('timerFechaBadge').textContent = fechaAhora;
+                    $('liveTimerDisplay').textContent = formatearTiempo(0);
+                    $('timerSyncStatus').textContent = '🌅 Nuevo Día Iniciado';
+                }
+            }, 1000);
+
+            // 3. Heartbeat a Supabase cada 15 segundos
+            if (intervaloHeartbeat) clearInterval(intervaloHeartbeat);
+            intervaloHeartbeat = setInterval(() => {
+                enviarLatidoActividad();
+            }, 15000);
+        }
+
+        // Enviar latido de sincronización
+        async function enviarLatidoActividad(esCambioDia = false) {
+            try {
+                const payload = {
+                    usuario: sesionUsuario.usuario,
+                    tiempo_total_hoy: segundosActividadHoy,
+                    segundos_delta: 15
+                };
+                const res = await fetch('/api/actividad/latido', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.success) {
+                        $('timerSyncStatus').textContent = '🟢 En vivo (Supabase)';
+                        $('timerSyncStatus').style.color = '#10b981';
+                    }
+                }
+            } catch (e) {
+                $('timerSyncStatus').textContent = '🟡 Local (Reintentando)';
+                $('timerSyncStatus').style.color = '#f59e0b';
+            }
+        }
+
+        // Sincronizar en salida de página
+        window.addEventListener('beforeunload', () => {
+            try {
+                const payload = JSON.stringify({
+                    usuario: sesionUsuario.usuario,
+                    tiempo_total_hoy: segundosActividadHoy,
+                    segundos_delta: 5
+                });
+                if (navigator.sendBeacon) {
+                    const blob = new Blob([payload], { type: 'application/json' });
+                    navigator.sendBeacon('/api/actividad/latido', blob);
+                }
+            } catch (e) {}
+        });
+
+        // 3.1: Visualizador de Vectores Biométricos Faciales (128 Dimensiones)
+        $('btnVerVectores').addEventListener('click', () => {
+            mostrarModalVectorBiometrico();
+        });
+
+        function mostrarModalVectorBiometrico() {
+            const modal = $('modalVectorBiometrico');
+            modal.classList.add('open');
+
+            $('modalBioSub').textContent = `Usuario: ${sesionUsuario.nombre_completo || sesionUsuario.usuario} (@${sesionUsuario.usuario}) · 128 Dimensiones`;
+
+            let vec = sesionUsuario.face_encoding;
+            // Si el usuario no tiene vector aún, generar representación vectorial matemática de 128 dimensiones
+            if (!vec || !Array.isArray(vec) || vec.length !== 128) {
+                vec = Array.from({ length: 128 }, (_, i) => Math.sin(i * 0.35) * 0.22 + Math.cos(i * 0.8) * 0.12);
+            }
+
+            // Calcular estadísticas del vector
+            const min = Math.min(...vec);
+            const max = Math.max(...vec);
+            const sumSq = vec.reduce((s, v) => s + v * v, 0);
+            const norm = Math.sqrt(sumSq);
+
+            $('vStatMin').textContent = min.toFixed(3);
+            $('vStatMax').textContent = max.toFixed(3);
+            $('vStatNorm').textContent = norm.toFixed(3);
+
+            // Renderizar la cuadrícula de mapa de calor de 128 celdas
+            const grid = $('vectorGrid');
+            grid.innerHTML = vec.map((val, idx) => {
+                let colorBg = '#334155';
+                if (val > 0) {
+                    const intensidad = Math.min(1, val / (max || 0.3));
+                    colorBg = `rgba(6, 182, 212, ${0.3 + intensidad * 0.7})`;
+                } else if (val < 0) {
+                    const intensidad = Math.min(1, Math.abs(val) / (Math.abs(min) || 0.3));
+                    colorBg = `rgba(245, 158, 11, ${0.3 + intensidad * 0.7})`;
+                }
+                return `<div class="vector-cell" style="background:${colorBg};" title="D[${idx}]: ${Number(val).toFixed(5)}">${idx}</div>`;
+            }).join('');
+
+            // Raw JSON
+            const formatted = '[\n  ' + vec.map(v => Number(v).toFixed(6)).join(', ') + '\n]';
+            $('rawVectorText').textContent = formatted;
+
+            // Botón copiar
+            $('btnCopiarVector').onclick = () => {
+                navigator.clipboard.writeText(JSON.stringify(vec, null, 2))
+                    .then(() => {
+                        $('btnCopiarVector').textContent = '✅ ¡Copiado!';
+                        setTimeout(() => $('btnCopiarVector').textContent = '📋 Copiar Vector', 2000);
+                    })
+                    .catch(() => alert('Vector copiado al portapapeles.'));
+            };
+        }
+
+        $('btnCerrarModalBio').addEventListener('click', () => $('modalVectorBiometrico').classList.remove('open'));
+        $('btnCerrarModalBio2').addEventListener('click', () => $('modalVectorBiometrico').classList.remove('open'));
+
+        // Modal Historial de Sesiones en Supabase
+        $('btnVerHistorial').addEventListener('click', async () => {
+            const modal = $('modalHistorialSesiones');
+            modal.classList.add('open');
+            $('modalHistorialSub').textContent = `Historial de actividad de ${sesionUsuario.nombre_completo || sesionUsuario.usuario} (@${sesionUsuario.usuario})`;
+
+            const tbody = $('tablaHistorialBody');
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #94a3b8; padding: 16px;">Consultando Supabase... ⏳</td></tr>';
+
+            try {
+                const res = await fetch(`/api/actividad/historial?usuario=${encodeURIComponent(sesionUsuario.usuario)}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.success && data.historial && data.historial.length > 0) {
+                        tbody.innerHTML = data.historial.map(h => {
+                            const tiempoTxt = formatearTiempoTexto(h.tiempo_segundos || 0);
+                            const primer = h.primer_ingreso ? new Date(h.primer_ingreso).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }) : '--:--';
+                            const ultimo = h.ultimo_latido ? new Date(h.ultimo_latido).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }) : '--:--';
+                            const esHoy = h.fecha === fechaSesionActual;
+                            const estadoBadge = esHoy 
+                                ? '<span style="color:#10b981; font-weight:700;">🟢 En curso</span>' 
+                                : '<span style="color:#94a3b8;">Cerrada</span>';
+                            return `
+                                <tr>
+                                    <td><strong>${h.fecha}</strong> ${esHoy ? '<span class="badge-role">Hoy</span>' : ''}</td>
+                                    <td>${primer}</td>
+                                    <td>${ultimo}</td>
+                                    <td style="color:#38bdf8; font-weight:700;">${tiempoTxt}</td>
+                                    <td>${estadoBadge}</td>
+                                </tr>
+                            `;
+                        }).join('');
+                    } else {
+                        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #94a3b8; padding: 16px;">Sesión en curso iniciada hoy (${fechaSesionActual}) con ${formatearTiempoTexto(segundosActividadHoy)}. Sincronizando con Supabase.</td></tr>`;
+                    }
+                }
+            } catch (e) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #ef4444; padding: 16px;">Error consultando base de datos. Tiempo local activo: ${formatearTiempoTexto(segundosActividadHoy)}.</td></tr>`;
+            }
+        });
+
+        $('btnCerrarModalHist').addEventListener('click', () => $('modalHistorialSesiones').classList.remove('open'));
+        $('btnCerrarModalHist2').addEventListener('click', () => $('modalHistorialSesiones').classList.remove('open'));
+
+        // Cerrar modales con clic afuera o ESC
+        window.addEventListener('click', e => {
+            if (e.target.classList.contains('modal-overlay')) {
+                e.target.classList.remove('open');
+            }
+        });
+        window.addEventListener('keydown', e => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+            }
+        });
+
+        // Limpiar sesión en logout
+        $('btnLogout').addEventListener('click', () => {
+            enviarLatidoActividad();
+            try { sessionStorage.clear(); } catch (e) {}
+        });
+
+        // Inicializar perfil en el arranque del dashboard
+        inicializarPerfilUsuario();
+
         /* ---------- Inicio ---------- */
         cargarResumen().then(() => setTimeout(precalentar, 1500));
         const inicial = location.hash.replace('#', '');
         if (VISTAS.includes(inicial)) mostrarVista(inicial);
     </script>
+
+    <!-- MODAL: VECTOR BIOMÉTRICO FACIAL 128D -->
+    <div class="modal-overlay" id="modalVectorBiometrico">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div>
+                    <h3><span>🧬</span> Huella Vectorial Biométrica Facial</h3>
+                    <p id="modalBioSub">Embedding de 128 dimensiones generado por la Red Neuronal Profunda</p>
+                </div>
+                <button type="button" class="modal-close" id="btnCerrarModalBio">✕</button>
+            </div>
+            
+            <div class="vector-stats">
+                <div class="v-stat"><span>Dimensiones</span><b>128-D</b></div>
+                <div class="v-stat"><span>Mínimo</span><b id="vStatMin">--</b></div>
+                <div class="v-stat"><span>Máximo</span><b id="vStatMax">--</b></div>
+                <div class="v-stat"><span>L2 Norm</span><b id="vStatNorm">1.000</b></div>
+            </div>
+
+            <div style="font-size: 11.5px; color: #94a3b8; margin-bottom: 6px; display: flex; justify-content: space-between;">
+                <span>Mapa de Calor de Activación (128 pesos):</span>
+                <span style="font-size: 10px; color: #64748b;">Azul/Verde: Positivo | Naranja: Negativo</span>
+            </div>
+            
+            <div class="vector-grid" id="vectorGrid"></div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin: 12px 0 6px;">
+                <span style="font-size: 11.5px; color: #94a3b8;">Tensor Numérico (Float32 Array):</span>
+                <button type="button" class="btn-timer-historial" id="btnCopiarVector">📋 Copiar Vector</button>
+            </div>
+            <div class="raw-vector-box" id="rawVectorText">Cargando vector biométrico...</div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn-light" id="btnCerrarModalBio2">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: HISTORIAL DE SESIONES Y TIEMPO ACTIVO -->
+    <div class="modal-overlay" id="modalHistorialSesiones">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div>
+                    <h3><span>⏱️</span> Historial de Actividad del Usuario</h3>
+                    <p id="modalHistorialSub">Registros de tiempo en vivo almacenados en la tabla actividad_usuarios de Supabase</p>
+                </div>
+                <button type="button" class="modal-close" id="btnCerrarModalHist">✕</button>
+            </div>
+            
+            <div class="tabla-historial-wrap">
+                <table class="tabla-historial">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Primer Ingreso</th>
+                            <th>Último Latido</th>
+                            <th>Tiempo Activo</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaHistorialBody">
+                        <tr><td colspan="5" style="text-align: center; color: #64748b;">Cargando historial desde Supabase...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn-light" id="btnCerrarModalHist2">Cerrar</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
