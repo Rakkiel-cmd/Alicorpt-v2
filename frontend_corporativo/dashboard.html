@@ -597,6 +597,7 @@
             <button data-go="productos"><span class="ico">🛒</span> Productos</button>
             <button data-go="prediccion"><span class="ico">📈</span> Predicción de ventas</button>
             <button data-go="simulador"><span class="ico">🧪</span> Simulador</button>
+            <button data-go="estadistica"><span class="ico">📊</span> Estadística</button>
             <button data-go="keras"><span class="ico">🧠</span> Deep Learning (Keras)</button>
             <button data-go="reporte"><span class="ico">📅</span> Reporte mensual</button>
         </nav>
@@ -1023,6 +1024,61 @@
             </div>
         </section>
 
+        <!-- ================= VISTA: ESTADÍSTICA Y PROBABILIDADES ================= -->
+        <section id="vista-estadistica" class="vista">
+            <style>
+                .est-barra { height: 14px; border-radius: 8px; background: #e2e8f0; overflow: hidden; }
+                .est-barra i { display: block; height: 100%; border-radius: 8px; background: var(--accent); transition: width .6s ease; }
+                .est-fila { display: grid; grid-template-columns: 1fr 1.4fr 1.4fr; gap: 14px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+                .est-fila:last-child { border-bottom: 0; }
+                .est-fila small { color: var(--text-muted); font-size: 11px; display: block; }
+                .est-cab { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); font-weight: 700; }
+                .est-pct { font-weight: 800; color: var(--primary); }
+                body.dark-mode .est-barra { background: #334155; }
+                body.dark-mode .est-pct { color: #e2e8f0; }
+                @media (max-width: 700px) { .est-fila { grid-template-columns: 1fr; } }
+            </style>
+            <div class="page-hero">
+                <div class="crumbs">Inicio / <b>Estadística</b></div>
+                <h1>Estadística y probabilidades</h1>
+                <p>Resumen de las ventas con números fáciles de leer y la probabilidad de que pasen ciertas cosas.</p>
+            </div>
+            <div class="contenido">
+                <div id="estError" class="error-box" style="display:none;margin-bottom:16px;"></div>
+                <div class="metrics-grid">
+                    <div class="metric-card"><h4>Media (promedio)</h4><p>S/. <span id="estMedia">--</span></p><small>Si todas las ventas fueran iguales, valdrían esto</small></div>
+                    <div class="metric-card" style="--accent: #7c3aed;"><h4>Mediana</h4><p>S/. <span id="estMediana">--</span></p><small>La mitad de las ventas está por debajo de este valor</small></div>
+                    <div class="metric-card" style="--accent: #db2777;"><h4>Desviación estándar</h4><p>S/. <span id="estDesv">--</span></p><small>Cuánto se alejan las ventas del promedio</small></div>
+                    <div class="metric-card" style="--accent: #ea580c;"><h4>Varianza</h4><p id="estVar">--</p><small>La desviación elevada al cuadrado</small></div>
+                    <div class="metric-card" style="--accent: #10b981;"><h4>Ventas analizadas</h4><p id="estN">--</p><small>Transacciones del dataset</small></div>
+                </div>
+
+                <div class="panel" style="margin-bottom:22px;">
+                    <h4 style="margin:0 0 14px;color:var(--primary);font-size:16px;">Cambia los valores y mira la probabilidad</h4>
+                    <div class="two-cols">
+                        <div class="field"><label>Meta de venta (S/.) <b id="vEstMeta"></b></label><input type="range" id="estMeta" min="50" max="400" step="10" value="200"></div>
+                        <div class="field"><label>Stock mínimo seguro (unidades) <b id="vEstUmbral"></b></label><input type="range" id="estUmbral" min="50" max="250" step="10" value="100"></div>
+                    </div>
+                </div>
+
+                <div class="panel" style="margin-bottom:22px;">
+                    <h4 style="margin:0 0 6px;color:var(--primary);font-size:16px;">¿Qué tan probable es vender más que la meta?</h4>
+                    <p id="estTextoMeta" style="margin:0 0 16px;color:var(--text-muted);font-size:14px;line-height:1.55;">Cargando...</p>
+                    <div class="field"><label>Según la curva normal (campana de Gauss) <b id="estPctNormal">--</b></label><div class="est-barra"><i id="estBarNormal" style="width:0"></i></div></div>
+                    <div class="field" style="margin-bottom:0;"><label>Según los datos reales <b id="estPctReal">--</b></label><div class="est-barra"><i id="estBarReal" style="width:0;background:#10b981;"></i></div></div>
+                </div>
+
+                <div class="panel" style="margin-bottom:22px;">
+                    <h4 style="margin:0 0 6px;color:var(--primary);font-size:16px;">Riesgo de quiebre de stock por tienda</h4>
+                    <p id="estTextoQuiebre" style="margin:0 0 10px;color:var(--text-muted);font-size:14px;line-height:1.55;">Cargando...</p>
+                    <div class="est-fila"><span class="est-cab">Tienda</span><span class="est-cab">Probabilidad (campana de Gauss)</span><span class="est-cab">Probabilidad real</span></div>
+                    <div id="estTiendas"></div>
+                </div>
+
+                <div class="nota"><b>¿Cómo leerlo?</b> Una probabilidad de 20 % significa que de cada 100 ventas, unas 20 pasan la meta. La campana de Gauss es una aproximación matemática; los datos reales pueden variar un poco, por eso mostramos las dos.</div>
+            </div>
+        </section>
+
         <!-- ================= PIE DE PÁGINA ================= -->
         <footer class="footer">
             <div class="footer-grid">
@@ -1109,7 +1165,7 @@
         const charts = {};
         const COLORES = ['#0284c7', '#2563eb', '#7c3aed', '#10b981', '#ea580c'];
         const ICONOS = { 'Aceite': '🫒', 'Fideos': '🍝', 'Mayonesa': '🥫', 'Detergente': '🧼', 'Harina': '🌾' };
-        const VISTAS = ['inicio', 'productos', 'prediccion', 'simulador', 'keras', 'reporte'];
+        const VISTAS = ['inicio', 'productos', 'prediccion', 'simulador', 'keras', 'reporte', 'estadistica'];
         const $ = id => document.getElementById(id);
         const fmt = n => Number(n).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -1224,6 +1280,7 @@
             Object.values(charts).forEach(c => c.resize());
             if (nombre === 'simulador' && !simListo) simular();
             if (nombre === 'prediccion' && !explicacionLista) cargarExplicacion();
+            if (nombre === 'estadistica') cargarEstadistica();
             if (nombre === 'keras' && !kerasListo) inicializarKeras();
             if (nombre === 'reporte' && !reporteListo) inicializarReporte();   // integrante 6 
         }
@@ -1237,6 +1294,47 @@
         $('btnLogout').addEventListener('click', () => {
             try { sessionStorage.clear(); } catch (e) {}
         });
+
+        /* ---------- Estadística y probabilidades (Integrante 3) ---------- */
+        const pct = x => (x * 100).toLocaleString('es-PE', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' %';
+        let estTimer = null;
+        async function cargarEstadistica() {
+            const meta = $('estMeta').value, umbral = $('estUmbral').value;
+            $('vEstMeta').textContent = 'S/. ' + meta;
+            $('vEstUmbral').textContent = umbral + ' u.';
+            try {
+                const resp = await fetch('/api/estadistica?meta=' + meta + '&umbral_stock=' + umbral);
+                const d = await resp.json();
+                if (!d.success) throw new Error(d.message || 'Error al calcular');
+                $('estError').style.display = 'none';
+                $('estMedia').textContent = fmt(d.media);
+                $('estMediana').textContent = fmt(d.mediana);
+                $('estDesv').textContent = fmt(d.desviacion_estandar);
+                $('estVar').textContent = fmt(d.varianza);
+                $('estN').textContent = d.n.toLocaleString('es-PE');
+                $('estPctNormal').textContent = pct(d.prob_venta_mayor_meta);
+                $('estPctReal').textContent = pct(d.prob_venta_mayor_meta_real);
+                $('estBarNormal').style.width = (d.prob_venta_mayor_meta * 100) + '%';
+                $('estBarReal').style.width = (d.prob_venta_mayor_meta_real * 100) + '%';
+                $('estTextoMeta').textContent = 'De cada 100 ventas, unas ' + Math.round(d.prob_venta_mayor_meta_real * 100) + ' superan los S/. ' + d.meta + ' (según los datos reales). La campana de Gauss estima ' + Math.round(d.prob_venta_mayor_meta * 100) + '.';
+                $('estTextoQuiebre').textContent = 'Probabilidad de que el stock de una tienda quede por debajo de ' + d.umbral_stock + ' unidades. Mientras más alta, más riesgo de quedarse sin producto.';
+                $('estTiendas').innerHTML = d.quiebre_por_tienda.map(t =>
+                    '<div class="est-fila">' +
+                    '<div><b>' + esc(t.tienda) + '</b><small>Stock medio: ' + fmt(t.stock_medio) + ' u.</small></div>' +
+                    '<div><span class="est-pct">' + pct(t.prob_quiebre) + '</span><div class="est-barra"><i style="width:' + (t.prob_quiebre * 100) + '%;background:#ea580c;"></i></div></div>' +
+                    '<div><span class="est-pct">' + pct(t.prob_quiebre_real) + '</span><div class="est-barra"><i style="width:' + (t.prob_quiebre_real * 100) + '%;background:#10b981;"></i></div></div>' +
+                    '</div>').join('');
+            } catch (e) {
+                $('estError').textContent = 'No se pudo cargar la estadística: ' + e.message;
+                $('estError').style.display = 'block';
+            }
+        }
+        ['estMeta', 'estUmbral'].forEach(id => $(id).addEventListener('input', () => {
+            clearTimeout(estTimer);
+            $('vEstMeta').textContent = 'S/. ' + $('estMeta').value;
+            $('vEstUmbral').textContent = $('estUmbral').value + ' u.';
+            estTimer = setTimeout(cargarEstadistica, 250);
+        }));
 
         /* ---------- Productos: filtro por categoría ---------- */
         let productosDatos = [];
