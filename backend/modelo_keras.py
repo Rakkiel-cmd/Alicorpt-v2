@@ -19,10 +19,11 @@ from flask import Blueprint, jsonify, request
 
 modelo_keras = Blueprint("modelo_keras", __name__)
 
-DIR_ACTUAL = os.path.dirname(os.path.abspath(__file__))
-RUTA_MODELO_KERAS = os.path.join(DIR_ACTUAL, "modelo_ventas_keras.keras")
-RUTA_METADATOS = os.path.join(DIR_ACTUAL, "metadatos_keras.json")
-RUTA_PESOS = os.path.join(DIR_ACTUAL, "pesos_keras.npz")
+DIR_PROYECTO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DIR_MODELOS = os.path.join(DIR_PROYECTO, "models")
+RUTA_MODELO_KERAS = os.path.join(DIR_MODELOS, "modelo_ventas_keras.keras")
+RUTA_METADATOS = os.path.join(DIR_MODELOS, "metadatos_keras.json")
+RUTA_PESOS = os.path.join(DIR_MODELOS, "pesos_keras.npz")
 
 _metadatos = None
 _pesos = None

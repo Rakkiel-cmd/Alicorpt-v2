@@ -40,7 +40,9 @@ from sklearn.preprocessing import StandardScaler
 
 def cargar_datos_supabase():
     """Carga los 100,000 registros desde Supabase (o cache local si ya fue descargado)."""
-    archivo_cache = "transacciones_supabase_cache.parquet"
+    directorio_proyecto = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    directorio_datos = os.path.join(directorio_proyecto, "data")
+    archivo_cache = os.path.join(directorio_datos, "transacciones_supabase_cache.parquet")
     if os.path.exists(archivo_cache):
         print(f"[*] Cargando 100,000 registros desde cache de Supabase: {archivo_cache}...")
         return pd.read_parquet(archivo_cache)
@@ -71,6 +73,7 @@ def cargar_datos_supabase():
 
     all_rows = [row for chunk in results for row in chunk]
     df = pd.DataFrame(all_rows)
+    os.makedirs(directorio_datos, exist_ok=True)
     df.to_parquet(archivo_cache, index=False)
     print(f"[OK] {len(df):,} registros descargados de Supabase y guardados en cache.")
     return df
@@ -206,7 +209,9 @@ def entrenar():
     print("=" * 70)
 
     # 1. Guardar modelo nativo Keras
-    ruta_keras = "modelo_ventas_keras.keras"
+    directorio_modelos = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "models")
+    os.makedirs(directorio_modelos, exist_ok=True)
+    ruta_keras = os.path.join(directorio_modelos, "modelo_ventas_keras.keras")
     model.save(ruta_keras)
     print(f"[OK] Modelo Keras guardado en: {ruta_keras}")
 
@@ -214,8 +219,9 @@ def entrenar():
     pesos = {}
     for i, w in enumerate(model.get_weights()):
         pesos[f"w_{i}"] = w
-    np.savez_compressed("pesos_keras.npz", **pesos)
-    print("[OK] Pesos comprimidos guardados en: pesos_keras.npz (soporte Render 512MB RAM)")
+    ruta_pesos = os.path.join(directorio_modelos, "pesos_keras.npz")
+    np.savez_compressed(ruta_pesos, **pesos)
+    print(f"[OK] Pesos comprimidos guardados en: {ruta_pesos} (soporte Render 512MB RAM)")
 
     # 3. Guardar metadatos en JSON
     metadatos = {
@@ -240,9 +246,10 @@ def entrenar():
         "tiendas": lista_tiendas,
         "fecha_entrenamiento": time.strftime("%Y-%m-%d %H:%M:%S"),
     }
-    with open("metadatos_keras.json", "w", encoding="utf-8") as f:
+    ruta_metadatos = os.path.join(directorio_modelos, "metadatos_keras.json")
+    with open(ruta_metadatos, "w", encoding="utf-8") as f:
         json.dump(metadatos, f, indent=2, ensure_ascii=False)
-    print("[OK] Metadatos y escaladores guardados en: metadatos_keras.json")
+    print(f"[OK] Metadatos y escaladores guardados en: {ruta_metadatos}")
 
     t_total = time.time() - t_inicio
     print(f"\n🎉 ¡Proceso completado con exito en {t_total:.1f} segundos!")

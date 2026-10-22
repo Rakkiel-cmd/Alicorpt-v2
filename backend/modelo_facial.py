@@ -8,8 +8,8 @@ autorizado comparando embeddings de 128 dimensiones (face_recognition/dlib).
 
 Uso desde app.py (Integrante 3):
 
-    from Captura import capturar_rostro
-    from modelo_facial import validar_rostro
+    from backend.Captura import capturar_rostro
+    from backend.modelo_facial import validar_rostro
 
     rostro = capturar_rostro(frame_bgr)      # Integrante 1
     if validar_rostro(rostro):               # Integrante 2 (este archivo)
@@ -57,7 +57,7 @@ except ImportError as error:  # mensaje claro en lugar de un traceback confuso
 # Funcion del Integrante 1. La guia la nombra 'captura.py' pero el archivo del
 # repo es 'Captura.py'; se aceptan ambos para que funcione en Windows y Linux.
 try:
-    from Captura import capturar_rostro as _capturar_rostro
+    from backend.Captura import capturar_rostro as _capturar_rostro
 except ImportError:
     try:
         from captura import capturar_rostro as _capturar_rostro
@@ -437,4 +437,3 @@ if __name__ == "__main__":
     else:
         _modo_info()
     sys.exit(0)
-

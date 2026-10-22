@@ -12,13 +12,85 @@ import threading
 import numpy as np
 import pandas as pd
 from flask import Blueprint, jsonify, request
-from datos_supabase import obtener_transacciones, obtener_reporte_mensual_supabase
 
 ventas_extra = Blueprint('ventas_extra', __name__)
+
+RUTA_CSV = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'transacciones_alicorp_100k.csv')
 
 _resumen_cache = None
 _modelo_cache = None
 _candado = threading.Lock()
+
+
+def _cliente_supabase():
+    url = os.environ.get("SUPABASE_URL")
+    key = os.environ.get("SUPABASE_KEY")
+    if not url or not key:
+        return None
+    from supabase import Client, create_client
+    return create_client(url, key)
+
+
+def _agrupar_resumen_agregado(filas, columna):
+    grupos = {}
+    for fila in filas:
+        nombre = fila[columna]
+        grupo = grupos.setdefault(nombre, {
+            "ventas": 0.0, "unidades": 0, "precio": 0.0,
+            "stock": 0.0, "transacciones": 0,
+        })
+        n = int(fila["total_transacciones"])
+        grupo["ventas"] += float(fila["ventas_totales"])
+        grupo["unidades"] += int(fila["unidades_totales"])
+        grupo["precio"] += float(fila["precio_promedio"]) * n
+        grupo["stock"] += float(fila["stock_promedio"]) * n
+        grupo["transacciones"] += n
+
+    total = sum(grupo["ventas"] for grupo in grupos.values())
+    return [{
+        "nombre": nombre,
+        "ventas": round(grupo["ventas"], 2),
+        "unidades": grupo["unidades"],
+        "precio_promedio": round(grupo["precio"] / grupo["transacciones"], 2),
+        "stock_promedio": round(grupo["stock"] / grupo["transacciones"], 1),
+        "transacciones": grupo["transacciones"],
+        "participacion": round(grupo["ventas"] / total * 100, 1) if total else 0.0,
+    } for nombre, grupo in sorted(grupos.items(), key=lambda item: item[1]["ventas"], reverse=True)]
+
+
+def _calcular_resumen_supabase():
+    supabase = _cliente_supabase()
+    if supabase is None:
+        raise RuntimeError("Supabase no configurado.")
+
+    detalle = supabase.table("vista_resumen_dashboard").select(
+        "producto,tienda,mes,total_transacciones,unidades_totales,"
+        "ventas_totales,precio_promedio,stock_promedio"
+    ).execute().data
+    global_data = supabase.table("vista_totales_dashboard").select(
+        "total_registros,ventas_totales"
+    ).limit(1).execute().data
+    stock = supabase.table("vista_stock_dashboard").select(
+        "nivel_stock,unidades_promedio,ventas_promedio"
+    ).execute().data
+    if not detalle or not global_data or not stock:
+        raise RuntimeError("Las vistas agregadas de Supabase no están disponibles.")
+
+    return {
+        "success": True,
+        "total_registros": int(global_data[0]["total_registros"]),
+        "ventas_totales": round(float(global_data[0]["ventas_totales"]), 2),
+        "productos": _agrupar_resumen_agregado(detalle, "producto"),
+        "tiendas": _agrupar_resumen_agregado(detalle, "tienda"),
+        "meses": sorted({fila["mes"] for fila in detalle}),
+        "ventas_por_mes": [
+            round(sum(float(f["ventas_totales"]) for f in detalle if f["mes"] == mes), 2)
+            for mes in sorted({fila["mes"] for fila in detalle})
+        ],
+        "stock_niveles": [fila["nivel_stock"] for fila in stock],
+        "stock_unidades": [round(float(fila["unidades_promedio"]), 2) for fila in stock],
+        "stock_ventas": [round(float(fila["ventas_promedio"]), 2) for fila in stock],
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -48,23 +120,16 @@ def _grupo_a_lista(df, columna):
 
 
 def _calcular_resumen():
-    # 1. Cargar el resumen precalculado de los 100k registros de Supabase si existe
-    ruta_json = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resumen_100k_supabase.json")
-    if os.path.exists(ruta_json):
-        try:
-            import json
-            with open(ruta_json, "r", encoding="utf-8") as f:
-                d = json.load(f)
-                return d["resumen"]
-        except Exception as e:
-            print("[!] Aviso leyendo resumen JSON:", e)
-
-    # 2. Si no, calcularlo sobre los datos de Supabase
+    try:
+        return _calcular_resumen_supabase()
+    except Exception:
+        pass
     columnas = ['fecha', 'producto', 'tienda', 'precio_unitario', 'stock_actual',
                 'cantidad_vendida', 'ventas_totales']
-    df = obtener_transacciones()[columnas].copy()
+    df = pd.read_csv(RUTA_CSV, usecols=columnas)
     df['mes'] = pd.to_datetime(df['fecha']).dt.strftime('%Y-%m')
     por_mes = df.groupby('mes')['ventas_totales'].sum()
+    # Relacion real de los datos: mas stock -> mas unidades vendidas
     df['nivel_stock'] = pd.cut(df['stock_actual'], bins=[0, 150, 250, 350, 450, 1000],
                                labels=['50-149', '150-249', '250-349', '350-449', '450-500'], right=False)
     por_stock = df.groupby('nivel_stock', observed=True).agg(
@@ -103,23 +168,11 @@ COLUMNAS_MODELO = ['precio_unitario', 'stock_actual', 'temperatura_zona',
                    'mes', 'dia_semana', 'producto', 'tienda']
 
 
-RUTA_MODELO_MLP = os.path.join(os.path.dirname(os.path.abspath(__file__)), "modelo_mlp_cache.joblib")
-
-
 def _obtener_modelo():
     global _modelo_cache
     with _candado:
         if _modelo_cache is not None:
             return _modelo_cache
-
-        # 1. Cargar modelo pre-entrenado (.joblib) si existe para 0 latencia y 0 consumo excesivo de RAM
-        if os.path.exists(RUTA_MODELO_MLP):
-            try:
-                import joblib
-                _modelo_cache = joblib.load(RUTA_MODELO_MLP)
-                return _modelo_cache
-            except Exception as e:
-                print("[!] Aviso al cargar joblib cache:", e)
 
         from sklearn.compose import TransformedTargetRegressor
         from sklearn.model_selection import train_test_split
@@ -127,17 +180,14 @@ def _obtener_modelo():
         from sklearn.pipeline import make_pipeline
         from sklearn.preprocessing import StandardScaler
 
-        # Carga los 100k registros desde Supabase
-        df = obtener_transacciones().copy()
+        # Solo 15,000 filas para no saturar el servidor gratuito de Render
+        df = pd.read_csv(RUTA_CSV, nrows=15000)
         fecha = pd.to_datetime(df['fecha'])
         df['mes'] = fecha.dt.month
         df['dia_semana'] = fecha.dt.dayofweek
 
-        # Entrenar de forma eficiente (muestra de 15,000) para evitar desborde de 512MB RAM en Render
-        df_sample = df.sample(n=min(15000, len(df)), random_state=42)
-        X_all = pd.get_dummies(df[COLUMNAS_MODELO]).astype(float)
-        X = pd.get_dummies(df_sample[COLUMNAS_MODELO]).astype(float)
-        y = df_sample['ventas_totales']
+        X = pd.get_dummies(df[COLUMNAS_MODELO]).astype(float)
+        y = df['ventas_totales']
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
         modelo = TransformedTargetRegressor(
@@ -149,20 +199,13 @@ def _obtener_modelo():
 
         _modelo_cache = {
             'modelo': modelo,
-            'columnas': list(X_all.columns),
+            'columnas': list(X.columns),
             'r2': float(round(modelo.score(X_test, y_test), 4)),
             'X_test': X_test,
             'y_test': y_test,
             'productos': sorted(df['producto'].unique()),
             'tiendas': sorted(df['tienda'].unique()),
         }
-
-        try:
-            import joblib
-            joblib.dump(_modelo_cache, RUTA_MODELO_MLP, compress=3)
-        except Exception:
-            pass
-
         return _modelo_cache
 
 
@@ -190,11 +233,10 @@ def simular():
         datos = request.get_json(silent=True) or {}
         m = _obtener_modelo()
 
-        producto = datos.get('producto') or (m['productos'][0] if m.get('productos') else 'Aceite Primor 1L')
-        tienda = datos.get('tienda') or (m['tiendas'][0] if m.get('tiendas') else 'Mayorista San Martín')
+        producto = datos.get('producto')
+        tienda = datos.get('tienda')
         if producto not in m['productos'] or tienda not in m['tiendas']:
-            producto = m['productos'][0]
-            tienda = m['tiendas'][0]
+            return jsonify({'success': False, 'message': 'Producto o tienda no valido.'}), 400
 
         precio = _numero(datos, 'precio_unitario', 1, 50)
         stock = _numero(datos, 'stock_actual', 0, 1000)
@@ -282,23 +324,6 @@ def explicar_modelo():
         if _explicacion_cache is None:
             _explicacion_cache = _calcular_explicacion()
         return jsonify(_explicacion_cache)
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-
-# ---------------------------------------------------------------------------
-# 4) Reporte Mensual (Integrante 6: eri07ramirez-cell)
-# ---------------------------------------------------------------------------
-@ventas_extra.route('/api/reporte_mensual', methods=['GET'])
-def api_reporte_mensual():
-    try:
-        mes = request.args.get('mes')
-        if not mes:
-            return jsonify({'success': False, 'message': 'Falta el parametro mes (YYYY-MM)'}), 400
-        reporte = obtener_reporte_mensual_supabase(mes)
-        return jsonify(reporte)
     except Exception as e:
         import traceback
         traceback.print_exc()
