@@ -48,18 +48,26 @@ def descargar_todos_de_supabase():
     sb = obtener_cliente_supabase()
     print("[*] Conectando a la API de Supabase para consultar los 100,000 registros...")
     t0 = time.time()
+    from supabase import create_client
 
     def fetch_chunk(start):
-        res = (
-            sb.table("transacciones_alicorp")
-            .select("fecha,producto,tienda,precio_unitario,stock_actual,temperatura_zona,cantidad_vendida,ventas_totales")
-            .range(start, start + 999)
-            .execute()
-        )
-        return res.data
+        for intento in range(3):
+            try:
+                sb_local = create_client(SUPABASE_URL, SUPABASE_KEY)
+                res = (
+                    sb_local.table("transacciones_alicorp")
+                    .select("fecha,producto,tienda,precio_unitario,stock_actual,temperatura_zona,cantidad_vendida,ventas_totales")
+                    .range(start, start + 999)
+                    .execute()
+                )
+                return res.data
+            except Exception as e:
+                if intento == 2:
+                    raise e
+                time.sleep(0.4)
 
     chunks = list(range(0, 100000, 1000))
-    with ThreadPoolExecutor(max_workers=10) as ex:
+    with ThreadPoolExecutor(max_workers=8) as ex:
         results = list(ex.map(fetch_chunk, chunks))
 
     all_rows = [row for chunk in results for row in chunk]
