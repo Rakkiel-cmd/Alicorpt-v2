@@ -6,6 +6,16 @@
     <title>Alicorp Intelligence - Executive Neural BI</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        // Anti-parpadeo inmediato de tema visual
+        (function() {
+            try {
+                if (localStorage.getItem('alicorp_tema') === 'dark') {
+                    document.documentElement.classList.add('dark-mode');
+                }
+            } catch(e) {}
+        })();
+    </script>
     <style>
         :root {
             --bg-main: #f1f5f9;
@@ -20,9 +30,25 @@
             --radius: 16px;
             --sidebar-w: 262px;
         }
+
+        /* ===== MODO OSCURO (DARK MODE) ===== */
+        html.dark-mode, body.dark-mode {
+            --bg-main: #060b18;
+            --surface: #0f172a; 
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            --border: rgba(255, 255, 255, 0.08);
+        }
+
         * { box-sizing: border-box; }
         html { scroll-behavior: smooth; }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--bg-main); margin: 0; color: var(--text-main); }
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background-color: var(--bg-main); 
+            margin: 0; 
+            color: var(--text-main); 
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
         button { font-family: inherit; }
 
         /* ===== MENÚ LATERAL ===== */
@@ -363,10 +389,204 @@
             .page-hero h1, .page-hero.home h1 { font-size: 28px; }
             .contenido { padding: 20px 16px; }
         }
+
+        /* ===== BOTÓN SUPERIOR MODO OSCURO / MODO CLARO ===== */
+        .theme-switch-container {
+            position: fixed;
+            top: 14px;
+            right: 20px;
+            z-index: 75;
+        }
+        .theme-toggle-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(2, 132, 199, 0.3);
+            color: #0b1329;
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(11, 19, 41, 0.12);
+            transition: all .25s ease;
+            user-select: none;
+        }
+        .theme-toggle-btn:hover {
+            background: #ffffff;
+            border-color: #0284c7;
+            color: #0284c7;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(2, 132, 199, 0.25);
+        }
+        .theme-toggle-btn .theme-icon {
+            font-size: 16px;
+            line-height: 1;
+            transition: transform .3s ease;
+        }
+        .theme-toggle-btn:hover .theme-icon {
+            transform: rotate(20deg) scale(1.15);
+        }
+
+        /* ===== ESTILOS MODO OSCURO PARA TODAS LAS VENTANAS ===== */
+        body.dark-mode .theme-toggle-btn {
+            background: rgba(15, 23, 42, 0.88);
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            color: #f8fafc;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+        }
+        body.dark-mode .theme-toggle-btn:hover {
+            background: #1e293b;
+            border-color: #38bdf8;
+            color: #38bdf8;
+            box-shadow: 0 6px 22px rgba(56, 189, 248, 0.3);
+        }
+
+        body.dark-mode .page-hero {
+            background: radial-gradient(circle at 85% 15%, rgba(2,132,199,0.25), transparent 45%), #040814;
+        }
+        body.dark-mode .section-title {
+            color: #f8fafc;
+        }
+        body.dark-mode .stat b,
+        body.dark-mode .bienvenida h2,
+        body.dark-mode .modulo h3,
+        body.dark-mode .tile,
+        body.dark-mode .news h3,
+        body.dark-mode .metric-card p,
+        body.dark-mode .chart-card h4,
+        body.dark-mode .product-card h3,
+        body.dark-mode .product-card .row b,
+        body.dark-mode .panel h3,
+        body.dark-mode .panel h4 {
+            color: #f8fafc !important;
+        }
+
+        body.dark-mode .stat,
+        body.dark-mode .bienvenida,
+        body.dark-mode .modulo,
+        body.dark-mode .tile,
+        body.dark-mode .news,
+        body.dark-mode .action-bar,
+        body.dark-mode .metric-card,
+        body.dark-mode .chart-card,
+        body.dark-mode .product-card,
+        body.dark-mode .panel {
+            background: var(--surface);
+            border-color: var(--border);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+        }
+        body.dark-mode .modulo:hover,
+        body.dark-mode .tile:hover,
+        body.dark-mode .product-card:hover {
+            border-color: #38bdf8;
+            box-shadow: 0 12px 28px rgba(2, 132, 199, 0.25);
+        }
+        body.dark-mode .modulo .icon,
+        body.dark-mode .product-card .icon {
+            background: rgba(56, 189, 248, 0.12);
+        }
+        body.dark-mode .product-card .bar {
+            background: rgba(255, 255, 255, 0.08);
+        }
+        body.dark-mode .hero-banner {
+            background: linear-gradient(135deg, rgba(6, 78, 59, 0.45) 0%, rgba(4, 120, 87, 0.25) 100%);
+            border-color: rgba(16, 185, 129, 0.4);
+        }
+        body.dark-mode .hero-banner span { color: #6ee7b7; }
+        body.dark-mode .hero-banner h2 { color: #34d399; }
+        body.dark-mode .hero-banner small { color: #a7f3d0; }
+
+        body.dark-mode .nota {
+            background: rgba(30, 58, 138, 0.25);
+            border-color: rgba(59, 130, 246, 0.35);
+            color: #93c5fd;
+        }
+
+        body.dark-mode table th {
+            color: #94a3b8;
+            border-bottom-color: rgba(255, 255, 255, 0.12);
+        }
+        body.dark-mode table td {
+            color: #cbd5e1;
+            border-bottom-color: rgba(255, 255, 255, 0.06);
+        }
+        body.dark-mode table tr:hover td {
+            background: rgba(56, 189, 248, 0.05);
+        }
+
+        body.dark-mode .filtros button {
+            background: var(--surface);
+            border-color: rgba(255, 255, 255, 0.12);
+            color: #94a3b8;
+        }
+        body.dark-mode .filtros button:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        body.dark-mode .filtros button.active {
+            background: var(--accent-gradient);
+            border-color: transparent;
+            color: #fff;
+        }
+
+        body.dark-mode .chips button {
+            background: #1e293b;
+            border-color: rgba(255, 255, 255, 0.1);
+            color: #cbd5e1;
+        }
+        body.dark-mode .chips button.active {
+            background: var(--accent-gradient);
+            border-color: transparent;
+            color: #fff;
+        }
+
+        body.dark-mode .field select {
+            background: #1e293b;
+            border-color: #334155;
+            color: #f8fafc;
+        }
+        body.dark-mode .field select option {
+            background: #0f172a;
+            color: #f8fafc;
+        }
+        body.dark-mode .ring::before {
+            background: #0f172a;
+        }
+        body.dark-mode .ring b {
+            color: #f8fafc;
+        }
+
+        body.dark-mode .rm-badge.neutro {
+            background: #1e293b;
+            color: #cbd5e1;
+        }
+        body.dark-mode .rm-demo {
+            background: rgba(120, 53, 15, 0.25);
+            border-color: rgba(217, 119, 6, 0.4);
+            color: #fcd34d;
+        }
+
+        @media(max-width: 900px) {
+            .theme-switch-container { top: 12px; right: 12px; }
+            .theme-toggle-btn { padding: 8px 12px; }
+            .theme-toggle-btn .theme-text { display: none; }
+        }
     </style>
 </head>
 <body>
     <button class="menu-toggle" id="menuToggle" aria-label="Abrir menú">☰</button>
+
+    <!-- ================= BOTÓN SUPERIOR TEMA (MODO OSCURO / CLARO) ================= -->
+    <div class="theme-switch-container">
+        <button type="button" class="theme-toggle-btn" id="themeToggleBtn" aria-label="Cambiar tema claro/oscuro" title="Cambiar a Modo Oscuro">
+            <span class="theme-icon" id="themeIcon">🌙</span>
+            <span class="theme-text" id="themeText">Modo Oscuro</span>
+        </button>
+    </div>
 
     <!-- ================= MENÚ LATERAL ================= -->
     <aside class="sidebar" id="sidebar">
@@ -899,6 +1119,20 @@
 
         function dibujar(id, config) {
             if (charts[id]) charts[id].destroy();
+            const esOscuro = document.body && document.body.classList.contains('dark-mode');
+            const textColor = esOscuro ? '#94a3b8' : '#64748b';
+            const gridColor = esOscuro ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
+            
+            if (config && config.options) {
+                if (config.options.scales) {
+                    Object.values(config.options.scales).forEach(scale => {
+                        if (!scale.ticks) scale.ticks = {};
+                        if (!scale.ticks.color) scale.ticks.color = textColor;
+                        if (!scale.grid) scale.grid = {};
+                        if (!scale.grid.color) scale.grid.color = gridColor;
+                    });
+                }
+            }
             charts[id] = new Chart($(id).getContext('2d'), config);
         }
         function mostrarError(msg) {
@@ -906,6 +1140,74 @@
             caja.textContent = msg;
             caja.style.display = 'block';
         }
+
+        /* ---------- MODO OSCURO / MODO CLARO (THEME ENGINE) ---------- */
+        function actualizarTemaGraficos(esOscuro) {
+            const textColor = esOscuro ? '#94a3b8' : '#64748b';
+            const gridColor = esOscuro ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
+            
+            if (window.Chart) {
+                Chart.defaults.color = textColor;
+                Chart.defaults.borderColor = gridColor;
+            }
+            
+            Object.values(charts).forEach(c => {
+                if (!c || !c.options) return;
+                if (c.options.scales) {
+                    Object.values(c.options.scales).forEach(scale => {
+                        if (scale.ticks) scale.ticks.color = textColor;
+                        if (scale.grid) scale.grid.color = gridColor;
+                    });
+                }
+                if (c.options.plugins && c.options.plugins.legend && c.options.plugins.legend.labels) {
+                    c.options.plugins.legend.labels.color = textColor;
+                }
+                try { c.update(); } catch (e) {}
+            });
+        }
+
+        function setModoVisual(tema, guardar = true) {
+            const esOscuro = (tema === 'dark');
+            const icon = $('themeIcon');
+            const txt = $('themeText');
+            const btn = $('themeToggleBtn');
+            
+            if (esOscuro) {
+                document.documentElement.classList.add('dark-mode');
+                if (document.body) document.body.classList.add('dark-mode');
+                if (icon) icon.textContent = '☀️';
+                if (txt) txt.textContent = 'Modo Claro';
+                if (btn) btn.title = 'Cambiar a Modo Claro';
+            } else {
+                document.documentElement.classList.remove('dark-mode');
+                if (document.body) document.body.classList.remove('dark-mode');
+                if (icon) icon.textContent = '🌙';
+                if (txt) txt.textContent = 'Modo Oscuro';
+                if (btn) btn.title = 'Cambiar a Modo Oscuro';
+            }
+            
+            if (guardar) {
+                try { localStorage.setItem('alicorp_tema', esOscuro ? 'dark' : 'light'); } catch (e) {}
+            }
+            
+            actualizarTemaGraficos(esOscuro);
+        }
+
+        const btnTheme = $('themeToggleBtn');
+        if (btnTheme) {
+            btnTheme.addEventListener('click', () => {
+                const esOscuroActual = document.body.classList.contains('dark-mode');
+                setModoVisual(esOscuroActual ? 'light' : 'dark', true);
+            });
+        }
+
+        // Cargar preferencia guardada en el arranque
+        try {
+            const temaGuardado = localStorage.getItem('alicorp_tema');
+            if (temaGuardado) {
+                setModoVisual(temaGuardado, false);
+            }
+        } catch (e) {}
 
         /* ---------- Menú lateral / vistas ---------- */
         let simListo = false;
