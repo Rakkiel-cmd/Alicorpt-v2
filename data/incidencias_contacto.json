@@ -1,0 +1,34 @@
+[
+  {
+    "nombre_cliente": "Juan Pérez",
+    "correo": "juan@correo.com",
+    "mensaje": "Consulta de prueba corporativa",
+    "estado": "en_espera",
+    "fecha_registro": "2026-10-23T22:57:45.616878+00:00",
+    "id": 1792796266554
+  },
+  {
+    "id": 1,
+    "nombre_cliente": "Carlos Mendoza Soto",
+    "correo": "cmendoza@distribuidoracentral.pe",
+    "mensaje": "Presentamos demoras con el abastecimiento de Aceite Primor 1L en nuestra sede de Los Olivos. Solicitamos información sobre los lotes de reposición para esta semana.",
+    "estado": "leido",
+    "fecha_registro": "2026-10-23T20:15:00+00:00"
+  },
+  {
+    "id": 2,
+    "nombre_cliente": "Mariana Gómez Alarcón",
+    "correo": "mgomez.alimentos@gmail.com",
+    "mensaje": "Quisiera solicitar información sobre distribuidores mayoristas de Mayonesa Alacena y Harina Blanca Flor en Lima Norte.",
+    "estado": "en_espera",
+    "fecha_registro": "2026-10-23T21:30:00+00:00"
+  },
+  {
+    "id": 3,
+    "nombre_cliente": "Valeria Ramos Benítez",
+    "correo": "vramos.bodega@hotmail.com",
+    "mensaje": "Excelente atención y entrega rápida con el último pedido de Fideos Don Vittorio. Consulta resuelta con el asesor comercial.",
+    "estado": "leido",
+    "fecha_registro": "2026-10-23T18:45:00+00:00"
+  }
+]

@@ -6,6 +6,80 @@
     <title>Contacto | Alicorp</title>
     <link rel="stylesheet" href="estilos.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        .form-card {
+            background: #fff;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+            text-align: left;
+            border: 1px solid #eef2f6;
+        }
+        .form-input {
+            width: 100%;
+            padding: 15px 16px;
+            margin-bottom: 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 15px;
+            transition: all 0.2s ease;
+            outline: none;
+            background-color: #fafbfc;
+        }
+        .form-input:focus {
+            border-color: var(--color-secondary, #e31b23);
+            background-color: #fff;
+            box-shadow: 0 0 0 3px rgba(227, 27, 35, 0.12);
+        }
+        .btn-enviar {
+            width: 100%;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: 700;
+            border: none;
+            border-radius: 30px;
+            background-color: var(--color-secondary, #e31b23);
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 14px rgba(227, 27, 35, 0.3);
+        }
+        .btn-enviar:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(227, 27, 35, 0.4);
+            filter: brightness(1.05);
+        }
+        .btn-enviar:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .alert-box {
+            display: none;
+            padding: 14px 18px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 18px;
+            line-height: 1.5;
+            animation: fadeIn 0.3s ease;
+        }
+        .alert-success {
+            background-color: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        .alert-error {
+            background-color: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
 </head>
 <body>
     <header class="navbar">
@@ -14,7 +88,7 @@
             <nav class="nav-links">
                 <a href="inversionistas.html">Inversionistas</a>
                 <a href="clientes.html">Clientes y proveedores</a>
-                <a href="contacto.html" style="color: var(--color-secondary);">Contacto</a>
+                <a href="contacto.html" style="color: var(--color-secondary); font-weight: 700;">Contacto</a>
                 <a href="etica.html">Unico Ética Alicorp</a>
                 <a href="#">Perú ▾</a>
             </nav>
@@ -22,15 +96,107 @@
         </div>
     </header>
 
-    <section class="section container" style="text-align: center; max-width: 600px;">
+    <section class="section container" style="text-align: center; max-width: 620px; padding-top: 50px; padding-bottom: 70px;">
         <h1 class="section-title">Estamos para escucharte</h1>
-        <p class="institucional-text">Si tienes alguna consulta sobre nuestros productos o quieres formar parte de nuestro equipo, escríbenos.</p>
-        <div style="background: #fff; padding: 40px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: left;">
-            <input type="text" placeholder="Nombre completo" style="width: 100%; padding: 15px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 5px;">
-            <input type="email" placeholder="Correo electrónico" style="width: 100%; padding: 15px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 5px;">
-            <textarea placeholder="Mensaje" rows="5" style="width: 100%; padding: 15px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 5px;"></textarea>
-            <button class="btn-pill btn-primary" style="width: 100%;">Enviar Mensaje</button>
+        <p class="institucional-text" style="margin-bottom: 30px;">Si tienes alguna consulta, queja o sugerencia sobre nuestros productos, déjanos tus datos y te responderemos a la brevedad.</p>
+        
+        <div class="form-card">
+            <div id="alertaMensaje" class="alert-box"></div>
+            
+            <form id="formContacto" novalidate>
+                <div>
+                    <label for="txtNombre" style="display:block; margin-bottom: 6px; font-size: 13px; font-weight: 700; color: #475569;">Nombre completo *</label>
+                    <input type="text" id="txtNombre" name="nombre" class="form-input" placeholder="Ej. Juan Pérez Quispe" required maxlength="120" autocomplete="name">
+                </div>
+                
+                <div>
+                    <label for="txtCorreo" style="display:block; margin-bottom: 6px; font-size: 13px; font-weight: 700; color: #475569;">Correo electrónico *</label>
+                    <input type="email" id="txtCorreo" name="correo" class="form-input" placeholder="ejemplo@correo.com" required maxlength="120" autocomplete="email">
+                </div>
+                
+                <div>
+                    <label for="txtMensaje" style="display:block; margin-bottom: 6px; font-size: 13px; font-weight: 700; color: #475569;">Mensaje o incidencia *</label>
+                    <textarea id="txtMensaje" name="mensaje" class="form-input" placeholder="Escribe el detalle de tu consulta o incidencia..." rows="5" required maxlength="2000" style="resize: vertical; min-height: 120px;"></textarea>
+                </div>
+                
+                <button type="submit" id="btnEnviar" class="btn-enviar">Enviar Mensaje</button>
+            </form>
         </div>
     </section>
+
+    <script>
+        const form = document.getElementById('formContacto');
+        const txtNombre = document.getElementById('txtNombre');
+        const txtCorreo = document.getElementById('txtCorreo');
+        const txtMensaje = document.getElementById('txtMensaje');
+        const btnEnviar = document.getElementById('btnEnviar');
+        const alerta = document.getElementById('alertaMensaje');
+
+        function mostrarAlerta(tipo, mensaje) {
+            alerta.className = 'alert-box ' + (tipo === 'success' ? 'alert-success' : 'alert-error');
+            alerta.textContent = mensaje;
+            alerta.style.display = 'block';
+            alerta.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        form.addEventListener('submit', async e => {
+            e.preventDefault();
+            alerta.style.display = 'none';
+
+            const nombre = txtNombre.value.trim();
+            const correo = txtCorreo.value.trim();
+            const mensaje = txtMensaje.value.trim();
+
+            // Validaciones cliente
+            if (!nombre || nombre.length < 2) {
+                mostrarAlerta('error', 'Por favor ingresa tu nombre completo (mínimo 2 letras).');
+                txtNombre.focus();
+                return;
+            }
+
+            const regexCorreo = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
+            if (!correo || !regexCorreo.test(correo)) {
+                mostrarAlerta('error', 'Por favor ingresa un correo electrónico válido.');
+                txtCorreo.focus();
+                return;
+            }
+
+            if (!mensaje || mensaje.length < 5) {
+                mostrarAlerta('error', 'Por favor escribe un mensaje de al menos 5 caracteres.');
+                txtMensaje.focus();
+                return;
+            }
+
+            // Enviar al backend
+            btnEnviar.disabled = true;
+            btnEnviar.textContent = 'Enviando mensaje... ⏳';
+
+            try {
+                const resp = await fetch('/api/contacto', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        nombre: nombre,
+                        correo: correo,
+                        mensaje: mensaje
+                    })
+                });
+
+                const data = await resp.json();
+
+                if (!resp.ok || !data.success) {
+                    throw new Error(data.message || 'Ocurrió un error al registrar el mensaje.');
+                }
+
+                mostrarAlerta('success', '✅ ' + data.message);
+                form.reset();
+            } catch (err) {
+                mostrarAlerta('error', '⚠️ ' + err.message);
+            } finally {
+                btnEnviar.disabled = false;
+                btnEnviar.textContent = 'Enviar Mensaje';
+            }
+        });
+    </script>
 </body>
 </html>

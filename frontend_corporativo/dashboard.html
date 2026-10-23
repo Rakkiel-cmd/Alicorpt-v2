@@ -570,6 +570,71 @@
             color: #fcd34d;
         }
 
+        /* ===== INCIDENCIAS CLIENTE (GESTIÓN Y ESTADOS) ===== */
+        .btn-estado-incidencia {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            padding: 7px 15px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+            outline: none;
+        }
+        .btn-estado-incidencia.en-espera {
+            background-color: #fef3c7;
+            color: #92400e;
+            border-color: #fde68a;
+        }
+        .btn-estado-incidencia.en-espera:hover {
+            background-color: #fde68a;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+        }
+        .btn-estado-incidencia.leido {
+            background-color: #dcfce7;
+            color: #166534;
+            border-color: #bbf7d0;
+        }
+        .btn-estado-incidencia.leido:hover {
+            background-color: #bbf7d0;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+        }
+        html.dark-mode .btn-estado-incidencia.en-espera {
+            background-color: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+        html.dark-mode .btn-estado-incidencia.leido {
+            background-color: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+        .btn-estado-incidencia:disabled {
+            opacity: 0.6;
+            cursor: wait;
+        }
+        .ico-estado {
+            font-size: 15px;
+            display: inline-block;
+            transition: transform 0.2s ease;
+        }
+        .btn-estado-incidencia:hover .ico-estado {
+            transform: scale(1.2);
+        }
+        .msg-celda {
+            max-width: 380px;
+            line-height: 1.5;
+            color: var(--text-main);
+            word-break: break-word;
+        }
+
         @media(max-width: 900px) {
             .theme-switch-container { top: 12px; right: 12px; }
             .theme-toggle-btn { padding: 8px 12px; }
@@ -600,6 +665,7 @@
             <button data-go="segmentacion"><span class="ico">🧩</span> Segmentación no supervisada</button>
             <button data-go="estadistica"><span class="ico">📊</span> Estadística</button>
             <button data-go="reporte"><span class="ico">📅</span> Reporte mensual</button>
+            <button data-go="incidencias"><span class="ico">📬</span> Incidencias cliente</button>
         </nav>
         <div class="sb-foot">
             <div class="sb-user-card" id="sbUserCard">
@@ -1101,11 +1167,83 @@
             </div>
         </section>
 
+        <!-- ================= VISTA: INCIDENCIAS CLIENTE ================= -->
+        <section id="vista-incidencias" class="vista">
+            <div class="page-hero">
+                <div class="crumbs">Inicio / <b>Incidencias cliente</b></div>
+                <span class="chip" style="margin-bottom:8px;">Atención al Cliente · Registro de Formulario Web Supabase</span>
+                <h1>Incidencias cliente</h1>
+                <p>Gestión y seguimiento en tiempo real de quejas, consultas y mensajes enviados por los clientes a través del portal de contacto oficial.</p>
+            </div>
+            <div class="contenido">
+                <!-- Métricas de Incidencias -->
+                <div class="metrics-grid" style="margin-bottom: 25px;">
+                    <div class="metric-card" style="--accent: #0284c7;">
+                        <h4>Total Incidencias</h4>
+                        <p id="incTotal">--</p>
+                        <small>Mensajes registrados en base de datos</small>
+                    </div>
+                    <div class="metric-card" style="--accent: #f59e0b;">
+                        <h4>En espera</h4>
+                        <p id="incEspera">--</p>
+                        <small>Pendientes de atención (💤)</small>
+                    </div>
+                    <div class="metric-card" style="--accent: #10b981;">
+                        <h4>Revisadas / Leídas</h4>
+                        <p id="incLeido">--</p>
+                        <small>Incidencias procesadas (😊)</small>
+                    </div>
+                    <div class="metric-card" style="--accent: #7c3aed;">
+                        <h4>Origen de Datos</h4>
+                        <p style="font-size:18px;" id="incFuente">Supabase PostgreSQL</p>
+                        <small>Tabla incidencias_contacto</small>
+                    </div>
+                </div>
+
+                <!-- Barra de acciones y filtros -->
+                <div class="bloque" style="margin-bottom: 20px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                        <div class="filtros" id="filtrosIncidencias" style="margin:0;">
+                            <button class="active" data-filtro-inc="todos">Todos</button>
+                            <button data-filtro-inc="en_espera">💤 En espera</button>
+                            <button data-filtro-inc="leido">😊 Leídos</button>
+                        </div>
+                        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                            <input type="text" id="busquedaIncidencia" placeholder="🔍 Buscar por cliente o correo..." style="padding: 9px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; background: var(--surface); color: var(--text-main); outline:none; min-width: 240px;">
+                            <button type="button" id="btnRecargarIncidencias" class="btn-run" style="padding: 9px 16px; font-size: 13px; display:flex; align-items:center; gap:6px;">
+                                <span>🔄</span> Actualizar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabla de incidencias -->
+                <div class="bloque">
+                    <div class="table-wrap">
+                        <table style="width:100%; border-collapse: collapse;">
+                            <thead>
+                                <tr>
+                                    <th style="width: 220px;">Nombre del cliente</th>
+                                    <th style="width: 220px;">Correo electrónico</th>
+                                    <th>Mensaje respectivo</th>
+                                    <th style="width: 150px;">Fecha</th>
+                                    <th style="width: 160px; text-align: center;">Estado / Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaIncidencias">
+                                <tr><td colspan="5" style="text-align:center; padding: 25px; color:var(--text-muted);">Cargando incidencias desde la base de datos... ⏳</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- ================= PIE DE PÁGINA ================= -->
         <footer class="footer">
             <div class="footer-grid">
                 <div><h5>Alicorp Intelligence</h5><p>Plataforma de Inteligencia de Negocios · Redes Neuronales y Machine Learning conectadas a base de datos Supabase.</p></div>
-                <div><h5>Secciones</h5><button data-go="inicio">Inicio</button><button data-go="productos">Productos</button><button data-go="prediccion">Predicción de ventas</button><button data-go="keras">Deep Learning (Keras)</button><button data-go="segmentacion">Segmentación no supervisada</button><button data-go="estadistica">Estadística</button><button data-go="reporte">Reporte mensual</button></div>
+                <div><h5>Secciones</h5><button data-go="inicio">Inicio</button><button data-go="productos">Productos</button><button data-go="prediccion">Predicción de ventas</button><button data-go="keras">Deep Learning (Keras)</button><button data-go="segmentacion">Segmentación no supervisada</button><button data-go="estadistica">Estadística</button><button data-go="reporte">Reporte mensual</button><button data-go="incidencias">Incidencias cliente</button></div>
                 <div><h5>Tecnología</h5><p>Python · Flask<br>TensorFlow & Keras<br>scikit-learn · Chart.js</p></div>
             </div>
             <div class="copy">© 2026 Corporación Alicorp S.A.A. · Todos los derechos reservados · Business Intelligence & Machine Learning</div>
@@ -1194,7 +1332,8 @@
             'keras',
             'segmentacion',
             'reporte',
-            'estadistica'
+            'estadistica',
+            'incidencias'
         ];
         const $ = id => document.getElementById(id);
         const fmt = n => Number(n).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -1313,6 +1452,7 @@
             if (nombre === 'keras' && !kerasListo) inicializarKeras();
             if (nombre === 'segmentacion' && !segmentacionLista) inicializarSegmentacion();
             if (nombre === 'reporte' && !reporteListo) inicializarReporte();   // integrante 6 
+            if (nombre === 'incidencias' && !incidenciasLista) cargarIncidencias(); 
         }
         document.addEventListener('click', e => {
             const destino = e.target.closest('[data-go]');
@@ -1884,6 +2024,171 @@
 
         // Cuando eliges un mes en el selector, carga su reporte
         $('selectMesReporte').addEventListener('change', e => { if (e.target.value) cargarReporte(e.target.value); });
+
+        /* ================= INCIDENCIAS CLIENTE (ATENCIÓN Y ESTADOS) ================= */
+        let incidenciasLista = false;
+        let listaIncidencias = [];
+        let filtroIncidencias = 'todos';
+
+        async function cargarIncidencias() {
+            const tbody = $('tablaIncidencias');
+            if (!tbody) return;
+
+            try {
+                const resp = await fetch('/api/incidencias');
+                if (!resp.ok) throw new Error('Servidor retornó código ' + resp.status);
+                const data = await resp.json();
+
+                if (data.success && Array.isArray(data.incidencias)) {
+                    listaIncidencias = data.incidencias;
+                    incidenciasLista = true;
+
+                    // Actualizar métricas
+                    const total = listaIncidencias.length;
+                    const enEspera = listaIncidencias.filter(i => i.estado === 'en_espera').length;
+                    const leidos = listaIncidencias.filter(i => i.estado === 'leido').length;
+
+                    if ($('incTotal')) $('incTotal').textContent = total.toLocaleString('es-PE');
+                    if ($('incEspera')) $('incEspera').textContent = enEspera.toLocaleString('es-PE');
+                    if ($('incLeido')) $('incLeido').textContent = leidos.toLocaleString('es-PE');
+                    if ($('incFuente') && data.fuente) $('incFuente').textContent = data.fuente;
+
+                    renderizarTablaIncidencias();
+                } else {
+                    throw new Error(data.message || 'No se recibieron datos válidos.');
+                }
+            } catch (err) {
+                console.error("Error al cargar incidencias:", err);
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 25px; color:#ef4444;">Error al consultar incidencias: ${esc(err.message)}</td></tr>`;
+            }
+        }
+
+        function renderizarTablaIncidencias() {
+            const tbody = $('tablaIncidencias');
+            if (!tbody) return;
+
+            const inputQ = $('busquedaIncidencia');
+            const q = inputQ ? inputQ.value.trim().toLowerCase() : '';
+
+            let filtradas = listaIncidencias.filter(item => {
+                if (filtroIncidencias !== 'todos' && item.estado !== filtroIncidencias) {
+                    return false;
+                }
+                if (q) {
+                    const nom = (item.nombre_cliente || '').toLowerCase();
+                    const corr = (item.correo || '').toLowerCase();
+                    const msg = (item.mensaje || '').toLowerCase();
+                    if (!nom.includes(q) && !corr.includes(q) && !msg.includes(q)) return false;
+                }
+                return true;
+            });
+
+            if (!filtradas.length) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 35px; color:var(--text-muted);">No hay incidencias que coincidan con el filtro actual.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtradas.map(item => {
+                const esEspera = item.estado === 'en_espera';
+                const fecha = item.fecha_registro ? new Date(item.fecha_registro).toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' }) : 'Reciente';
+
+                // Botón interactivo: 💤 En espera -> 😊 Leído
+                const btnHtml = esEspera
+                    ? `<button type="button" class="btn-estado-incidencia en-espera" onclick="window.cambiarEstadoIncidencia(${item.id}, 'leido')" title="Clic para marcar como Leído">
+                         <span class="ico-estado">💤</span>
+                         <span class="txt-estado">En espera</span>
+                       </button>`
+                    : `<button type="button" class="btn-estado-incidencia leido" onclick="window.cambiarEstadoIncidencia(${item.id}, 'en_espera')" title="Clic para volver a poner en espera">
+                         <span class="ico-estado">😊</span>
+                         <span class="txt-estado">Leído</span>
+                       </button>`;
+
+                return `
+                    <tr>
+                        <td>
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <div style="width:34px; height:34px; border-radius:50%; background:var(--accent-gradient); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; flex-shrink:0;">
+                                    ${esc((item.nombre_cliente || 'C')[0].toUpperCase())}
+                                </div>
+                                <div>
+                                    <b style="font-size:14px; color:var(--text-main);">${esc(item.nombre_cliente || 'Cliente')}</b>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <a href="mailto:${esc(item.correo || '')}" style="color:var(--accent); text-decoration:none; font-weight:600; font-size:13.5px;" title="Enviar correo">
+                                ${esc(item.correo || 'Sin correo')}
+                            </a>
+                        </td>
+                        <td>
+                            <div class="msg-celda">${esc(item.mensaje || '')}</div>
+                        </td>
+                        <td style="color:var(--text-muted); font-size:12.5px; white-space:nowrap;">
+                            ${esc(fecha)}
+                        </td>
+                        <td style="text-align:center;">
+                            ${btnHtml}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        window.cambiarEstadoIncidencia = async function(id, nuevoEstado) {
+            const item = listaIncidencias.find(i => String(i.id) === String(id));
+            if (!item) return;
+
+            const estadoAnterior = item.estado;
+            item.estado = nuevoEstado;
+
+            // Actualizar métricas
+            const total = listaIncidencias.length;
+            const enEspera = listaIncidencias.filter(i => i.estado === 'en_espera').length;
+            const leidos = listaIncidencias.filter(i => i.estado === 'leido').length;
+            if ($('incTotal')) $('incTotal').textContent = total.toLocaleString('es-PE');
+            if ($('incEspera')) $('incEspera').textContent = enEspera.toLocaleString('es-PE');
+            if ($('incLeido')) $('incLeido').textContent = leidos.toLocaleString('es-PE');
+
+            renderizarTablaIncidencias();
+
+            try {
+                const resp = await fetch('/api/incidencias/cambiar_estado', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: id, estado: nuevoEstado })
+                });
+                const data = await resp.json();
+                if (!resp.ok || !data.success) {
+                    throw new Error(data.message || 'Error al actualizar');
+                }
+            } catch (err) {
+                console.error("No se pudo actualizar estado en base de datos:", err);
+                item.estado = estadoAnterior;
+                renderizarTablaIncidencias();
+                alert('No se pudo actualizar el estado en la base de datos: ' + err.message);
+            }
+        };
+
+        // Listeners de filtros y búsqueda de incidencias
+        document.querySelectorAll('#filtrosIncidencias button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('#filtrosIncidencias button').forEach(b => b.classList.toggle('active', b === btn));
+                filtroIncidencias = btn.dataset.filtroInc;
+                renderizarTablaIncidencias();
+            });
+        });
+
+        const inputBusquedaInc = $('busquedaIncidencia');
+        if (inputBusquedaInc) {
+            inputBusquedaInc.addEventListener('input', () => renderizarTablaIncidencias());
+        }
+
+        const btnRecargarInc = $('btnRecargarIncidencias');
+        if (btnRecargarInc) {
+            btnRecargarInc.addEventListener('click', () => {
+                cargarIncidencias();
+            });
+        }
 
         /* ================= GESTIÓN DE USUARIO, BIOMETRÍA Y TIMER DIARIO ================= */
         let sesionUsuario = {

@@ -29,6 +29,8 @@ from backend.regresion_lineal import regresion_lineal
 app.register_blueprint(regresion_lineal)
 from backend.graficos_analysis import graficos_analysis
 app.register_blueprint(graficos_analysis)
+from backend.incidencias import incidencias_bp
+app.register_blueprint(incidencias_bp)
 
 # Limpiar y forzar cabeceras de seguridad para evitar errores de Permissions-Policy ('join-ad-interest-group')
 @app.after_request
