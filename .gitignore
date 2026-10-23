@@ -7,4 +7,5 @@ rostros_autorizados/
 .env
 .guia_reconocimiento_facial.md
 *.csv
-*.parquet
+*.parquet
+scratch/

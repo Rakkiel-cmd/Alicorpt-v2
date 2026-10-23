@@ -320,3 +320,166 @@ body {
     .sustainability-box { padding: 40px 20px; }
     .hero-alicorp { height: 60vh; min-height: 500px; }
 }
+
+/* ==============================================================================
+   DROPDOWN USUARIO SESIÓN ACTIVA (NAVBAR CORPORATIVA)
+   ============================================================================== */
+.user-nav-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.btn-user-nav {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    background: #ffffff;
+    border: 1.5px solid #0284c7;
+    color: #0b1329;
+    font-weight: 700;
+    font-size: 13.5px;
+    padding: 7px 16px 7px 8px;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: all 0.22s ease;
+    box-shadow: 0 2px 8px rgba(2, 132, 199, 0.12);
+    outline: none;
+    font-family: inherit;
+}
+
+.btn-user-nav:hover,
+.btn-user-nav.active {
+    background: #f0f9ff;
+    border-color: #0369a1;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(2, 132, 199, 0.22);
+}
+
+.user-nav-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 800;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.user-nav-name {
+    max-width: 160px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #1e293b;
+}
+
+.user-nav-arrow {
+    font-size: 11px;
+    color: #64748b;
+    transition: transform 0.2s ease;
+}
+
+.btn-user-nav.active .user-nav-arrow {
+    transform: rotate(180deg);
+}
+
+.user-nav-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 230px;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
+    padding: 8px 0;
+    display: none;
+    z-index: 1050;
+    animation: fadeInNavDropdown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.user-nav-menu.show {
+    display: block;
+}
+
+.user-nav-menu-header {
+    padding: 10px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 11px;
+    color: #64748b;
+}
+
+.user-nav-menu-header small {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #10b981;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.user-nav-menu-header small::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    background-color: #10b981;
+    border-radius: 50%;
+    display: inline-block;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.user-nav-menu-header b {
+    display: block;
+    margin-top: 3px;
+    font-size: 13.5px;
+    color: #0b1329;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.user-nav-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 16px;
+    color: #1e293b;
+    text-decoration: none;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.18s ease, color 0.18s ease;
+    border: none;
+    background: transparent;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+}
+
+.user-nav-menu-item:hover {
+    background-color: #f0f9ff;
+    color: #0284c7;
+}
+
+.user-nav-menu-item.logout {
+    color: #dc2626;
+    border-top: 1px solid #f1f5f9;
+    margin-top: 4px;
+}
+
+.user-nav-menu-item.logout:hover {
+    background-color: #fef2f2;
+    color: #b91c1c;
+}
+
+@keyframes fadeInNavDropdown {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+

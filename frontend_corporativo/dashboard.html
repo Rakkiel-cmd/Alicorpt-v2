@@ -390,12 +390,49 @@
             .contenido { padding: 20px 16px; }
         }
 
-        /* ===== BOTÓN SUPERIOR MODO OSCURO / MODO CLARO ===== */
+        /* ===== BARRA SUPERIOR: VOLVER A WEB INICIAL Y MODO OSCURO ===== */
+        .top-nav-bar,
         .theme-switch-container {
             position: fixed;
             top: 14px;
             right: 20px;
             z-index: 75;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .btn-volver-web {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1.5px solid #e31b23;
+            color: #b91c1c;
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            box-shadow: 0 4px 14px rgba(227, 27, 35, 0.12);
+            transition: all .25s ease;
+            user-select: none;
+        }
+        .btn-volver-web:hover {
+            background: #fff1f2;
+            border-color: #b91c1c;
+            color: #991b1b;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(227, 27, 35, 0.25);
+        }
+        .btn-volver-web .ico {
+            font-size: 15px;
+            transition: transform .25s ease;
+        }
+        .btn-volver-web:hover .ico {
+            transform: scale(1.18);
         }
         .theme-toggle-btn {
             display: inline-flex;
@@ -431,7 +468,50 @@
             transform: rotate(20deg) scale(1.15);
         }
 
+        .sb-link-web {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            background: rgba(2, 132, 199, 0.08);
+            border: 1px solid rgba(2, 132, 199, 0.25);
+            color: #0284c7;
+            font-size: 12.5px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all .2s ease;
+        }
+        .sb-link-web:hover {
+            background: rgba(2, 132, 199, 0.18);
+            border-color: #0284c7;
+            transform: translateY(-1px);
+        }
+
         /* ===== ESTILOS MODO OSCURO PARA TODAS LAS VENTANAS ===== */
+        body.dark-mode .btn-volver-web {
+            background: rgba(15, 23, 42, 0.88);
+            border: 1px solid rgba(244, 63, 94, 0.45);
+            color: #fda4af;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+        }
+        body.dark-mode .btn-volver-web:hover {
+            background: #1e293b;
+            border-color: #fb7185;
+            color: #ffe4e6;
+            box-shadow: 0 6px 22px rgba(244, 63, 94, 0.3);
+        }
+        body.dark-mode .sb-link-web {
+            background: rgba(56, 189, 248, 0.1);
+            border-color: rgba(56, 189, 248, 0.3);
+            color: #38bdf8;
+        }
+        body.dark-mode .sb-link-web:hover {
+            background: rgba(56, 189, 248, 0.2);
+            border-color: #38bdf8;
+        }
         body.dark-mode .theme-toggle-btn {
             background: rgba(15, 23, 42, 0.88);
             border: 1px solid rgba(56, 189, 248, 0.4);
@@ -636,7 +716,10 @@
         }
 
         @media(max-width: 900px) {
-            .theme-switch-container { top: 12px; right: 12px; }
+            .top-nav-bar,
+            .theme-switch-container { top: 12px; right: 12px; gap: 6px; }
+            .btn-volver-web { padding: 8px 12px; }
+            .btn-volver-web .txt { display: none; }
             .theme-toggle-btn { padding: 8px 12px; }
             .theme-toggle-btn .theme-text { display: none; }
         }
@@ -645,8 +728,12 @@
 <body>
     <button class="menu-toggle" id="menuToggle" aria-label="Abrir menú">☰</button>
 
-    <!-- ================= BOTÓN SUPERIOR TEMA (MODO OSCURO / CLARO) ================= -->
-    <div class="theme-switch-container">
+    <!-- ================= BARRA SUPERIOR (VOLVER A WEB & MODO OSCURO) ================= -->
+    <div class="top-nav-bar" id="topNavBar">
+        <a href="index.html" class="btn-volver-web" id="btnVolverWeb" title="Regresar al portal principal de Alicorp">
+            <span class="ico">🌐</span>
+            <span class="txt">Volver a Web Inicial</span>
+        </a>
         <button type="button" class="theme-toggle-btn" id="themeToggleBtn" aria-label="Cambiar tema claro/oscuro" title="Cambiar a Modo Oscuro">
             <span class="theme-icon" id="themeIcon">🌙</span>
             <span class="theme-text" id="themeText">Modo Oscuro</span>
@@ -711,6 +798,9 @@
                     </div>
                 </div>
             </div>
+            <a href="index.html" class="sb-link-web" id="sbLinkWeb" title="Regresar al portal principal de Alicorp">
+                <span class="ico">🌐</span> Volver a Web Inicial
+            </a>
             <a class="btn-logout" id="btnLogout" href="index.html">🚪 Cerrar sesión</a>
         </div>
     </aside>
@@ -2220,12 +2310,15 @@
         // Cargar perfil del usuario desde sessionStorage o Supabase
         async function inicializarPerfilUsuario() {
             try {
-                const guardado = sessionStorage.getItem('usuario_activo');
+                const guardado = sessionStorage.getItem('usuario_activo') || localStorage.getItem('usuario_activo');
                 if (guardado) {
                     const parsed = JSON.parse(guardado);
                     if (parsed.usuario) sesionUsuario.usuario = parsed.usuario;
                     if (parsed.nombre_completo) sesionUsuario.nombre_completo = parsed.nombre_completo;
                     if (parsed.face_encoding) sesionUsuario.face_encoding = parsed.face_encoding;
+                    // Sincronizar en ambos almacenes para persistencia en navegación
+                    sessionStorage.setItem('usuario_activo', guardado);
+                    localStorage.setItem('usuario_activo', guardado);
                 } else {
                     const ultimo = localStorage.getItem('ultimo_usuario');
                     if (ultimo) sesionUsuario.usuario = ultimo;
@@ -2241,7 +2334,9 @@
                         if (data.nombre_completo) sesionUsuario.nombre_completo = data.nombre_completo;
                         if (data.face_encoding) sesionUsuario.face_encoding = data.face_encoding;
                         try {
-                            sessionStorage.setItem('usuario_activo', JSON.stringify(sesionUsuario));
+                            const strSesion = JSON.stringify(sesionUsuario);
+                            sessionStorage.setItem('usuario_activo', strSesion);
+                            localStorage.setItem('usuario_activo', strSesion);
                         } catch (e) {}
                     }
                 }
@@ -2495,7 +2590,11 @@
         if (btnLogoutEl) {
             btnLogoutEl.addEventListener('click', () => {
                 enviarLatidoActividad();
-                try { sessionStorage.clear(); } catch (e) {}
+                try {
+                    sessionStorage.removeItem('usuario_activo');
+                    localStorage.removeItem('usuario_activo');
+                    sessionStorage.clear();
+                } catch (e) {}
             });
         }
 
