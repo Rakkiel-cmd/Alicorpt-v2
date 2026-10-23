@@ -1,9 +1,8 @@
-"""Graficos analiticos del dataset de transacciones."""
+"""Graficos analiticos del dataset de transacciones (Optimizado)."""
 
 import io
 import logging
 import os
-
 import numpy as np
 import pandas as pd
 from flask import Blueprint, Response, jsonify, request, send_file
@@ -110,21 +109,20 @@ def _cargar_datos():
 
 
 def _figura_png(figura) -> Response:
-    salida = io.BytesIO()
-    figura.savefig(salida, format="png", dpi=120, bbox_inches="tight")
-    salida.seek(0)
     import matplotlib.pyplot as plt
-
-    plt.close(figura)
+    salida = io.BytesIO()
+    try:
+        figura.savefig(salida, format="png", dpi=120, bbox_inches="tight")
+        salida.seek(0)
+    finally:
+        plt.close(figura)  # Garantiza liberar memoria RAM siempre
     return send_file(salida, mimetype="image/png")
 
 
 def _matplotlib():
     import matplotlib
-
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-
     return plt
 
 
@@ -133,11 +131,13 @@ def crear_recta_regresion(datos):
     plt = _matplotlib()
     x = datos[["cantidad_vendida"]]
     y = datos["ventas_totales"]
+    
     modelo = LinearRegression().fit(x, y)
     predicciones = modelo.predict(x)
 
     figura, eje = plt.subplots(figsize=(9, 5))
     eje.scatter(x["cantidad_vendida"], y, s=10, alpha=0.25, label="Transacciones")
+    
     orden = np.argsort(x["cantidad_vendida"].to_numpy())
     eje.plot(
         x["cantidad_vendida"].to_numpy()[orden],
@@ -156,15 +156,17 @@ def crear_recta_regresion(datos):
 
 
 def crear_heatmap_correlacion(datos):
-    """Crea un mapa de calor de correlacion sin depender de seaborn."""
+    """Crea un mapa de calor de correlacion."""
     plt = _matplotlib()
     correlaciones = datos.corr(numeric_only=True)
 
     figura, eje = plt.subplots(figsize=(8, 6))
     imagen = eje.imshow(correlaciones, cmap="RdYlBu_r", vmin=-1, vmax=1)
     etiquetas = list(correlaciones.columns)
+    
     eje.set_xticks(range(len(etiquetas)), etiquetas, rotation=45, ha="right")
     eje.set_yticks(range(len(etiquetas)), etiquetas)
+    
     for fila in range(len(etiquetas)):
         for columna in range(len(etiquetas)):
             eje.text(
@@ -175,6 +177,7 @@ def crear_heatmap_correlacion(datos):
                 va="center",
                 fontsize=8,
             )
+            
     figura.colorbar(imagen, ax=eje, label="Coeficiente de correlacion")
     eje.set_title("Mapa de calor de correlaciones")
     figura.tight_layout()
@@ -188,9 +191,9 @@ def crear_campana_probabilidades(datos):
     media = float(np.mean(valores))
     desviacion = float(np.std(valores, ddof=1))
     desviacion = desviacion if desviacion > 0 else 1.0
+    
     eje_x = np.linspace(valores.min(), valores.max(), 300)
-    densidad = np.exp(-0.5 * ((eje_x - media) / desviacion) ** 2)
-    densidad /= desviacion * np.sqrt(2 * np.pi)
+    densidad = np.exp(-0.5 * ((eje_x - media) / desviacion) ** 2) / (desviacion * np.sqrt(2 * np.pi))
 
     figura, eje = plt.subplots(figsize=(9, 5))
     eje.hist(
