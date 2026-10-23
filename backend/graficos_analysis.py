@@ -1,4 +1,4 @@
-"""Graficos analiticos del dataset de transacciones (Ampliado y Optimizado)."""
+"""Graficos analiticos del dataset de transacciones (Optimizado)."""
 
 import io
 import os
@@ -71,7 +71,7 @@ def _figura_png(figura) -> Response:
         figura.savefig(salida, format="png", dpi=120, bbox_inches="tight")
         salida.seek(0)
     finally:
-        plt.close(figura)
+        plt.close(figura)  # Garantiza liberar memoria RAM siempre
     return send_file(salida, mimetype="image/png")
 
 
@@ -83,6 +83,7 @@ def _matplotlib():
 
 
 def crear_recta_regresion(datos):
+    """Crea ventas totales frente a cantidad vendida con recta ajustada."""
     plt = _matplotlib()
     x = datos[["cantidad_vendida"]]
     y = datos["ventas_totales"]
@@ -92,6 +93,7 @@ def crear_recta_regresion(datos):
 
     figura, eje = plt.subplots(figsize=(9, 5))
     eje.scatter(x["cantidad_vendida"], y, s=10, alpha=0.25, label="Transacciones")
+    
     orden = np.argsort(x["cantidad_vendida"].to_numpy())
     eje.plot(
         x["cantidad_vendida"].to_numpy()[orden],
@@ -110,6 +112,7 @@ def crear_recta_regresion(datos):
 
 
 def crear_heatmap_correlacion(datos):
+    """Crea un mapa de calor de correlacion."""
     plt = _matplotlib()
     correlaciones = datos.corr(numeric_only=True)
 
@@ -138,6 +141,7 @@ def crear_heatmap_correlacion(datos):
 
 
 def crear_campana_probabilidades(datos):
+    """Crea la distribucion de ventas y una curva normal de referencia."""
     plt = _matplotlib()
     valores = datos["ventas_totales"].to_numpy(dtype=float)
     media = float(np.mean(valores))
@@ -148,52 +152,20 @@ def crear_campana_probabilidades(datos):
     densidad = np.exp(-0.5 * ((eje_x - media) / desviacion) ** 2) / (desviacion * np.sqrt(2 * np.pi))
 
     figura, eje = plt.subplots(figsize=(9, 5))
-    eje.hist(valores, bins=30, density=True, alpha=0.55, color="#457b9d", label="Ventas observadas")
+    eje.hist(
+        valores,
+        bins=30,
+        density=True,
+        alpha=0.55,
+        color="#457b9d",
+        label="Ventas observadas",
+    )
     eje.plot(eje_x, densidad, color="#d62828", linewidth=2, label="Campana normal")
     eje.axvline(media, color="#1d3557", linestyle="--", label=f"Media: {media:.2f}")
     eje.set_title("Campana de probabilidades de ventas totales")
     eje.set_xlabel("Ventas totales")
     eje.set_ylabel("Densidad de probabilidad")
     eje.legend()
-    eje.grid(alpha=0.2)
-    figura.tight_layout()
-    return figura
-
-
-# === NUEVO GRÁFICO 1: Análisis de Temperatura vs Ventas (Uso de Seaborn) ===
-def crear_dispersión_temperatura(datos):
-    """Crea un gráfico avanzado relacionando la temperatura de la zona y las ventas."""
-    import seaborn as sns
-    plt = _matplotlib()
-    
-    figura, eje = plt.subplots(figsize=(9, 5))
-    sns.scatterplot(
-        data=datos, 
-        x="temperatura_zona", 
-        y="ventas_totales", 
-        hue="precio_unitario", 
-        palette="viridis", 
-        alpha=0.7, 
-        ax=eje
-    )
-    eje.set_title("Impacto de la Temperatura de Zona en las Ventas Totales")
-    eje.set_xlabel("Temperatura de la Zona (°C)")
-    eje.set_ylabel("Ventas Totales")
-    eje.grid(alpha=0.2)
-    figura.tight_layout()
-    return figura
-
-
-# === NUEVO GRÁFICO 2: Diagrama de Cajas (Boxplot) de Precios y Stock ===
-def crear_boxplot_precios(datos):
-    """Crea un diagrama de cajas para analizar la distribución y valores atípicos del stock."""
-    import seaborn as sns
-    plt = _matplotlib()
-    
-    figura, eje = plt.subplots(figsize=(8, 5))
-    sns.boxplot(data=datos[["precio_unitario", "stock_actual"]], palette="Set2", ax=eje)
-    eje.set_title("Distribución y Outliers de Precios y Stock Actual")
-    eje.set_ylabel("Valores Muestrales")
     eje.grid(alpha=0.2)
     figura.tight_layout()
     return figura
@@ -223,22 +195,5 @@ def grafico_correlacion():
 def grafico_probabilidades():
     try:
         return _figura_png(crear_campana_probabilidades(_cargar_datos()))
-    except Exception as error:
-        return _error_grafico(error)
-
-
-# Nuevos Endpoints para la API
-@graficos_analysis.get("/api/graficos/temperatura")
-def grafico_temperatura():
-    try:
-        return _figura_png(crear_dispersión_temperatura(_cargar_datos()))
-    except Exception as error:
-        return _error_grafico(error)
-
-
-@graficos_analysis.get("/api/graficos/boxplot")
-def grafico_boxplot():
-    try:
-        return _figura_png(crear_boxplot_precios(_cargar_datos()))
     except Exception as error:
         return _error_grafico(error)
