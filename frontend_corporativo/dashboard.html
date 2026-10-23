@@ -314,7 +314,7 @@
         td.num, th.num { text-align: right; }
         .table-wrap { overflow-x: auto; }
 
-        /* ===== SIMULADOR ===== */
+        /* ===== INFERENCIA DEEP LEARNING (KERAS) ===== */
         .sim-layout { display: grid; grid-template-columns: 1fr 1.1fr; gap: 25px; margin-bottom: 25px; }
         .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; }
         .field { margin-bottom: 18px; }
@@ -596,10 +596,9 @@
             <button class="active" data-go="inicio"><span class="ico">🏠</span> Inicio</button>
             <button data-go="productos"><span class="ico">🛒</span> Productos</button>
             <button data-go="prediccion"><span class="ico">📈</span> Predicción de ventas</button>
-            <button data-go="simulador"><span class="ico">🧪</span> Simulador</button>
-            <button data-go="estadistica"><span class="ico">📊</span> Estadística</button>
             <button data-go="keras"><span class="ico">🧠</span> Deep Learning (Keras)</button>
             <button data-go="segmentacion"><span class="ico">🧩</span> Segmentación no supervisada</button>
+            <button data-go="estadistica"><span class="ico">📊</span> Estadística</button>
             <button data-go="reporte"><span class="ico">📅</span> Reporte mensual</button>
         </nav>
         <div class="sb-foot">
@@ -661,7 +660,7 @@
                 <p>Plataforma de inteligencia artificial que usa una red neuronal para predecir las ventas de nuestros productos según la tienda, el precio y el stock.</p>
                 <div class="hero-btns">
                     <button class="btn-run" data-go="prediccion">📈 Ver predicción de ventas</button>
-                    <button class="btn-light" data-go="simulador">🧪 Probar el simulador</button>
+                    <button class="btn-light" data-go="keras">🧠 Probar Deep Learning (Keras)</button>
                 </div>
             </div>
             <div class="contenido">
@@ -677,7 +676,7 @@
                         <h2>Bienvenido al panel de inteligencia de ventas</h2>
                         <div>
                             <p>Este panel reúne en un solo lugar la información de ventas de Alicorp y una red neuronal que aprende de las transacciones pasadas para estimar cuánto se venderá en el futuro.</p>
-                            <p>Explora el catálogo de productos, revisa qué tan precisa es la predicción o mueve los controles del simulador para ver cómo cambian las ventas.</p>
+                            <p>Explora el catálogo de productos, revisa qué tan precisa es la predicción o interactúa con Deep Learning en tiempo real con Keras.</p>
                             <button class="link" data-go="productos">Conocer los productos →</button>
                         </div>
                     </div>
@@ -685,11 +684,11 @@
 
                 <div class="bloque">
                     <h2 class="section-title">¿Qué puedes hacer aquí?</h2>
-                    <p class="section-sub">Tres módulos, cada uno con una función distinta.</p>
+                    <p class="section-sub">Tres módulos principales para potenciar el análisis.</p>
                     <div class="cards3">
                         <button class="modulo" data-go="productos"><div class="icon">🛒</div><h3>Productos</h3><p>Ventas reales de cada producto y tienda, organizadas por categoría.</p><span>Ir a productos →</span></button>
                         <button class="modulo" data-go="prediccion"><div class="icon">📈</div><h3>Predicción de ventas</h3><p>Entrena la red neuronal y mide su precisión (R²) con un clic.</p><span>Ir a predicción →</span></button>
-                        <button class="modulo" data-go="simulador"><div class="icon">🧪</div><h3>Simulador</h3><p>Cambia precio, stock y tienda y mira la venta estimada en vivo.</p><span>Ir al simulador →</span></button>
+                        <button class="modulo" data-go="keras"><div class="icon">🧠</div><h3>Deep Learning (Keras)</h3><p>Red Neuronal Profunda con inferencia en tiempo real y escenarios rápidos.</p><span>Probar Keras →</span></button>
                     </div>
                 </div>
 
@@ -705,7 +704,7 @@
                     <div class="cards3">
                         <div class="news"><div class="banda"></div><div class="cuerpo"><small>Modelo</small><h3>La red neuronal ahora predice ventas en soles</h3><p>Pasó de una precisión (R²) cercana a 0 a un R² de aproximadamente 0.78.</p></div></div>
                         <div class="news"><div class="banda"></div><div class="cuerpo"><small>Datos</small><h3>Gráficos con ventas reales</h3><p>Productos, tiendas y meses se calculan directamente de las 100,000 transacciones.</p></div></div>
-                        <div class="news"><div class="banda"></div><div class="cuerpo"><small>Nuevo</small><h3>Simulador en vivo</h3><p>Mueve el precio o el stock y la red neuronal recalcula la venta al instante.</p></div></div>
+                        <div class="news"><div class="banda"></div><div class="cuerpo"><small>Nuevo</small><h3>Deep Learning (Keras 3)</h3><p>Inferencia neural multicapa en tiempo real entrenada con 100k registros de Supabase.</p></div></div>
                     </div>
                 </div>
             </div>
@@ -846,49 +845,6 @@
             </div>
         </section>
 
-        <!-- ================= VISTA: SIMULADOR ================= -->
-        <section id="vista-simulador" class="vista">
-            <div class="page-hero">
-                <div class="crumbs">Inicio / <b>Simulador</b></div>
-                <h1>Simulador de ventas</h1>
-                <p>Mueve los controles y la red neuronal estima en vivo cuánto se vendería en una transacción.</p>
-            </div>
-            <div class="contenido">
-                <div class="sim-layout">
-                    <div class="panel">
-                        <div class="chips">
-                            <button data-escenario="economico">💸 Precio bajo, poco stock</button>
-                            <button data-escenario="promedio" class="active">⚖️ Escenario promedio</button>
-                            <button data-escenario="premium">💎 Precio alto, mucho stock</button>
-                        </div>
-                        <div class="two-cols">
-                            <div class="field"><label>Producto</label><select id="simProducto"></select></div>
-                            <div class="field"><label>Tienda</label><select id="simTienda"></select></div>
-                        </div>
-                        <div class="field"><label>Precio unitario <b id="vPrecio"></b></label><input type="range" id="simPrecio" min="4" max="15" step="0.1" value="8.5"></div>
-                        <div class="field"><label>Stock actual <b id="vStock"></b></label><input type="range" id="simStock" min="50" max="500" step="5" value="275"></div>
-                        <div class="field"><label>Temperatura de la zona <b id="vTemp"></b></label><input type="range" id="simTemp" min="18" max="30" step="0.5" value="24"></div>
-                        <div class="two-cols">
-                            <div class="field"><label>Mes</label>
-                                <select id="simMes"><option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option><option value="4">Abril</option><option value="5">Mayo</option><option value="6" selected>Junio</option><option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select></div>
-                            <div class="field"><label>Día de la semana</label>
-                                <select id="simDia"><option value="0">Lunes</option><option value="1">Martes</option><option value="2" selected>Miércoles</option><option value="3">Jueves</option><option value="4">Viernes</option><option value="5">Sábado</option><option value="6">Domingo</option></select></div>
-                        </div>
-                    </div>
-                    <div class="panel">
-                        <div id="simCaja" class="result-big">
-                            <span>Venta estimada por la red neuronal</span>
-                            <h2 id="simResultado">S/. --</h2>
-                            <small id="simUnidades">Calculando...</small>
-                        </div>
-                        <h4 style="margin:0 0 10px;color:var(--primary);font-size:15px;">Comparación entre productos (mismas condiciones)</h4>
-                        <div class="chart-container" style="height: 240px;"><canvas id="chartSim"></canvas></div>
-                    </div>
-                </div>
-                <div class="nota">El modelo neural pondera en tiempo real el <b>precio unitario</b> y el <b>stock en tienda</b> como las variables determinantes en la proyección del volumen de ventas.</div>
-            </div>
-        </section>
-
         <!-- ================= VISTA: TENSORFLOW & KERAS (DEEP LEARNING) ================= -->
         <section id="vista-keras" class="vista">
             <div class="page-hero">
@@ -938,7 +894,12 @@
                 <div class="sim-layout">
                     <div class="panel">
                         <h3 style="margin-top:0;color:var(--primary);font-size:18px;">🧪 Inferencia en Tiempo Real</h3>
-                        <p style="color:var(--text-muted);font-size:13px;margin-bottom:18px;">Ajuste los parámetros para consultar la Red Neuronal de Keras:</p>
+                        <p style="color:var(--text-muted);font-size:13px;margin-bottom:14px;">Ajuste los parámetros o elija un escenario rápido para consultar la Red Neuronal de Keras:</p>
+                        <div class="chips" id="kEscenarios">
+                            <button type="button" data-escenario="economico">💸 Precio bajo, poco stock</button>
+                            <button type="button" data-escenario="promedio" class="active">⚖️ Escenario promedio</button>
+                            <button type="button" data-escenario="premium">💎 Precio alto, mucho stock</button>
+                        </div>
                         <div class="two-cols">
                             <div class="field"><label>Producto</label><select id="kProducto"></select></div>
                             <div class="field"><label>Tienda</label><select id="kTienda"></select></div>
@@ -1145,7 +1106,7 @@
         <footer class="footer">
             <div class="footer-grid">
                 <div><h5>Alicorp Intelligence</h5><p>Plataforma de Inteligencia de Negocios · Redes Neuronales y Machine Learning conectadas a base de datos Supabase.</p></div>
-                <div><h5>Secciones</h5><button data-go="inicio">Inicio</button><button data-go="productos">Productos</button><button data-go="prediccion">Predicción de ventas</button><button data-go="simulador">Simulador</button><button data-go="keras">Deep Learning (Keras)</button><button data-go="segmentacion">Segmentación no supervisada</button></div>
+                <div><h5>Secciones</h5><button data-go="inicio">Inicio</button><button data-go="productos">Productos</button><button data-go="prediccion">Predicción de ventas</button><button data-go="keras">Deep Learning (Keras)</button><button data-go="segmentacion">Segmentación no supervisada</button><button data-go="estadistica">Estadística</button><button data-go="reporte">Reporte mensual</button></div>
                 <div><h5>Tecnología</h5><p>Python · Flask<br>TensorFlow & Keras<br>scikit-learn · Chart.js</p></div>
             </div>
             <div class="copy">© 2026 Corporación Alicorp S.A.A. · Todos los derechos reservados · Business Intelligence & Machine Learning</div>
@@ -1231,7 +1192,6 @@
             'inicio',
             'productos',
             'prediccion',
-            'simulador',
             'keras',
             'segmentacion',
             'reporte',
@@ -1337,7 +1297,6 @@
         } catch (e) {}
 
         /* ---------- Menú lateral / vistas ---------- */
-        let simListo = false;
         let explicacionLista = false;
         let kerasListo = false;
         let segmentacionLista = false;
@@ -1350,7 +1309,6 @@
             try { history.replaceState(null, '', '#' + nombre); } catch (e) {}
             window.scrollTo(0, 0);
             Object.values(charts).forEach(c => c.resize());
-            if (nombre === 'simulador' && !simListo) simular();
             if (nombre === 'prediccion' && !explicacionLista) cargarExplicacion();
             if (nombre === 'estadistica') cargarEstadistica();
             if (nombre === 'keras' && !kerasListo) inicializarKeras();
@@ -1504,81 +1462,17 @@
                         scales: { y: { beginAtZero: true, title: { display: true, text: 'Unidades promedio' } } } }
                 });
 
-                // Simulador: llenar listas
-                $('simProducto').innerHTML = nombresProd.slice().sort().map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
-                $('simTienda').innerHTML = nombresTienda.slice().sort().map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
-                if ($('vista-simulador').classList.contains('active') && !simListo) simular();
+                // Respaldo de listas para Keras si aún no cargó /api/keras/info
+                if ($('kProducto') && !$('kProducto').options.length) {
+                    $('kProducto').innerHTML = nombresProd.slice().sort().map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
+                    $('kTienda').innerHTML = nombresTienda.slice().sort().map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
+                }
             } catch (err) {
                 mostrarError('No se pudieron cargar los datos de productos: ' + err.message);
             }
         }
 
-        /* ---------- Simulador ---------- */
-        let simSeq = 0, simTimer = null;
-        function etiquetasSim() {
-            $('vPrecio').textContent = 'S/. ' + Number($('simPrecio').value).toFixed(1);
-            $('vStock').textContent = $('simStock').value + ' unid.';
-            $('vTemp').textContent = Number($('simTemp').value).toFixed(1) + ' °C';
-        }
-        async function simular() {
-            etiquetasSim();
-            const producto = $('simProducto').value;
-            if (!producto) return;
-            const mi = ++simSeq;
-            $('simCaja').classList.add('cargando');
-            if (!simListo) $('simUnidades').textContent = 'Entrenando la red neuronal... la primera vez puede tardar hasta 30 segundos';
-            try {
-                const resp = await fetch('/api/simular', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        producto: producto,
-                        tienda: $('simTienda').value,
-                        precio_unitario: $('simPrecio').value,
-                        stock_actual: $('simStock').value,
-                        temperatura_zona: $('simTemp').value,
-                        mes: $('simMes').value,
-                        dia_semana: $('simDia').value
-                    })
-                });
-                const d = await resp.json();
-                if (mi !== simSeq) return;
-                if (!d.success) throw new Error(d.message || 'error');
-                simListo = true;
-                $('simResultado').textContent = 'S/. ' + fmt(d.prediccion);
-                $('simUnidades').textContent = '≈ ' + d.unidades_estimadas + ' unidades por transacción · R² del modelo: ' + d.r2_modelo;
-
-                const etiquetas = d.por_producto.map(x => x.producto);
-                const valores = d.por_producto.map(x => x.prediccion);
-                const colores = etiquetas.map(n => n === producto ? '#0284c7' : '#cbd5e1');
-                if (charts.chartSim) {
-                    charts.chartSim.data.labels = etiquetas;
-                    charts.chartSim.data.datasets[0].data = valores;
-                    charts.chartSim.data.datasets[0].backgroundColor = colores;
-                    charts.chartSim.update();
-                } else {
-                    dibujar('chartSim', {
-                        type: 'bar',
-                        data: { labels: etiquetas, datasets: [{ label: 'Venta estimada (S/.)', data: valores, backgroundColor: colores, borderRadius: 6 }] },
-                        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-                    });
-                }
-            } catch (err) {
-                if (mi === simSeq) $('simUnidades').textContent = 'No se pudo calcular: ' + err.message;
-            } finally {
-                if (mi === simSeq) $('simCaja').classList.remove('cargando');
-            }
-        }
-        ['simProducto', 'simTienda', 'simPrecio', 'simStock', 'simTemp', 'simMes', 'simDia'].forEach(id => {
-            $(id).addEventListener('input', () => {
-                etiquetasSim();
-                clearTimeout(simTimer);
-                simTimer = setTimeout(simular, 300);
-            });
-        });
-        etiquetasSim();
-
-        /* ---------- Extras: contadores, anillo, explicación y escenarios ---------- */
+        /* ---------- Extras: contadores, anillo y explicación ---------- */
         function contar(id, destino, prefijo) {
             const el = $(id);
             const t0 = performance.now(), dur = 1200;
@@ -1638,23 +1532,7 @@
             }
         }
 
-        const ESCENARIOS = { economico: { precio: 4.2, stock: 100 }, promedio: { precio: 8.5, stock: 275 }, premium: { precio: 15, stock: 450 } };
-        document.querySelectorAll('[data-escenario]').forEach(b => b.addEventListener('click', () => {
-            const e = ESCENARIOS[b.dataset.escenario];
-            $('simPrecio').value = e.precio;
-            $('simStock').value = e.stock;
-            document.querySelectorAll('[data-escenario]').forEach(x => x.classList.toggle('active', x === b));
-            etiquetasSim();
-            simular();
-        }));
 
-        // Entrena el modelo en segundo plano para que el Simulador responda rápido
-        function precalentar() {
-            fetch('/api/simular', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ producto: $('simProducto').value, tienda: $('simTienda').value, precio_unitario: 8.5, stock_actual: 275, temperatura_zona: 24, mes: 6, dia_semana: 2 })
-            }).catch(() => {});
-        }
 
         /* ---------- Botón: entrenar y mostrar métricas del modelo ---------- */
         $('btnEjecutar').addEventListener('click', async () => {
@@ -1811,8 +1689,30 @@
             }
         }
 
+        // Escenarios rápidos para Deep Learning (Keras)
+        const ESCENARIOS_KERAS = {
+            economico: { precio: 4.5, stock: 100, temp: 20 },
+            promedio:  { precio: 8.5, stock: 250, temp: 24 },
+            premium:   { precio: 14.5, stock: 450, temp: 28 }
+        };
+
+        document.querySelectorAll('#kEscenarios button').forEach(b => {
+            b.addEventListener('click', () => {
+                const escKey = b.dataset.escenario;
+                const e = ESCENARIOS_KERAS[escKey];
+                if (!e) return;
+                $('kPrecio').value = e.precio;
+                $('kStock').value = e.stock;
+                $('kTemp').value = e.temp;
+                document.querySelectorAll('#kEscenarios button').forEach(x => x.classList.toggle('active', x === b));
+                etiquetasKeras();
+                simularKeras();
+            });
+        });
+
         ['kProducto', 'kTienda', 'kPrecio', 'kStock', 'kTemp', 'kMes', 'kDia'].forEach(id => {
             $(id).addEventListener('input', () => {
+                document.querySelectorAll('#kEscenarios button').forEach(x => x.classList.remove('active'));
                 etiquetasKeras();
                 clearTimeout(kTimer);
                 kTimer = setTimeout(simularKeras, 300);
@@ -2299,7 +2199,7 @@
         inicializarPerfilUsuario();
 
         /* ---------- Inicio ---------- */
-        cargarResumen().then(() => setTimeout(precalentar, 1500));
+        cargarResumen().then(() => inicializarKeras());
         const inicial = location.hash.replace('#', '');
         if (VISTAS.includes(inicial)) mostrarVista(inicial);
     </script>

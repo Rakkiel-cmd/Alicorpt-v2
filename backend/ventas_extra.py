@@ -2,7 +2,7 @@
 Endpoints extra del dashboard de ventas (Subproyecto 2: Prediccion de ventas).
 
 - GET  /api/resumen_productos : ventas reales agrupadas por producto, tienda y mes.
-- POST /api/simular           : simulador "que pasaria si..." con la red neuronal.
+- GET  /api/explicar_modelo   : métricas R2, MSE e importancia de variables por permutación.
 
 Esta en un archivo aparte para no mezclarse con el codigo del login en server.py.
 """
@@ -211,65 +211,8 @@ def _obtener_modelo():
         return _modelo_cache
 
 
-def _fila(m, producto, tienda, precio, stock, temperatura, mes, dia_semana):
-    fila = dict.fromkeys(m['columnas'], 0.0)
-    fila.update({
-        'precio_unitario': precio, 'stock_actual': stock, 'temperatura_zona': temperatura,
-        'mes': mes, 'dia_semana': dia_semana,
-    })
-    fila['producto_' + producto] = 1.0
-    fila['tienda_' + tienda] = 1.0
-    return fila
-
-
-def _numero(datos, clave, minimo, maximo):
-    valor = float(datos.get(clave))
-    if not (minimo <= valor <= maximo):
-        raise ValueError(f"{clave} debe estar entre {minimo} y {maximo}")
-    return valor
-
-
-@ventas_extra.route('/api/simular', methods=['POST'])
-def simular():
-    try:
-        datos = request.get_json(silent=True) or {}
-        m = _obtener_modelo()
-
-        producto = datos.get('producto')
-        tienda = datos.get('tienda')
-        if producto not in m['productos'] or tienda not in m['tiendas']:
-            return jsonify({'success': False, 'message': 'Producto o tienda no valido.'}), 400
-
-        precio = _numero(datos, 'precio_unitario', 1, 50)
-        stock = _numero(datos, 'stock_actual', 0, 1000)
-        temperatura = _numero(datos, 'temperatura_zona', 10, 40)
-        mes = _numero(datos, 'mes', 1, 12)
-        dia = _numero(datos, 'dia_semana', 0, 6)
-
-        # Una fila por producto (misma tienda, precio, etc.) para comparar
-        filas = [_fila(m, p, tienda, precio, stock, temperatura, mes, dia) for p in m['productos']]
-        pred = m['modelo'].predict(pd.DataFrame(filas, columns=m['columnas']))
-        por_producto = [{'producto': p, 'prediccion': round(max(float(v), 0.0), 2)}
-                        for p, v in zip(m['productos'], pred)]
-        elegido = next(x['prediccion'] for x in por_producto if x['producto'] == producto)
-
-        return jsonify({
-            'success': True,
-            'prediccion': elegido,
-            'unidades_estimadas': round(elegido / precio, 1),
-            'por_producto': por_producto,
-            'r2_modelo': m['r2'],
-        })
-    except (TypeError, ValueError) as e:
-        return jsonify({'success': False, 'message': f'Datos invalidos: {e}'}), 400
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-
 # ---------------------------------------------------------------------------
-# 3) Explicacion del modelo: prediccion vs. real e importancia de variables
+# 2) Explicacion del modelo: prediccion vs. real e importancia de variables
 # ---------------------------------------------------------------------------
 _explicacion_cache = None
 
