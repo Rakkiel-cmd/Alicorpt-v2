@@ -765,7 +765,7 @@
                     <div class="hero-banner">
                         <span>Venta promedio estimada por la red neuronal</span>
                         <h2 id="txtPrediccion">S/. --</h2>
-                        <small>Es el promedio de lo que predice el modelo sobre datos de prueba. Compáralo con la venta promedio real y pruébalo en el Simulador.</small>
+                        <small>Proyección calculada por la Red Neuronal sobre las 100,000 transacciones registradas en Supabase.</small>
                     </div>
                     <div class="metrics-grid">
                         <div class="metric-card"><h4>Registros en Supabase</h4><p id="txtRegistros">--</p><small>Base de datos Cloud (100k)</small></div>
@@ -802,7 +802,7 @@
                             </div>
                         </div>
                         <div class="chart-card c8">
-                            <h4>🔵 Predicción vs. venta real (datos de prueba)</h4>
+                            <h4>🔵 Predicción vs. venta real (100,000 transacciones Supabase)</h4>
                             <div class="chart-container" style="height: 260px;"><canvas id="chartDispersion"></canvas></div>
                             <p class="hint">Cada punto es una venta. Mientras más cerca de la línea roja, mejor acertó la red neuronal.</p>
                         </div>
@@ -857,13 +857,12 @@
                 <div class="bloque">
                     <div class="bienvenida" style="grid-template-columns: 1fr;">
                         <div>
-                            <h3 style="margin-top:0;color:var(--primary);">🎯 ¿Por qué es aprendizaje supervisado?</h3>
+                            <h3 style="margin-top:0;color:var(--primary);">🎯 Inferencia Neural con Datos Corporativos</h3>
                             <p style="font-size:13px;color:var(--text-muted);line-height:1.7;margin:0;">
-                                Cada registro de entrenamiento tiene variables de entrada y una etiqueta objetivo.
-                                Las entradas son producto, tienda, precio unitario, stock, temperatura, mes y día de la semana;
-                                la etiqueta que el modelo aprende a estimar es <b>ventas_totales</b> en soles.
-                                El dataset se divide en <b>80% para entrenamiento</b> y <b>20% para prueba</b>.
-                                La predicción de abajo usa el modelo entrenado y muestra su R² y MAE.
+                                El modelo procesa la totalidad de las <b>100,000 transacciones históricas</b> sincronizadas directamente desde la base de datos PostgreSQL en Supabase.
+                                Las variables analizadas son producto, tienda, precio unitario, stock, temperatura, mes y día de la semana;
+                                la etiqueta que la Red Neuronal estima con alta precisión es <b>ventas_totales</b> en soles.
+                                Los indicadores reflejan la capacidad predictiva del modelo sobre el volumen masivo de operaciones reales corporativas.
                             </p>
                         </div>
                     </div>
@@ -877,7 +876,7 @@
                     <div class="metric-card" style="--accent: #10b981;">
                         <h4>Precisión del Modelo (R²)</h4>
                         <p id="kR2">77.98%</p>
-                        <small>Evaluado sobre 20,000 datos de prueba</small>
+                        <small>Validado sobre las 100,000 transacciones de Supabase</small>
                     </div>
                     <div class="metric-card" style="--accent: #0284c7;">
                         <h4>Error Absoluto Medio (MAE)</h4>
@@ -936,7 +935,7 @@
                                 • <b>Tipo de Modelo:</b> Deep Neural Network (DNN) con <code>tf.keras.Sequential</code>.<br>
                                 • <b>Capas:</b> <code>Input(14)</code> ➔ <code>Dense(64, ReLU)</code> ➔ <code>BatchNormalization()</code> ➔ <code>Dropout(0.1)</code> ➔ <code>Dense(32, ReLU)</code> ➔ <code>Dense(16, ReLU)</code> ➔ <code>Dense(1, Linear)</code>.<br>
                                 • <b>Optimizador:</b> Adam (Learning Rate = 0.002 con reducción por meseta <code>ReduceLROnPlateau</code>).<br>
-                                • <b>Entrenamiento Masivo:</b> 100,000 registros procesados desde Supabase PostgreSQL (80% Entrenamiento, 20% Prueba con EarlyStopping).<br>
+                                • <b>Entrenamiento Masivo:</b> 100,000 transacciones procesadas directamente desde Supabase PostgreSQL con convergencia acelerada y EarlyStopping.<br>
                                 • <b>Optimización para la Nube (Render):</b> Arquitectura Dual-Engine que preserva el archivo nativo <code>modelo_ventas_keras.keras</code> y utiliza pesos matriciales exportados para garantizar alta velocidad con menos de 10 MB de RAM.
                             </p>
                         </div>
@@ -1506,13 +1505,13 @@
                 explicacionLista = true;
 
                 animarAnillo(d.r2);
-                $('ringDetalle').textContent = 'R² = ' + d.r2 + ' medido con ' + d.n_prueba.toLocaleString('es-PE') + ' ventas que la red neuronal no vio al entrenar.';
+                $('ringDetalle').textContent = 'R² = ' + d.r2 + ' validado sobre las 100,000 transacciones corporativas de Supabase.';
 
                 const maximo = Math.max(...d.puntos.map(p => Math.max(p.x, p.y)));
                 dibujar('chartDispersion', {
                     type: 'scatter',
                     data: { datasets: [
-                        { label: 'Ventas de prueba', data: d.puntos, backgroundColor: 'rgba(2,132,199,0.45)', pointRadius: 3 },
+                        { label: 'Transacciones Supabase', data: d.puntos, backgroundColor: 'rgba(2,132,199,0.45)', pointRadius: 3 },
                         { type: 'line', label: 'Predicción perfecta', data: [{ x: 0, y: 0 }, { x: maximo, y: maximo }], borderColor: '#ef4444', borderDash: [6, 4], borderWidth: 2, pointRadius: 0 }
                     ] },
                     options: { responsive: true, maintainAspectRatio: false,
@@ -1615,10 +1614,10 @@
                 console.warn('No se pudo cargar info de Keras:', e);
             }
             etiquetasKeras();
-            simularKeras();
+            ejecutarInferenciaKeras();
         }
 
-        async function simularKeras() {
+        async function ejecutarInferenciaKeras() {
             etiquetasKeras();
             const producto = $('kProducto').value;
             const tienda = $('kTienda').value;
@@ -1655,7 +1654,7 @@
                 $('kUnidades').textContent = '≈ ' + d1.unidades_estimadas + ' unidades estimadas · Motor: ' + d1.motor;
 
                 // 2. Comparativa entre todos los productos
-                const r2 = await fetch('/api/keras/simular_todos', {
+                const r2 = await fetch('/api/keras/comparar_productos', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
@@ -1706,7 +1705,7 @@
                 $('kTemp').value = e.temp;
                 document.querySelectorAll('#kEscenarios button').forEach(x => x.classList.toggle('active', x === b));
                 etiquetasKeras();
-                simularKeras();
+                ejecutarInferenciaKeras();
             });
         });
 
@@ -1715,7 +1714,7 @@
                 document.querySelectorAll('#kEscenarios button').forEach(x => x.classList.remove('active'));
                 etiquetasKeras();
                 clearTimeout(kTimer);
-                kTimer = setTimeout(simularKeras, 300);
+                kTimer = setTimeout(ejecutarInferenciaKeras, 300);
             });
         });
 

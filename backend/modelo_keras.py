@@ -186,9 +186,10 @@ def api_keras_predecir():
         return jsonify({"success": False, "message": str(e)}), 500
 
 
+@modelo_keras.route("/api/keras/comparar_productos", methods=["POST"])
 @modelo_keras.route("/api/keras/simular_todos", methods=["POST"])
-def api_keras_simular_todos():
-    """Simula y compara las ventas de todos los productos bajo identicas condiciones con Keras."""
+def api_keras_comparar_productos():
+    """Compara las proyecciones de ventas de la Red Neuronal Keras entre todos los productos."""
     try:
         data = request.get_json(silent=True) or {}
         _cargar_recursos()
