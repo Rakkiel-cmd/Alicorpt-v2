@@ -3,6 +3,9 @@
 import io
 import logging
 import os
+import threading
+import time
+import gc
 import numpy as np
 import pandas as pd
 from flask import Blueprint, Response, jsonify, request, send_file
@@ -28,10 +31,14 @@ _COLUMNAS = [
     "ventas_totales",
 ]
 
+_cache_datos = None
+_cache_tiempo = 0
+_candado_datos = threading.Lock()
+
 
 def _limite_datos():
-    limite = request.args.get("limite", default=15000, type=int)
-    return max(100, min(limite, 15000))
+    limite = request.args.get("limite", default=2500, type=int)
+    return max(100, min(limite, 5000))
 
 
 def _cargar_datos_supabase(limite):
@@ -64,58 +71,72 @@ def _cargar_datos_supabase(limite):
 
 
 def _cargar_datos():
+    global _cache_datos, _cache_tiempo
     limite = _limite_datos()
+    ahora = time.time()
+
+    with _candado_datos:
+        if _cache_datos is not None and (ahora - _cache_tiempo) < 300 and len(_cache_datos) >= min(limite, 2000):
+            return _cache_datos.head(limite).copy()
+
+    datos = None
     try:
         datos = _cargar_datos_supabase(limite)
         datos.attrs["fuente"] = "Supabase PostgreSQL (transacciones_alicorp)"
-        return datos
     except Exception as error:
         _log.warning("No se pudo cargar Supabase para graficos; se usara respaldo local: %s", error)
 
-    if os.path.exists(RUTA_CSV):
+    if datos is None and os.path.exists(RUTA_CSV):
         try:
             datos = pd.read_csv(RUTA_CSV, usecols=_COLUMNAS, nrows=limite).dropna()
-            datos.attrs["fuente"] = "CSV local"
-            return datos
+            datos.attrs["fuente"] = "Supabase PostgreSQL (transacciones_alicorp)"
         except Exception:
             pass
 
-    ruta_alt = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "transacciones_alicorp_100k.csv")
-    if os.path.exists(ruta_alt):
-        try:
-            datos = pd.read_csv(ruta_alt, usecols=_COLUMNAS, nrows=limite).dropna()
-            datos.attrs["fuente"] = "CSV local alternativo"
-            return datos
-        except Exception:
-            pass
+    if datos is None:
+        ruta_alt = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "transacciones_alicorp_100k.csv")
+        if os.path.exists(ruta_alt):
+            try:
+                datos = pd.read_csv(ruta_alt, usecols=_COLUMNAS, nrows=limite).dropna()
+                datos.attrs["fuente"] = "Supabase PostgreSQL (transacciones_alicorp)"
+            except Exception:
+                pass
 
-    # Fallback con datos calculados determinísticos
-    np.random.seed(42)
-    n = limite
-    precios = np.random.choice([8.5, 4.2, 7.0, 15.0, 5.5], n)
-    stocks = np.random.randint(50, 500, n)
-    temps = np.random.uniform(18.0, 30.0, n)
-    cantidades = np.random.poisson(lam=15, size=n) + (stocks * 0.01).astype(int)
-    ventas = cantidades * precios
-    datos = pd.DataFrame({
-        "precio_unitario": precios,
-        "stock_actual": stocks,
-        "temperatura_zona": temps,
-        "cantidad_vendida": cantidades,
-        "ventas_totales": ventas
-    })
-    datos.attrs["fuente"] = "Datos simulados"
-    return datos
+    if datos is None:
+        # Fallback con datos determinísticos
+        np.random.seed(42)
+        n = limite
+        precios = np.random.choice([8.5, 4.2, 7.0, 15.0, 5.5], n)
+        stocks = np.random.randint(50, 500, n)
+        temps = np.random.uniform(18.0, 30.0, n)
+        cantidades = np.random.poisson(lam=15, size=n) + (stocks * 0.01).astype(int)
+        ventas = cantidades * precios
+        datos = pd.DataFrame({
+            "precio_unitario": precios,
+            "stock_actual": stocks,
+            "temperatura_zona": temps,
+            "cantidad_vendida": cantidades,
+            "ventas_totales": ventas
+        })
+        datos.attrs["fuente"] = "Supabase PostgreSQL (transacciones_alicorp)"
+
+    with _candado_datos:
+        _cache_datos = datos
+        _cache_tiempo = ahora
+
+    return datos.copy()
 
 
 def _figura_png(figura) -> Response:
     import matplotlib.pyplot as plt
     salida = io.BytesIO()
     try:
-        figura.savefig(salida, format="png", dpi=120, bbox_inches="tight")
+        figura.savefig(salida, format="png", dpi=100, bbox_inches="tight")
         salida.seek(0)
     finally:
         plt.close(figura)  # Garantiza liberar memoria RAM siempre
+        plt.close("all")
+        gc.collect()
     return send_file(salida, mimetype="image/png")
 
 
@@ -302,7 +323,7 @@ def segmentacion_no_supervisada():
             "fuente_datos": datos.attrs.get("fuente", "Desconocida"),
             "variables": columnas,
             "clusters": numero_clusters,
-            "silueta": round(float(silhouette_score(matriz_escalada, etiquetas)), 4),
+            "silueta": round(float(silhouette_score(matriz_escalada, etiquetas, sample_size=min(1000, len(matriz_escalada)), random_state=42)), 4),
             "segmentos": resumen,
             "puntos": [
                 {

@@ -19,20 +19,36 @@ def _cargar_mes(mes):
 
     url = os.environ.get("SUPABASE_URL")
     key = os.environ.get("SUPABASE_KEY")
-    if not url or not key:
-        raise RuntimeError("Faltan SUPABASE_URL y SUPABASE_KEY en el archivo .env.")
+    if url and key:
+        try:
+            from supabase import Client, create_client
+            supabase: Client = create_client(url, key)
+            response = (
+                supabase.table("transacciones_alicorp")
+                .select("fecha, producto, precio_unitario, ventas_totales")
+                .gte("fecha", inicio)
+                .lt("fecha", fin)
+                .execute()
+            )
+            if response.data:
+                return pd.DataFrame(response.data)
+        except Exception:
+            pass
 
-    from supabase import Client, create_client
+    # Respaldo con datos locales si Supabase no responde
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    for ruta in [os.path.join(base_dir, "data", "transacciones_alicorp_100k.csv"), os.path.join(base_dir, "transacciones_alicorp_100k.csv")]:
+        if os.path.exists(ruta):
+            try:
+                df = pd.read_csv(ruta, usecols=["fecha", "producto", "precio_unitario", "ventas_totales"])
+                filtro = (df["fecha"] >= inicio) & (df["fecha"] < fin)
+                sub_df = df[filtro]
+                if not sub_df.empty:
+                    return sub_df
+            except Exception:
+                pass
 
-    supabase: Client = create_client(url, key)
-    response = (
-        supabase.table("transacciones_alicorp")
-        .select("fecha, producto, precio_unitario, ventas_totales")
-        .gte("fecha", inicio)
-        .lt("fecha", fin)
-        .execute()
-    )
-    return pd.DataFrame(response.data)
+    return pd.DataFrame(columns=["fecha", "producto", "precio_unitario", "ventas_totales"])
 
 
 def _proyectar_producto(grupo):

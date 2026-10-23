@@ -126,7 +126,8 @@ def _calcular_resumen():
         pass
     columnas = ['fecha', 'producto', 'tienda', 'precio_unitario', 'stock_actual',
                 'cantidad_vendida', 'ventas_totales']
-    df = pd.read_csv(RUTA_CSV, usecols=columnas)
+    ruta_real = RUTA_CSV if os.path.exists(RUTA_CSV) else os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'transacciones_alicorp_100k.csv')
+    df = pd.read_csv(ruta_real, usecols=columnas)
     df['mes'] = pd.to_datetime(df['fecha']).dt.strftime('%Y-%m')
     por_mes = df.groupby('mes')['ventas_totales'].sum()
     # Relacion real de los datos: mas stock -> mas unidades vendidas
@@ -180,8 +181,9 @@ def _obtener_modelo():
         from sklearn.pipeline import make_pipeline
         from sklearn.preprocessing import StandardScaler
 
-        # Solo 15,000 filas para no saturar el servidor gratuito de Render
-        df = pd.read_csv(RUTA_CSV, nrows=15000)
+        # Optimizado a 5,000 filas para respuesta ultrarrápida y mínimo consumo de RAM en Render
+        ruta_real = RUTA_CSV if os.path.exists(RUTA_CSV) else os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'transacciones_alicorp_100k.csv')
+        df = pd.read_csv(ruta_real, nrows=5000)
         fecha = pd.to_datetime(df['fecha'])
         df['mes'] = fecha.dt.month
         df['dia_semana'] = fecha.dt.dayofweek
@@ -193,7 +195,7 @@ def _obtener_modelo():
         modelo = TransformedTargetRegressor(
             regressor=make_pipeline(
                 StandardScaler(),
-                MLPRegressor(hidden_layer_sizes=(32, 16), max_iter=300, early_stopping=True, random_state=42)),
+                MLPRegressor(hidden_layer_sizes=(32, 16), max_iter=250, early_stopping=True, random_state=42)),
             transformer=StandardScaler())
         modelo.fit(X_train, y_train)
 

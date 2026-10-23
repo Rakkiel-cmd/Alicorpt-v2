@@ -988,7 +988,7 @@
                 <section id="vista-segmentacion" class="vista">
                     <div class="page-hero">
                         <div class="crumbs">Inicio / <b>Segmentación no supervisada</b></div>
-                        <span class="chip" style="margin-bottom:8px;">Requisito académico · Clustering</span>
+                        <span class="chip" style="margin-bottom:8px;">Clustering No Supervisado · Algoritmo K-Means</span>
                         <h1>Aprendizaje no supervisado con K-Means</h1>
                         <p>El algoritmo agrupa las transacciones por similitud, sin utilizar una etiqueta previamente conocida,
                             para identificar perfiles de ventas, stock y demanda.</p>
@@ -1822,7 +1822,7 @@
         /* ---------- Aprendizaje no supervisado: segmentación K-Means ---------- */
         async function inicializarSegmentacion() {
             try {
-                const respuesta = await fetch('/api/segmentacion?clusters=3&limite=15000');
+                const respuesta = await fetch('/api/segmentacion?clusters=3&limite=3000');
                 if (!respuesta.ok) throw new Error('Servidor retornó ' + respuesta.status);
                 const datos = await respuesta.json();
                 if (!datos.success) throw new Error(datos.message || 'No se pudo segmentar el dataset.');

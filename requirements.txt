@@ -18,4 +18,3 @@ tensorflow-cpu; sys_platform != "win32"
 tensorflow; sys_platform == "win32"
 pyarrow
 matplotlib
-seaborn
