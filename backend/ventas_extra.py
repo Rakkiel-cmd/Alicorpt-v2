@@ -122,31 +122,47 @@ def _grupo_a_lista(df, columna):
 def _calcular_resumen():
     try:
         return _calcular_resumen_supabase()
-    except Exception:
-        pass
+    except Exception as e:
+        print("[!] Aviso calculando resumen desde vistas Supabase:", e)
+
+    # Respaldo rápido y liviano desde JSON agregado de 100k (0 RAM en Render)
+    ruta_json = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'resumen_100k_supabase.json')
+    if os.path.exists(ruta_json):
+        try:
+            import json
+            with open(ruta_json, 'r', encoding='utf-8') as f:
+                d = json.load(f)
+                if 'resumen' in d:
+                    return d['resumen']
+        except Exception as e:
+            print("[!] Aviso leyendo resumen_100k_supabase.json:", e)
+
     columnas = ['fecha', 'producto', 'tienda', 'precio_unitario', 'stock_actual',
                 'cantidad_vendida', 'ventas_totales']
     ruta_real = RUTA_CSV if os.path.exists(RUTA_CSV) else os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'transacciones_alicorp_100k.csv')
-    df = pd.read_csv(ruta_real, usecols=columnas)
-    df['mes'] = pd.to_datetime(df['fecha']).dt.strftime('%Y-%m')
-    por_mes = df.groupby('mes')['ventas_totales'].sum()
-    # Relacion real de los datos: mas stock -> mas unidades vendidas
-    df['nivel_stock'] = pd.cut(df['stock_actual'], bins=[0, 150, 250, 350, 450, 1000],
-                               labels=['50-149', '150-249', '250-349', '350-449', '450-500'], right=False)
-    por_stock = df.groupby('nivel_stock', observed=True).agg(
-        unidades=('cantidad_vendida', 'mean'), ventas=('ventas_totales', 'mean'))
-    return {
-        'success': True,
-        'total_registros': int(len(df)),
-        'ventas_totales': round(float(df['ventas_totales'].sum()), 2),
-        'productos': _grupo_a_lista(df, 'producto'),
-        'tiendas': _grupo_a_lista(df, 'tienda'),
-        'meses': list(por_mes.index),
-        'ventas_por_mes': [round(float(v), 2) for v in por_mes.values],
-        'stock_niveles': [str(n) for n in por_stock.index],
-        'stock_unidades': [round(float(v), 2) for v in por_stock['unidades']],
-        'stock_ventas': [round(float(v), 2) for v in por_stock['ventas']],
-    }
+    if os.path.exists(ruta_real):
+        df = pd.read_csv(ruta_real, usecols=columnas)
+        df['mes'] = pd.to_datetime(df['fecha']).dt.strftime('%Y-%m')
+        por_mes = df.groupby('mes')['ventas_totales'].sum()
+        # Relacion real de los datos: mas stock -> mas unidades vendidas
+        df['nivel_stock'] = pd.cut(df['stock_actual'], bins=[0, 150, 250, 350, 450, 1000],
+                                   labels=['50-149', '150-249', '250-349', '350-449', '450-500'], right=False)
+        por_stock = df.groupby('nivel_stock', observed=True).agg(
+            unidades=('cantidad_vendida', 'mean'), ventas=('ventas_totales', 'mean'))
+        return {
+            'success': True,
+            'total_registros': int(len(df)),
+            'ventas_totales': round(float(df['ventas_totales'].sum()), 2),
+            'productos': _grupo_a_lista(df, 'producto'),
+            'tiendas': _grupo_a_lista(df, 'tienda'),
+            'meses': list(por_mes.index),
+            'ventas_por_mes': [round(float(v), 2) for v in por_mes.values],
+            'stock_niveles': [str(n) for n in por_stock.index],
+            'stock_unidades': [round(float(v), 2) for v in por_stock['unidades']],
+            'stock_ventas': [round(float(v), 2) for v in por_stock['ventas']],
+        }
+
+    raise RuntimeError("No se pudieron cargar los datos de resumen.")
 
 
 @ventas_extra.route('/api/resumen_productos', methods=['GET'])
@@ -182,8 +198,34 @@ def _obtener_modelo():
         from sklearn.preprocessing import StandardScaler
 
         # Optimizado a 5,000 filas para respuesta ultrarrápida y mínimo consumo de RAM en Render
+        df = None
         ruta_real = RUTA_CSV if os.path.exists(RUTA_CSV) else os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'transacciones_alicorp_100k.csv')
-        df = pd.read_csv(ruta_real, nrows=5000)
+        if os.path.exists(ruta_real):
+            try:
+                df = pd.read_csv(ruta_real, nrows=5000)
+            except Exception:
+                df = None
+
+        if df is None:
+            # Fallback seguro en la nube: bloque de 5,000 registros directamente desde Supabase
+            supabase = _cliente_supabase()
+            if supabase:
+                try:
+                    res = supabase.table("transacciones_alicorp").select(
+                        "fecha,producto,tienda,precio_unitario,stock_actual,temperatura_zona,ventas_totales"
+                    ).limit(5000).execute()
+                    if res.data:
+                        df = pd.DataFrame(res.data)
+                        df['precio_unitario'] = df['precio_unitario'].astype(float)
+                        df['stock_actual'] = df['stock_actual'].astype(int)
+                        df['temperatura_zona'] = df['temperatura_zona'].astype(float)
+                        df['ventas_totales'] = df['ventas_totales'].astype(float)
+                except Exception as e:
+                    print("[!] Error consultando Supabase para modelo:", e)
+
+        if df is None or df.empty:
+            raise RuntimeError("No se pudieron cargar datos para entrenar el modelo de ventas.")
+
         fecha = pd.to_datetime(df['fecha'])
         df['mes'] = fecha.dt.month
         df['dia_semana'] = fecha.dt.dayofweek

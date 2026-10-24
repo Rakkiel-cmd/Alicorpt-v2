@@ -1617,25 +1617,116 @@
             }
         } catch (e) {}
 
-        /* ---------- Menú lateral / vistas ---------- */
+        /* ---------- Carga Perezosa Estricta (Lazy Loading Engine) ---------- */
+        let resumenCache = null;
+        let resumenPromise = null;
+        let inicioListo = false;
+        let productosListo = false;
+        let prediccionChartsListos = false;
         let explicacionLista = false;
         let kerasListo = false;
         let segmentacionLista = false;
-        let reporteListo = false; //integrante 6 
-        function mostrarVista(nombre) {
+        let reporteListo = false; // Integrante 6
+        let estadisticaLista = false; // Integrante 3
+        let incidenciasLista = false;
+
+        const PRODUCTOS_DEFECTO = [
+            'Aceite Primor 1L',
+            'Detergente Bolívar 2kg',
+            'Fideos Don Vittorio 500g',
+            'Harina Blanca Flor 1kg',
+            'Mayonesa Alacena 500g'
+        ];
+        const TIENDAS_DEFECTO = [
+            'Mayorista San Martín',
+            'Hipermercado Metro',
+            'Supermercado Plaza',
+            'Bodega Central'
+        ];
+
+        async function mostrarVista(nombre) {
             if (!VISTAS.includes(nombre)) return;
             document.querySelectorAll('.vista').forEach(v => v.classList.toggle('active', v.id === 'vista-' + nombre));
             document.querySelectorAll('.sb-menu button').forEach(b => b.classList.toggle('active', b.dataset.go === nombre));
             $('sidebar').classList.remove('open');
             try { history.replaceState(null, '', '#' + nombre); } catch (e) {}
             window.scrollTo(0, 0);
-            Object.values(charts).forEach(c => c.resize());
-            if (nombre === 'prediccion' && !explicacionLista) cargarExplicacion();
-            if (nombre === 'estadistica') cargarEstadistica();
-            if (nombre === 'keras' && !kerasListo) inicializarKeras();
-            if (nombre === 'segmentacion' && !segmentacionLista) inicializarSegmentacion();
-            if (nombre === 'reporte' && !reporteListo) inicializarReporte();   // integrante 6 
-            if (nombre === 'incidencias' && !incidenciasLista) cargarIncidencias(); 
+
+            // Redimensionar gráficos visibles en el siguiente frame de renderizado
+            requestAnimationFrame(() => {
+                Object.values(charts).forEach(c => {
+                    try { c.resize(); } catch (e) {}
+                });
+            });
+
+            // CARGA PEREZOSA ESTRICTA (Únicamente bajo demanda para la vista solicitada)
+            console.log("⚡ [LazyLoading] Solicitando vista bajo demanda:", nombre);
+            switch (nombre) {
+                case 'inicio':
+                    if (!inicioListo) {
+                        try {
+                            const d = await obtenerResumen();
+                            renderizarInicio(d);
+                        } catch (e) {}
+                    }
+                    break;
+
+                case 'productos':
+                    if (!productosListo) {
+                        try {
+                            const d = await obtenerResumen();
+                            renderizarProductos(d);
+                        } catch (e) {}
+                    }
+                    break;
+
+                case 'prediccion':
+                    if (!prediccionChartsListos) {
+                        try {
+                            const d = await obtenerResumen();
+                            renderizarPrediccionCharts(d);
+                        } catch (e) {}
+                    }
+                    if (!explicacionLista) {
+                        cargarExplicacion();
+                    }
+                    break;
+
+                case 'keras':
+                    if (!kerasListo) {
+                        inicializarKeras();
+                    }
+                    break;
+
+                case 'segmentacion':
+                    if (!segmentacionLista) {
+                        inicializarSegmentacion();
+                    }
+                    break;
+
+                case 'reporte':
+                    if (!reporteListo) {
+                        inicializarReporte();
+                    }
+                    break;
+
+                case 'estadistica':
+                    if (!estadisticaLista) {
+                        cargarEstadistica();
+                        estadisticaLista = true;
+                    }
+                    break;
+
+                case 'incidencias':
+                    if (!incidenciasLista) {
+                        cargarIncidencias();
+                    }
+                    break;
+
+                case 'seguridad':
+                    // Verificado al autenticar
+                    break;
+            }
         }
         document.addEventListener('click', e => {
             const destino = e.target.closest('[data-go]');
@@ -1716,82 +1807,96 @@
             pintarTarjetas();
         });
 
-        /* ---------- Datos reales por producto / tienda / mes ---------- */
-        async function cargarResumen() {
-            try {
-                const resp = await fetch('/api/resumen_productos');
-                const d = await resp.json();
-                if (!d.success) throw new Error(d.message || 'sin datos');
+        /* ---------- Carga bajo demanda y renderizadores de vistas ---------- */
+        async function obtenerResumen() {
+            if (resumenCache) return resumenCache;
+            if (resumenPromise) return resumenPromise;
 
-                productosDatos = d.productos;
-                const nombresProd = d.productos.map(p => p.nombre);
-                const nombresTienda = d.tiendas.map(t => t.nombre);
-
-                // Inicio: cifras y productos
-                contar('hVentas', d.ventas_totales, 'S/. ');
-                contar('hRegistros', d.total_registros, '');
-                contar('hProductos', d.productos.length, '');
-                contar('hTiendas', d.tiendas.length, '');
-                $('marcasGrid').innerHTML = d.productos.map(p =>
-                    `<button class="tile" data-go="productos"><em>${icono(p.nombre)}</em>${esc(p.nombre)}</button>`).join('');
-
-                // Predicción: ventas por mes / tienda / producto
-                dibujar('chartMeses', {
-                    type: 'line',
-                    data: { labels: d.meses, datasets: [{ label: 'Ventas (S/.)', data: d.ventas_por_mes, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.08)', fill: true, tension: 0.35, borderWidth: 3, pointRadius: 3 }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-                });
-                dibujar('chartTiendas', {
-                    type: 'doughnut',
-                    data: { labels: nombresTienda, datasets: [{ data: d.tiendas.map(t => t.ventas), backgroundColor: COLORES, borderWidth: 2, borderColor: '#ffffff' }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
-                });
-                dibujar('chartProductosResumen', {
-                    type: 'bar',
-                    data: { labels: nombresProd, datasets: [{ label: 'Ventas (S/.)', data: d.productos.map(p => p.ventas), backgroundColor: '#0284c7', borderRadius: 6 }] },
-                    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-                });
-
-                // Productos: tarjetas, gráficos y tabla
-                pintarTarjetas();
-                dibujar('chartUnidades', {
-                    type: 'bar',
-                    data: { labels: nombresProd, datasets: [{ label: 'Unidades', data: d.productos.map(p => p.unidades), backgroundColor: COLORES, borderRadius: 6 }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-                });
-                dibujar('chartTiendasBar', {
-                    type: 'bar',
-                    data: { labels: nombresTienda, datasets: [{ label: 'Ventas (S/.)', data: d.tiendas.map(t => t.ventas), backgroundColor: '#7c3aed', borderRadius: 6 }] },
-                    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-                });
-                $('tablaProductos').innerHTML = d.productos.map(p => `
-                    <tr><td><b>${icono(p.nombre)} ${esc(p.nombre)}</b></td>
-                        <td class="num">${fmt(p.ventas)}</td>
-                        <td class="num">${p.unidades.toLocaleString('es-PE')}</td>
-                        <td class="num">${fmt(p.precio_promedio)}</td>
-                        <td class="num">${p.stock_promedio}</td>
-                        <td class="num">${p.participacion}%</td></tr>`).join('');
-
-                // Productos: stock vs. unidades vendidas
-                dibujar('chartStock', {
-                    type: 'bar',
-                    data: {
-                        labels: d.stock_niveles.map(n => 'Stock ' + n),
-                        datasets: [{ label: 'Unidades promedio por transacción', data: d.stock_unidades,
-                            backgroundColor: ['#bae6fd', '#7dd3fc', '#38bdf8', '#0284c7', '#0c4a6e'], borderRadius: 8 }]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
-                        scales: { y: { beginAtZero: true, title: { display: true, text: 'Unidades promedio' } } } }
-                });
-
-                // Respaldo de listas para Keras si aún no cargó /api/keras/info
-                if ($('kProducto') && !$('kProducto').options.length) {
-                    $('kProducto').innerHTML = nombresProd.slice().sort().map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
-                    $('kTienda').innerHTML = nombresTienda.slice().sort().map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
+            resumenPromise = (async () => {
+                try {
+                    const resp = await fetch('/api/resumen_productos');
+                    const d = await resp.json();
+                    if (!d.success) throw new Error(d.message || 'sin datos');
+                    resumenCache = d;
+                    productosDatos = d.productos || [];
+                    return d;
+                } catch (err) {
+                    mostrarError('No se pudieron cargar los datos de productos: ' + err.message);
+                    throw err;
+                } finally {
+                    resumenPromise = null;
                 }
-            } catch (err) {
-                mostrarError('No se pudieron cargar los datos de productos: ' + err.message);
-            }
+            })();
+            return resumenPromise;
+        }
+
+        function renderizarInicio(d) {
+            contar('hVentas', d.ventas_totales, 'S/. ');
+            contar('hRegistros', d.total_registros, '');
+            contar('hProductos', d.productos.length, '');
+            contar('hTiendas', d.tiendas.length, '');
+            $('marcasGrid').innerHTML = d.productos.map(p =>
+                `<button class="tile" data-go="productos"><em>${icono(p.nombre)}</em>${esc(p.nombre)}</button>`).join('');
+            inicioListo = true;
+        }
+
+        function renderizarProductos(d) {
+            productosDatos = d.productos;
+            const nombresProd = d.productos.map(p => p.nombre);
+            const nombresTienda = d.tiendas.map(t => t.nombre);
+
+            pintarTarjetas();
+            dibujar('chartUnidades', {
+                type: 'bar',
+                data: { labels: nombresProd, datasets: [{ label: 'Unidades', data: d.productos.map(p => p.unidades), backgroundColor: COLORES, borderRadius: 6 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+            dibujar('chartTiendasBar', {
+                type: 'bar',
+                data: { labels: nombresTienda, datasets: [{ label: 'Ventas (S/.)', data: d.tiendas.map(t => t.ventas), backgroundColor: '#7c3aed', borderRadius: 6 }] },
+                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+            $('tablaProductos').innerHTML = d.productos.map(p => `
+                <tr><td><b>${icono(p.nombre)} ${esc(p.nombre)}</b></td>
+                    <td class="num">${fmt(p.ventas)}</td>
+                    <td class="num">${p.unidades.toLocaleString('es-PE')}</td>
+                    <td class="num">${fmt(p.precio_promedio)}</td>
+                    <td class="num">${p.stock_promedio}</td>
+                    <td class="num">${p.participacion}%</td></tr>`).join('');
+
+            dibujar('chartStock', {
+                type: 'bar',
+                data: {
+                    labels: d.stock_niveles.map(n => 'Stock ' + n),
+                    datasets: [{ label: 'Unidades promedio por transacción', data: d.stock_unidades,
+                        backgroundColor: ['#bae6fd', '#7dd3fc', '#38bdf8', '#0284c7', '#0c4a6e'], borderRadius: 8 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, title: { display: true, text: 'Unidades promedio' } } } }
+            });
+            productosListo = true;
+        }
+
+        function renderizarPrediccionCharts(d) {
+            const nombresProd = d.productos.map(p => p.nombre);
+            const nombresTienda = d.tiendas.map(t => t.nombre);
+
+            dibujar('chartMeses', {
+                type: 'line',
+                data: { labels: d.meses, datasets: [{ label: 'Ventas (S/.)', data: d.ventas_por_mes, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.08)', fill: true, tension: 0.35, borderWidth: 3, pointRadius: 3 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+            dibujar('chartTiendas', {
+                type: 'doughnut',
+                data: { labels: nombresTienda, datasets: [{ data: d.tiendas.map(t => t.ventas), backgroundColor: COLORES, borderWidth: 2, borderColor: '#ffffff' }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+            });
+            dibujar('chartProductosResumen', {
+                type: 'bar',
+                data: { labels: nombresProd, datasets: [{ label: 'Ventas (S/.)', data: d.productos.map(p => p.ventas), backgroundColor: '#0284c7', borderRadius: 6 }] },
+                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+            prediccionChartsListos = true;
         }
 
         /* ---------- Extras: contadores, anillo y explicación ---------- */
@@ -1916,21 +2021,25 @@
         }
 
         async function inicializarKeras() {
+            if ($('kProducto') && !$('kProducto').options.length) {
+                const prods = (productosDatos && productosDatos.length) ? productosDatos.map(p => p.nombre) : PRODUCTOS_DEFECTO;
+                const tiendas = (resumenCache && resumenCache.tiendas) ? resumenCache.tiendas.map(t => t.nombre) : TIENDAS_DEFECTO;
+                $('kProducto').innerHTML = prods.slice().sort().map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join('');
+                $('kTienda').innerHTML = tiendas.slice().sort().map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
+            }
             try {
                 const resp = await fetch('/api/keras/info');
-                if (!resp.ok) {
-                    console.warn('API /api/keras/info no respondió 200:', resp.status);
-                    return;
-                }
-                const d = await resp.json();
-                if (d.success) {
-                    $('kR2').textContent = (d.metricas.r2 * 100).toFixed(2) + '%';
-                    $('kMAE').textContent = 'S/. ' + d.metricas.mae;
-                    $('kRegistros').textContent = d.total_registros_entrenamiento.toLocaleString('es-PE');
-                    $('kMotor').textContent = d.motor_activo;
-                    if (d.productos && d.tiendas) {
-                        $('kProducto').innerHTML = d.productos.map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join('');
-                        $('kTienda').innerHTML = d.tiendas.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
+                if (resp.ok) {
+                    const d = await resp.json();
+                    if (d.success) {
+                        $('kR2').textContent = (d.metricas.r2 * 100).toFixed(2) + '%';
+                        $('kMAE').textContent = 'S/. ' + d.metricas.mae;
+                        $('kRegistros').textContent = d.total_registros_entrenamiento.toLocaleString('es-PE');
+                        $('kMotor').textContent = d.motor_activo;
+                        if (d.productos && d.tiendas) {
+                            $('kProducto').innerHTML = d.productos.map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join('');
+                            $('kTienda').innerHTML = d.tiendas.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
+                        }
                     }
                 }
             } catch (e) {
@@ -1938,6 +2047,7 @@
             }
             etiquetasKeras();
             ejecutarInferenciaKeras();
+            kerasListo = true;
         }
 
         async function ejecutarInferenciaKeras() {
@@ -2209,7 +2319,6 @@
         $('selectMesReporte').addEventListener('change', e => { if (e.target.value) cargarReporte(e.target.value); });
 
         /* ================= INCIDENCIAS CLIENTE (ATENCIÓN Y ESTADOS) ================= */
-        let incidenciasLista = false;
         let listaIncidencias = [];
         let filtroIncidencias = 'todos';
 
@@ -2842,10 +2951,10 @@
         // Inicializar perfil en el arranque del dashboard
         inicializarPerfilUsuario();
 
-        /* ---------- Inicio ---------- */
-        cargarResumen().then(() => inicializarKeras());
-        const inicial = location.hash.replace('#', '');
-        if (VISTAS.includes(inicial)) mostrarVista(inicial);
+        /* ---------- Arranque con Carga Perezosa Estricta ---------- */
+        const hashInicial = location.hash.replace('#', '').trim();
+        const vistaInicial = VISTAS.includes(hashInicial) ? hashInicial : 'inicio';
+        mostrarVista(vistaInicial);
     </script>
 </body>
 </html>
