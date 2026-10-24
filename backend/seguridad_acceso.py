@@ -181,7 +181,6 @@ def modificar_clave_acceso(usuario_solicitante, password_confirmacion, nueva_cla
     return {
         "success": True,
         "message": "Llave secreta de acceso de personal actualizada correctamente.",
-        "nueva_clave": nueva_clave_str,
         "en_base_de_datos": guardado_db
     }
 
