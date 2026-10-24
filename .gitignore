@@ -10,4 +10,6 @@ rostros_autorizados/
 *.parquet
 scratch/
 data/seguridad_clave.json
-data/*.json
+data/incidencias_contacto.json
+data/*.csv
+data/*.parquet
