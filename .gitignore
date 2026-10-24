@@ -1,15 +1,38 @@
+# Entornos virtuales y dependencias
 .venv/
 venv/
+env/
+
+# Python cache y compilados
 __pycache__/
+*.py[cod]
+*$py.class
 *.pyc
-.vscode/
-rostros_autorizados/
+
+# Variables de entorno y configuración local privada
 .env
-.guia_reconocimiento_facial.md
+.env.*
+!.env.example
+.vscode/
+.idea/
+
+# Datos pesados, CSVs y temporales (la data vive en Supabase)
 *.csv
 *.parquet
-scratch/
+data/*.csv
+data/*.parquet
 data/seguridad_clave.json
 data/incidencias_contacto.json
-data/*.csv
-data/*.parquet
+
+# Scripts de prueba y temporales
+scratch/
+*.log
+
+# Fotos físicas o guías internas locales
+rostros_autorizados/
+.guia_reconocimiento_facial.md
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini

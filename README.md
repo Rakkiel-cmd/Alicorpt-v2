@@ -42,16 +42,18 @@ source venv/bin/activate
 ### Paso 3: Instalar Dependencias
 Instala todas las librerías necesarias ejecutando:
 ```bash
-python instalar.py
+python scripts/instalar.py
 ```
+*(O también: `pip install -r requirements.txt`)*
 
 La estructura principal del proyecto está organizada así:
 
-- `backend/`: API Flask, reconocimiento facial, estadísticas, modelos y regresión.
-- `scripts/`: migración a Supabase, registro de administradores y entrenamiento.
-- `models/`: archivos entrenados de Keras y sus metadatos.
-- `data/`: dataset local y cachés generadas.
-- `database/`: scripts SQL.
+- `frontend_corporativo/`: Interfaz web corporativa (HTML, CSS, JS) y Dashboard interactivo.
+- `backend/`: API Flask, reconocimiento facial biométrico, estadísticas, modelos de IA y servicios de seguridad.
+- `database/`: Scripts SQL de esquemas, vistas agregadas y funciones para Supabase PostgreSQL.
+- `models/`: Redes neuronales entrenadas de Keras, modelo MLP y pesos matriciales NumPy optimizados.
+- `data/`: Metadatos agregados de 100k registros para respuesta instantánea en la nube.
+- `scripts/`: Scripts de migración, entrenamiento y utilidades de configuración.
 
 El módulo [`backend/graficos_analysis.py`](./backend/graficos_analysis.py) genera los
 gráficos analíticos del integrante 5. Sus rutas son:
@@ -71,17 +73,11 @@ El proyecto usa Supabase para guardar los usuarios y las firmas matemáticas de 
 SUPABASE_URL=https://tu-proyecto.supabase.co
 SUPABASE_KEY=tu-clave-anon-publica
 ```
-3. Asegúrate de tener una tabla llamada `administradores` en Supabase con las columnas:
-   - `id` (int8 o UUID, autogenerado)
-   - `usuario` (text)
-   - `password` (text)
-   - `face_encoding` (json , para guardar el vector matemático)
-
-Para reducir el consumo de memoria en la nube, ejecuta también el contenido de
-[`database/crear_tabla_transacciones.sql`](./database/crear_tabla_transacciones.sql)
-en el SQL Editor de Supabase. Además de la tabla, crea vistas agregadas y una
-función para que el dashboard reciba resúmenes en lugar de descargar los
-100,000 registros completos.
+3. Ejecuta los scripts SQL correspondientes en el **SQL Editor de Supabase** (ubicados en la carpeta [`database/`](./database/)):
+   - [`database/crear_tabla_transacciones.sql`](./database/crear_tabla_transacciones.sql): Tabla de 100k transacciones, vistas agregadas y función RPC estadística.
+   - [`database/crear_tablas_actividad.sql`](./database/crear_tablas_actividad.sql): Tabla `actividad_usuarios` para control de tiempo activo y latidos en vivo.
+   - [`database/crear_tabla_incidencias.sql`](./database/crear_tabla_incidencias.sql): Tabla `incidencias_contacto` para el buzón de clientes.
+   - [`database/crear_tabla_seguridad.sql`](./database/crear_tabla_seguridad.sql): Tabla `configuracion_seguridad` para control dinámico de la llave secreta URL.
 
 ### Paso 5: ¿Dónde se guardan los rostros?
 El sistema tiene dos capas:
