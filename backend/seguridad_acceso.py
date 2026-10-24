@@ -65,22 +65,26 @@ def _guardar_archivo_local(clave, actualizado_por="superadmin"):
 def obtener_clave_acceso():
     """
     Obtiene la llave secreta activa de acceso para empleados.
-    Prioridad: Supabase -> Archivo Local -> Default.
+    Prioridad: Variable de Entorno (.env/Render) -> Supabase -> Archivo Local protegido.
     """
+    # 1. Variable de entorno segura (.env / Render)
+    env_key = os.environ.get("LLAVE_ACCESO_PERSONAL")
+    if env_key and str(env_key).strip():
+        return str(env_key).strip()
+
+    # 2. Base de datos segura Supabase
     client = _obtener_supabase_client()
     if client:
         try:
             res = client.table('configuracion_seguridad').select('valor').eq('clave', 'clave_acceso_personal').execute()
             if res.data and len(res.data) > 0 and res.data[0].get('valor'):
                 clave_db = str(res.data[0]['valor']).strip()
-                # Sincronizar respaldo local
                 _guardar_archivo_local(clave_db, actualizado_por="sincronizacion_db")
                 return clave_db
-        except Exception as e:
-            # Si la tabla aún no existe en Supabase, usa el fallback local
+        except Exception:
             pass
 
-    # Fallback local
+    # 3. Respaldo local privado (excluido de git por .gitignore)
     local_data = _asegurar_archivo_local()
     return str(local_data.get("clave_acceso_personal", CLAVE_POR_DEFECTO)).strip()
 

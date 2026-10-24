@@ -8,4 +8,6 @@ rostros_autorizados/
 .guia_reconocimiento_facial.md
 *.csv
 *.parquet
-scratch/
+scratch/
+data/seguridad_clave.json
+data/*.json
