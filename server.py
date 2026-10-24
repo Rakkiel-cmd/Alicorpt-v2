@@ -519,6 +519,72 @@ def predecir_ventas():
         traceback.print_exc()
         return jsonify({"success": False, "message": str(e)})
 
+# ==============================================================================
+# ENDPOINTS: SEGURIDAD Y LLAVE DE ACCESO PERSONAL (SUPER ADMIN)
+# ==============================================================================
+from backend.seguridad_acceso import (
+    obtener_clave_acceso,
+    validar_clave_acceso,
+    es_superadmin,
+    modificar_clave_acceso,
+    generar_clave_aleatoria
+)
+
+@app.route('/api/seguridad/validar_key', methods=['POST'])
+def api_validar_key():
+    data = request.json or {}
+    key_input = data.get('key', '')
+    es_valida = validar_clave_acceso(key_input)
+    if es_valida:
+        return jsonify({
+            "success": True,
+            "desbloqueado": True,
+            "message": "Acceso de personal autorizado desbloqueado correctamente."
+        })
+    else:
+        return jsonify({
+            "success": False,
+            "desbloqueado": False,
+            "message": "Clave de acceso incorrecta o no válida."
+        }), 401
+
+@app.route('/api/seguridad/info_clave', methods=['GET'])
+def api_info_clave():
+    usuario = request.args.get('usuario', '').strip()
+    if not es_superadmin(usuario):
+        return jsonify({
+            "success": False,
+            "message": "Acceso restringido. Solo el Super Administrador puede visualizar la llave secreta."
+        }), 403
+
+    clave_actual = obtener_clave_acceso()
+    return jsonify({
+        "success": True,
+        "clave_actual": clave_actual,
+        "es_superadmin": True
+    })
+
+@app.route('/api/seguridad/modificar_clave', methods=['POST'])
+def api_modificar_clave():
+    data = request.json or {}
+    usuario = data.get('usuario', '').strip()
+    password = data.get('password', '')
+    nueva_clave = data.get('nueva_clave', '').strip()
+
+    resultado = modificar_clave_acceso(usuario, password, nueva_clave)
+    status_code = 200 if resultado.get('success') else 400
+    return jsonify(resultado), status_code
+
+@app.route('/api/seguridad/generar_clave_random', methods=['GET'])
+def api_generar_clave_random():
+    usuario = request.args.get('usuario', '').strip()
+    if not es_superadmin(usuario):
+        return jsonify({"success": False, "message": "No autorizado."}), 403
+    return jsonify({
+        "success": True,
+        "clave_sugerida": generar_clave_aleatoria(6)
+    })
+
 if __name__ == '__main__':
     print("Iniciando servidor unificado (Web + IA)...")
     app.run(debug=True, port=5000)

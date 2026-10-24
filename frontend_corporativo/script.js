@@ -39,18 +39,77 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // ==============================================================================
-// GESTIÓN DE SESIÓN ACTIVA EN NAVBAR PÚBLICA (ALICORP)
-// - Persistencia de sesión al navegar atrás en el navegador o volver al inicio.
-// - Transforma "Personal Autorizado" por el Nombre del Usuario logueado.
-// - Menú desplegable interactivo: "Volver al dashboard" o "Cerrar sesión".
+// GESTIÓN DE SEGURIDAD (LLAVE SECRETA URL) Y SESIÓN ACTIVA EN NAVBAR PÚBLICA
+// 1. Botón "Personal Autorizado" 100% oculto para la clientela por defecto.
+// 2. Desbloqueo mediante URL con parámetro ?key=... (o ?clave=..., ?access=...).
+// 3. Validación contra el backend (Supabase / respaldo seguro).
+// 4. Limpieza instantánea de la URL para que la llave no quede visible.
+// 5. Si ya está logueado, persiste la sesión mostrando el nombre y menú interactivo.
 // ==============================================================================
+
+function mostrarToastSeguridad(mensaje) {
+    const antiguo = document.querySelector('.toast-alerta-seguridad');
+    if (antiguo) antiguo.remove();
+
+    const toast = document.createElement('div');
+    toast.className = 'toast-alerta-seguridad';
+    toast.innerHTML = `<span class="toast-icon">🛡️</span> <span>${mensaje}</span>`;
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(20px)';
+        toast.style.transition = 'all 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
+}
+
+// Verifica si vino una key en la URL (?key=... o ?clave=...) y la valida en el backend
+async function verificarKeyUrl() {
+    try {
+        const urlObj = new URL(window.location.href);
+        const params = urlObj.searchParams;
+        const key = params.get('key') || params.get('clave') || params.get('access') || params.get('token');
+
+        if (key) {
+            // Limpiar inmediatamente la URL para que no quede visible en el navegador ni historial
+            params.delete('key');
+            params.delete('clave');
+            params.delete('access');
+            params.delete('token');
+            const nuevaUrl = urlObj.pathname + (params.toString() ? '?' + params.toString() : '') + urlObj.hash;
+            window.history.replaceState({}, document.title, nuevaUrl);
+
+            // Validar la key en el backend de Python / Supabase
+            const resp = await fetch('/api/seguridad/validar_key', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ key: key.trim() })
+            });
+
+            const data = await resp.json();
+            if (resp.ok && data.success && data.desbloqueado) {
+                sessionStorage.setItem('empleado_desbloqueado', 'true');
+                localStorage.setItem('empleado_desbloqueado', 'true');
+                mostrarToastSeguridad('🔑 Acceso de Personal Autorizado desbloqueado');
+                inicializarNavbarSesion();
+                return true;
+            } else {
+                console.warn("Llave de acceso no válida.");
+            }
+        }
+    } catch (e) {
+        console.warn("Error al procesar llave de URL:", e);
+    }
+    return false;
+}
+
 function inicializarNavbarSesion() {
     let sesion = null;
     try {
         const raw = sessionStorage.getItem('usuario_activo') || localStorage.getItem('usuario_activo');
         if (raw) {
             sesion = JSON.parse(raw);
-            // Sincronizar ambos almacenes si uno faltaba
             if (!sessionStorage.getItem('usuario_activo')) sessionStorage.setItem('usuario_activo', raw);
             if (!localStorage.getItem('usuario_activo')) localStorage.setItem('usuario_activo', raw);
         }
@@ -58,20 +117,35 @@ function inicializarNavbarSesion() {
         console.warn("Error leyendo sesión del usuario:", e);
     }
 
+    const estaLogueado = !!(sesion && (sesion.usuario || sesion.nombre_completo));
+    const estaDesbloqueado = sessionStorage.getItem('empleado_desbloqueado') === 'true' || 
+                             localStorage.getItem('empleado_desbloqueado') === 'true';
+
     const navActionsContainers = document.querySelectorAll('.nav-actions');
     if (!navActionsContainers || navActionsContainers.length === 0) return;
 
     navActionsContainers.forEach(container => {
-        // Si NO hay sesión activa, restaurar el botón estándar "Personal Autorizado"
-        if (!sesion || (!sesion.usuario && !sesion.nombre_completo)) {
+        // Si NO está logueado Y TAMPOCO está desbloqueado con la llave: OCULTAR COMPLETAMENTE
+        if (!estaLogueado && !estaDesbloqueado) {
+            container.classList.remove('desbloqueado');
+            document.body.classList.remove('empleado-desbloqueado');
+            container.innerHTML = '';
+            return;
+        }
+
+        // Si llegó aquí, está autorizado para ver la sección de personal:
+        container.classList.add('desbloqueado');
+        document.body.classList.add('empleado-desbloqueado');
+
+        // CASO A: Está desbloqueado por llave pero AÚN NO ha iniciado sesión
+        if (!estaLogueado) {
             container.innerHTML = `<a href="admin_login.html" class="btn-outline">Personal Autorizado</a>`;
             return;
         }
 
-        // Si HAY sesión activa:
+        // CASO B: Ya inició sesión -> Mostrar botón con nombre del usuario y dropdown
         const nombreCompleto = (sesion.nombre_completo || sesion.usuario || 'Usuario').trim();
         const partes = nombreCompleto.split(/\s+/);
-        // Mostrar nombre corto en el botón (ej: "Juan Pérez") para que mantenga un look limpio y elegante
         const nombreCorto = partes.length > 2 ? `${partes[0]} ${partes[1]}` : nombreCompleto;
         const inicial = nombreCompleto.charAt(0).toUpperCase() || 'U';
 
@@ -107,7 +181,6 @@ function inicializarNavbarSesion() {
             btnUserNav.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const estaAbierto = userNavMenu.classList.contains('show');
-                // Cerrar cualquier otro dropdown abierto
                 document.querySelectorAll('.user-nav-menu.show').forEach(m => m.classList.remove('show'));
                 document.querySelectorAll('.btn-user-nav.active').forEach(b => {
                     b.classList.remove('active');
@@ -128,10 +201,12 @@ function inicializarNavbarSesion() {
                 try {
                     sessionStorage.removeItem('usuario_activo');
                     localStorage.removeItem('usuario_activo');
+                    // Al cerrar sesión, también re-bloqueamos para que vuelva a estar 100% oculto para clientes
+                    sessionStorage.removeItem('empleado_desbloqueado');
+                    localStorage.removeItem('empleado_desbloqueado');
                 } catch (err) {
                     console.warn("Error limpiando sesión:", err);
                 }
-                // Re-inicializar el navbar para mostrar inmediatamente "Personal Autorizado"
                 inicializarNavbarSesion();
             });
         }
@@ -160,6 +235,12 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// Ejecución al cargar el DOM y en 'pageshow' (clave para que al presionar la flecha atrás del navegador se actualice sin recarga)
-document.addEventListener("DOMContentLoaded", inicializarNavbarSesion);
-window.addEventListener("pageshow", inicializarNavbarSesion);
+// Función de arranque unificada
+async function iniciarSistemaNavegacion() {
+    await verificarKeyUrl();
+    inicializarNavbarSesion();
+}
+
+// Ejecución al cargar el DOM y en 'pageshow' (para soporte con el botón atrás del navegador)
+document.addEventListener("DOMContentLoaded", iniciarSistemaNavegacion);
+window.addEventListener("pageshow", iniciarSistemaNavegacion);

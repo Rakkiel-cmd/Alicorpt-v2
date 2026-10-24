@@ -753,6 +753,7 @@
             <button data-go="estadistica"><span class="ico">📊</span> Estadística</button>
             <button data-go="reporte"><span class="ico">📅</span> Reporte mensual</button>
             <button data-go="incidencias"><span class="ico">📬</span> Incidencias cliente</button>
+            <button data-go="seguridad" id="btnMenuSeguridad" style="display:none;"><span class="ico">🔐</span> Seguridad Super Admin</button>
         </nav>
         <div class="sb-foot">
             <div class="sb-user-card" id="sbUserCard">
@@ -1329,6 +1330,97 @@
             </div>
         </section>
 
+        <!-- ================= VISTA: SEGURIDAD SUPER ADMIN ================= -->
+        <section id="vista-seguridad" class="vista">
+            <div class="page-hero">
+                <span class="chip" style="background: rgba(220, 38, 38, 0.15); color: #ef4444; border: 1px solid rgba(220, 38, 38, 0.3);">
+                    🛡️ Módulo Restringido · Nivel Super Administrador
+                </span>
+                <h1 style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                    Control de Acceso y Llave Secreta
+                </h1>
+                <p>Configuración exclusiva de la clave numérica requerida en la URL para habilitar el botón "Personal Autorizado". Los clientes y usuarios regulares no tienen acceso a este módulo.</p>
+            </div>
+
+            <div class="contenido">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; margin-bottom: 25px;">
+                    <!-- Tarjeta: Llave Actual -->
+                    <div class="panel" style="border-top: 4px solid #0284c7;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h3 style="margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: 8px;">
+                                <span>🔑</span> Llave Secreta Actual
+                            </h3>
+                            <span class="tag" style="background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;">
+                                ● Activa
+                            </span>
+                        </div>
+                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 18px;">
+                            Esta serie de dígitos es la que deben usar los colaboradores en la URL para que aparezca la opción de login en el portal.
+                        </p>
+
+                        <div style="position: relative; margin-bottom: 15px;">
+                            <input type="password" id="txtClaveActual" readonly value="------" style="width: 100%; font-size: 1.3rem; letter-spacing: 4px; font-weight: 800; text-align: center; padding: 12px 45px 12px 15px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--surface); color: var(--text-main);">
+                            <button type="button" id="btnToggleVerClave" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 1.2rem; color: var(--text-muted);" title="Mostrar / Ocultar">👁️</button>
+                        </div>
+
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button type="button" class="btn-run" id="btnCopiarEnlaceKey" style="flex: 1; min-width: 140px; font-size: 12.5px; padding: 10px 14px; justify-content: center;">
+                                📋 Copiar Enlace con Llave
+                            </button>
+                            <button type="button" class="btn-secundario" id="btnRefrescarClave" style="padding: 10px 14px;" title="Refrescar">
+                                🔄
+                            </button>
+                        </div>
+                        <p id="msgCopiadoKey" style="font-size: 12px; color: #10b981; margin-top: 10px; display: none; text-align: center;">✅ Enlace copiado al portapapeles</p>
+                    </div>
+
+                    <!-- Tarjeta: Modificar Llave -->
+                    <div class="panel" style="border-top: 4px solid #ef4444;">
+                        <h3 style="margin: 0 0 15px; font-size: 1.15rem; display: flex; align-items: center; gap: 8px;">
+                            <span>⚙️</span> Modificar Llave de Acceso
+                        </h3>
+                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 18px;">
+                            Ingresa una nueva serie de 4 a 12 dígitos o genera una aleatoria. Requiere tu contraseña de administrador para autorizar.
+                        </p>
+
+                        <div style="margin-bottom: 12px;">
+                            <label style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 6px; color: var(--text-main);">Nueva Llave Numérica:</label>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" id="txtNuevaClave" placeholder="Ej: 984321" maxlength="12" style="flex: 1; padding: 10px 14px; border-radius: 8px; border: 1.5px solid var(--border); font-size: 14px; background: var(--surface); color: var(--text-main); font-weight: 700;">
+                                <button type="button" class="btn-secundario" id="btnGenerarRandomKey" title="Generar clave aleatoria de 6 dígitos">
+                                    🎲 Azar
+                                </button>
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 18px;">
+                            <label style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 6px; color: var(--text-main);">Confirmar con tu Contraseña:</label>
+                            <input type="password" id="txtPassConfirmacion" placeholder="Tu contraseña de Super Admin" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid var(--border); font-size: 14px; background: var(--surface); color: var(--text-main);">
+                        </div>
+
+                        <button type="button" class="btn-run" id="btnGuardarNuevaClave" style="width: 100%; justify-content: center; background: #dc2626; border-color: #b91c1c;">
+                            💾 Guardar y Actualizar Llave
+                        </button>
+                        <div id="statusModificarClave" style="margin-top: 12px; font-size: 13px; text-align: center;"></div>
+                    </div>
+                </div>
+
+                <!-- Tarjeta: Explicación de Funcionamiento -->
+                <div class="panel">
+                    <h4 style="margin: 0 0 12px; display: flex; align-items: center; gap: 8px; color: var(--text-main);">
+                        <span>📘</span> Protocolo de Seguridad Corporativa de Alicorp
+                    </h4>
+                    <ul style="padding-left: 20px; font-size: 13px; color: var(--text-muted); line-height: 1.8;">
+                        <li><strong>Ocultamiento total:</strong> Cualquier cliente, consumidor o visitante que entre a <code>/index.html</code> o subpáginas verá el portal limpio sin botones ni enlaces de acceso para empleados.</li>
+                        <li><strong>Acceso autorizado:</strong> Los colaboradores deben acceder usando el enlace especial: <code>https://.../index.html?key=[TU_LLAVE]</code>.</li>
+                        <li><strong>Anti-Rastreo:</strong> Al ingresar la llave correcta, el sistema limpia instantáneamente la barra de direcciones del navegador en milisegundos para que nadie vea la clave en pantalla ni quede en el historial.</li>
+                        <li><strong>Protección directa:</strong> Si alguien intenta escribir <code>/admin_login.html</code> directamente en la barra de URL sin haber pasado la llave, el servidor y el cliente lo devuelven de inmediato al inicio.</li>
+                        <li><strong>Sincronización:</strong> La llave se almacena en la tabla segura <code>configuracion_seguridad</code> de Supabase y en el respaldo del servidor.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
         <!-- ================= PIE DE PÁGINA ================= -->
         <footer class="footer">
             <div class="footer-grid">
@@ -1423,7 +1515,8 @@
             'segmentacion',
             'reporte',
             'estadistica',
-            'incidencias'
+            'incidencias',
+            'seguridad'
         ];
         const $ = id => document.getElementById(id);
         const fmt = n => Number(n).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -2358,6 +2451,29 @@
                 heroTitle.textContent = `Bienvenido, ${nombreMostrar}`;
             }
 
+            // Validar privilegios de Super Administrador para control de llave secreta
+            try {
+                const resSec = await fetch(`/api/seguridad/info_clave?usuario=${encodeURIComponent(sesionUsuario.usuario)}`);
+                if (resSec.ok) {
+                    const dataSec = await resSec.json();
+                    if (dataSec.success && dataSec.es_superadmin) {
+                        esSuperAdminActivo = true;
+                        claveAccesoActual = dataSec.clave_actual;
+                        const btnSec = $('btnMenuSeguridad');
+                        if (btnSec) btnSec.style.display = 'flex';
+                        const badgeRol = document.querySelector('.sb-user-card .badge-role');
+                        if (badgeRol) {
+                            badgeRol.textContent = 'Super Admin';
+                            badgeRol.style.background = '#dc2626';
+                            badgeRol.style.color = '#ffffff';
+                        }
+                        if ($('txtClaveActual')) $('txtClaveActual').value = dataSec.clave_actual;
+                    }
+                }
+            } catch (e) {
+                console.warn("Verificación de rol de seguridad:", e);
+            }
+
             // Iniciar el timer diario en vivo
             iniciarTimerDiario();
         }
@@ -2595,6 +2711,131 @@
                     localStorage.removeItem('usuario_activo');
                     sessionStorage.clear();
                 } catch (e) {}
+            });
+        }
+
+        /* ===== LÓGICA DE SEGURIDAD Y CONTROL DE LLAVE SECRETA (SUPER ADMIN) ===== */
+        let claveAccesoActual = '784920';
+        let esSuperAdminActivo = false;
+
+        // Toggle mostrar/ocultar clave
+        const btnToggleClave = $('btnToggleVerClave');
+        if (btnToggleClave) {
+            btnToggleClave.addEventListener('click', () => {
+                const input = $('txtClaveActual');
+                if (!input) return;
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    btnToggleClave.textContent = '🙈';
+                } else {
+                    input.type = 'password';
+                    btnToggleClave.textContent = '👁️';
+                }
+            });
+        }
+
+        // Copiar enlace con llave
+        const btnCopiarKey = $('btnCopiarEnlaceKey');
+        if (btnCopiarKey) {
+            btnCopiarKey.addEventListener('click', () => {
+                const urlCompleta = `${window.location.origin}/index.html?key=${encodeURIComponent(claveAccesoActual)}`;
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(urlCompleta).then(() => {
+                        const msg = $('msgCopiadoKey');
+                        if (msg) {
+                            msg.style.display = 'block';
+                            setTimeout(() => msg.style.display = 'none', 3000);
+                        }
+                    }).catch(() => {
+                        prompt("Copia tu enlace especial de acceso:", urlCompleta);
+                    });
+                } else {
+                    prompt("Copia tu enlace especial de acceso:", urlCompleta);
+                }
+            });
+        }
+
+        // Refrescar clave
+        const btnRefrescar = $('btnRefrescarClave');
+        if (btnRefrescar) {
+            btnRefrescar.addEventListener('click', async () => {
+                try {
+                    const r = await fetch(`/api/seguridad/info_clave?usuario=${encodeURIComponent(sesionUsuario.usuario)}`);
+                    const d = await r.json();
+                    if (d.success) {
+                        claveAccesoActual = d.clave_actual;
+                        if ($('txtClaveActual')) $('txtClaveActual').value = d.clave_actual;
+                    }
+                } catch (e) {}
+            });
+        }
+
+        // Generar clave aleatoria
+        const btnRandom = $('btnGenerarRandomKey');
+        if (btnRandom) {
+            btnRandom.addEventListener('click', async () => {
+                try {
+                    const r = await fetch(`/api/seguridad/generar_clave_random?usuario=${encodeURIComponent(sesionUsuario.usuario)}`);
+                    const d = await r.json();
+                    if (d.success && d.clave_sugerida) {
+                        $('txtNuevaClave').value = d.clave_sugerida;
+                    } else {
+                        $('txtNuevaClave').value = Math.floor(100000 + Math.random() * 900000).toString();
+                    }
+                } catch (e) {
+                    $('txtNuevaClave').value = Math.floor(100000 + Math.random() * 900000).toString();
+                }
+            });
+        }
+
+        // Guardar y actualizar nueva clave
+        const btnGuardarClave = $('btnGuardarNuevaClave');
+        if (btnGuardarClave) {
+            btnGuardarClave.addEventListener('click', async () => {
+                const nuevaClave = $('txtNuevaClave').value.trim();
+                const passConfirm = $('txtPassConfirmacion').value;
+                const statusDiv = $('statusModificarClave');
+
+                if (!nuevaClave || !/^\d{4,12}$/.test(nuevaClave)) {
+                    statusDiv.innerHTML = `<span style="color:#ef4444; font-weight:700;">⚠️ La llave debe contener únicamente entre 4 y 12 dígitos numéricos.</span>`;
+                    return;
+                }
+
+                if (!passConfirm) {
+                    statusDiv.innerHTML = `<span style="color:#ef4444; font-weight:700;">⚠️ Por favor ingresa tu contraseña para confirmar.</span>`;
+                    return;
+                }
+
+                btnGuardarClave.disabled = true;
+                btnGuardarClave.textContent = 'Actualizando en base de datos... ⏳';
+                statusDiv.innerHTML = '';
+
+                try {
+                    const res = await fetch('/api/seguridad/modificar_clave', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            usuario: sesionUsuario.usuario,
+                            password: passConfirm,
+                            nueva_clave: nuevaClave
+                        })
+                    });
+                    const data = await res.json();
+                    if (res.ok && data.success) {
+                        claveAccesoActual = data.nueva_clave;
+                        if ($('txtClaveActual')) $('txtClaveActual').value = data.nueva_clave;
+                        $('txtNuevaClave').value = '';
+                        $('txtPassConfirmacion').value = '';
+                        statusDiv.innerHTML = `<span style="color:#10b981; font-weight:700;">✅ ${data.message} (Nueva clave: ${data.nueva_clave})</span>`;
+                    } else {
+                        statusDiv.innerHTML = `<span style="color:#ef4444; font-weight:700;">❌ ${data.message || 'Error al actualizar.'}</span>`;
+                    }
+                } catch (err) {
+                    statusDiv.innerHTML = `<span style="color:#ef4444; font-weight:700;">❌ Error de red con el servidor.</span>`;
+                } finally {
+                    btnGuardarClave.disabled = false;
+                    btnGuardarClave.textContent = '💾 Guardar y Actualizar Llave';
+                }
             });
         }
 
