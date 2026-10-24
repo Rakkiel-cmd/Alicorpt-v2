@@ -31,6 +31,8 @@ from backend.graficos_analysis import graficos_analysis
 app.register_blueprint(graficos_analysis)
 from backend.incidencias import incidencias_bp
 app.register_blueprint(incidencias_bp)
+from backend.superadmin_panel import superadmin_panel
+app.register_blueprint(superadmin_panel)
 
 # Limpiar y forzar cabeceras de seguridad para evitar errores de Permissions-Policy ('join-ad-interest-group')
 @app.after_request
@@ -388,60 +390,56 @@ def actividad_hoy():
 # Endpoint: Latido en vivo para registrar tiempo de actividad en Supabase
 @app.route('/api/actividad/latido', methods=['POST'])
 def actividad_latido():
+    data = request.json or {}
+    usuario = (data.get('usuario') or '').strip()
+    tiempo_total_hoy = data.get('tiempo_total_hoy')
+    segundos_delta = int(data.get('segundos_delta', 15))
+
+    if not usuario:
+        return jsonify({"success": False, "message": "Falta parámetro usuario."}), 400
+
+    from datetime import date, datetime
+    hoy = date.today().isoformat()
+    now_iso = datetime.utcnow().isoformat()
+
+    SUPABASE_URL = os.environ.get("SUPABASE_URL")
+    SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return jsonify({"success": True, "offline": True})
+
     try:
-        data = request.get_json(silent=True) or {}
-        usuario = (data.get('usuario') or 'admin').strip()
-        tiempo_total_hoy = data.get('tiempo_total_hoy')
-        try:
-            segundos_delta = int(data.get('segundos_delta', 15))
-        except (ValueError, TypeError):
-            segundos_delta = 15
+        from supabase import create_client, Client
+        supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-        from datetime import date, datetime
-        hoy = date.today().isoformat()
-        now_iso = datetime.utcnow().isoformat()
+        # Buscar si ya existe fila para el día de hoy
+        res = supabase.table('actividad_usuarios').select('id, tiempo_segundos').eq('usuario', usuario).eq('fecha', hoy).execute()
+        if res.data and len(res.data) > 0:
+            reg_id = res.data[0]['id']
+            actual = res.data[0].get('tiempo_segundos', 0)
+            nuevo_tiempo = actual + segundos_delta
+            if tiempo_total_hoy is not None and int(tiempo_total_hoy) >= actual:
+                nuevo_tiempo = int(tiempo_total_hoy)
 
-        SUPABASE_URL = os.environ.get("SUPABASE_URL")
-        SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
-        if not SUPABASE_URL or not SUPABASE_KEY:
-            return jsonify({"success": True, "offline": True})
+            supabase.table('actividad_usuarios').update({
+                "tiempo_segundos": nuevo_tiempo,
+                "ultimo_latido": now_iso
+            }).eq('id', reg_id).execute()
 
-        try:
-            from backend.datos_supabase import obtener_cliente_supabase
-            supabase = obtener_cliente_supabase()
-
-            # Buscar si ya existe fila para el día de hoy
-            res = supabase.table('actividad_usuarios').select('id, tiempo_segundos').eq('usuario', usuario).eq('fecha', hoy).execute()
-            if res.data and len(res.data) > 0:
-                reg_id = res.data[0]['id']
-                actual = res.data[0].get('tiempo_segundos', 0)
-                nuevo_tiempo = actual + segundos_delta
-                if tiempo_total_hoy is not None and int(tiempo_total_hoy) >= actual:
-                    nuevo_tiempo = int(tiempo_total_hoy)
-
-                supabase.table('actividad_usuarios').update({
-                    "tiempo_segundos": nuevo_tiempo,
-                    "ultimo_latido": now_iso
-                }).eq('id', reg_id).execute()
-
-                return jsonify({"success": True, "fecha": hoy, "tiempo_segundos": nuevo_tiempo})
-            else:
-                # Nuevo registro para hoy (o cambio de medianoche a nuevo día)
-                init_tiempo = int(tiempo_total_hoy) if tiempo_total_hoy is not None else segundos_delta
-                nuevo = {
-                    "usuario": usuario,
-                    "fecha": hoy,
-                    "tiempo_segundos": init_tiempo,
-                    "primer_ingreso": now_iso,
-                    "ultimo_latido": now_iso
-                }
-                supabase.table('actividad_usuarios').insert(nuevo).execute()
-                return jsonify({"success": True, "fecha": hoy, "tiempo_segundos": init_tiempo})
-        except Exception as e:
-            return jsonify({"success": True, "offline": True, "error": str(e)})
+            return jsonify({"success": True, "fecha": hoy, "tiempo_segundos": nuevo_tiempo})
+        else:
+            # Nuevo registro para hoy (o cambio de medianoche a nuevo día)
+            init_tiempo = int(tiempo_total_hoy) if tiempo_total_hoy is not None else segundos_delta
+            nuevo = {
+                "usuario": usuario,
+                "fecha": hoy,
+                "tiempo_segundos": init_tiempo,
+                "primer_ingreso": now_iso,
+                "ultimo_latido": now_iso
+            }
+            supabase.table('actividad_usuarios').insert(nuevo).execute()
+            return jsonify({"success": True, "fecha": hoy, "tiempo_segundos": init_tiempo})
     except Exception as e:
         return jsonify({"success": True, "offline": True, "error": str(e)})
-
 
 # Endpoint: Historial de sesiones y días activos del usuario
 @app.route('/api/actividad/historial', methods=['GET'])
