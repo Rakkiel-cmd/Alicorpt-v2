@@ -1338,54 +1338,6 @@
                     </div>
                 </div>
 
-                <!-- ===== PREDICCIÓN 2027 (Reporte mensual) ===== -->
-                <div class="bloque" style="margin-top:30px;">
-                    <h2 class="section-title">🔮 Predicción de ventas 2027</h2>
-                    <p class="section-sub">Elige un mes de 2027 (y un día si quieres) y genera la proyección con los datos históricos.</p>
-
-                    <div class="panel" style="margin-bottom:22px;">
-                        <div class="two-cols">
-                            <div class="field"><label for="pMes27">Mes a predecir</label><select id="pMes27"></select></div>
-                            <div class="field"><label for="pDia27">Día</label><select id="pDia27"></select></div>
-                        </div>
-                        <button type="button" id="btnPredecir27" class="btn-run">🔮 Generar predicción</button>
-                        <div id="p27Error" class="error-box" style="margin:14px 0 0;"></div>
-                    </div>
-
-                    <div id="p27Resultados" style="display:none;">
-                        <div class="hero-banner">
-                            <span id="p27Titulo">Total estimado a ganar</span>
-                            <h2 id="p27Total">S/. --</h2>
-                            <small id="p27Detalle"></small>
-                        </div>
-                        <div class="metrics-grid">
-                            <div class="metric-card" style="--accent:#0284c7;"><h4>Promedio diario</h4><p id="p27Diario">--</p><small>Total del mes ÷ días del mes</small></div>
-                            <div class="metric-card" id="p27DiaCard" style="--accent:#7c3aed;"><h4 id="p27DiaTit">Día elegido</h4><p id="p27Dia">--</p><small>Estimación para ese día</small></div>
-                            <div class="metric-card" id="p27CrecCard" style="--accent:#10b981;"><h4>Crecimiento vs. último año con datos</h4><p id="p27Crec">--</p><small id="p27CrecDet"></small></div>
-                            <div class="metric-card" style="--accent:#ea580c;"><h4>Producto estrella</h4><p id="p27Top" style="font-size:18px;">--</p><small id="p27TopDet"></small></div>
-                        </div>
-                        <div class="charts-grid">
-                            <div class="chart-card full">
-                                <h4>📈 Proyección mes a mes de 2027 (S/.)</h4>
-                                <div class="chart-container"><canvas id="chartPred27"></canvas></div>
-                                <p class="hint" id="p27Nota"></p>
-                            </div>
-                            <div class="chart-card full">
-                                <h4>📋 Desglose estimado por producto</h4>
-                                <div class="table-wrap">
-                                    <table>
-                                        <thead><tr><th>Producto</th><th>Categoría</th><th class="num">Participación</th><th class="num">Ventas estimadas (S/.)</th></tr></thead>
-                                        <tbody id="tablaPred27"></tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <!-- ===== FIN PREDICCIÓN 2027 ===== -->
-
-            </div>
-        </section>
         <!-- ================= VISTA: ESTADÍSTICA Y PROBABILIDADES ================= -->
         <section id="vista-estadistica" class="vista">
             <style>
