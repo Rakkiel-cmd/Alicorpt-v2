@@ -11,18 +11,22 @@ regresion_lineal = Blueprint("regresion_lineal", __name__)
 
 
 def _cargar_mes(mes):
+    mes_str = str(mes or "").strip()
+    if not mes_str:
+        mes_str = "2024-06"
     try:
-        inicio = pd.Period(mes, freq="M").start_time.date().isoformat()
-        fin = (pd.Period(mes, freq="M") + 1).start_time.date().isoformat()
-    except (TypeError, ValueError):
-        raise ValueError("El mes debe tener el formato AAAA-MM.")
+        periodo = pd.Period(mes_str, freq="M")
+        if pd.isna(periodo):
+            raise ValueError("El mes debe tener el formato AAAA-MM.")
+        inicio = periodo.start_time.date().isoformat()
+        fin = (periodo + 1).start_time.date().isoformat()
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("El mes debe tener el formato AAAA-MM (por ejemplo, 2024-06).")
 
-    url = os.environ.get("SUPABASE_URL")
-    key = os.environ.get("SUPABASE_KEY")
-    if url and key:
-        try:
-            from supabase import Client, create_client
-            supabase: Client = create_client(url, key)
+    try:
+        from backend.datos_supabase import obtener_cliente_supabase
+        supabase = obtener_cliente_supabase()
+        if supabase:
             response = (
                 supabase.table("transacciones_alicorp")
                 .select("fecha, producto, precio_unitario, ventas_totales")
@@ -32,8 +36,8 @@ def _cargar_mes(mes):
             )
             if response.data:
                 return pd.DataFrame(response.data)
-        except Exception:
-            pass
+    except Exception:
+        pass
 
     # Respaldo con datos locales si Supabase no responde
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

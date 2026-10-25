@@ -46,6 +46,11 @@ def add_security_headers(response):
 def index():
     return send_from_directory('frontend_corporativo', 'index.html')
 
+# Ruta explícita para servir el favicon corporativo y evitar errores 404
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory('frontend_corporativo', 'favicon.ico', mimetype='image/vnd.microsoft.icon')
+
 # Ruta para servir cualquier otro archivo estático (CSS, JS, JSON, HTML)
 @app.route('/<path:path>')
 def serve_static(path):
