@@ -33,6 +33,7 @@ from backend.incidencias import incidencias_bp
 app.register_blueprint(incidencias_bp)
 from backend.superadmin_panel import superadmin_panel
 app.register_blueprint(superadmin_panel)
+from backend.seguridad_acceso import es_superadmin
 
 # Limpiar y forzar cabeceras de seguridad para evitar errores de Permissions-Policy ('join-ad-interest-group')
 @app.after_request
@@ -97,12 +98,15 @@ def login_password():
                 except Exception:
                     pass
 
+                es_super = es_superadmin(fila.get('usuario'))
                 return jsonify({
                     "success": True, 
                     "message": "Acceso concedido.", 
                     "usuario": fila.get('usuario'),
                     "nombre_completo": nombre_completo,
                     "face_encoding": face_encoding,
+                    "es_superadmin": es_super,
+                    "rol": "SuperAdmin" if es_super else "Analista",
                     "redirect": "dashboard.html"
                 })
             else:
@@ -178,6 +182,7 @@ def login_facial():
                 except Exception:
                     pass
 
+                es_super = es_superadmin(usuario_reconocido)
                 return jsonify({
                     "success": True, 
                     "message": f"¡Identidad confirmada! Bienvenido, {nombre_completo}.", 
@@ -185,6 +190,8 @@ def login_facial():
                     "usuario": usuario_reconocido,
                     "nombre_completo": nombre_completo,
                     "face_encoding": face_encoding,
+                    "es_superadmin": es_super,
+                    "rol": "SuperAdmin" if es_super else "Analista",
                     "redirect": "dashboard.html"
                 })
             else:
@@ -316,11 +323,14 @@ def usuario_perfil():
 
         if res.data and len(res.data) > 0:
             fila = res.data[0]
+            es_super = es_superadmin(fila.get("usuario"))
             return jsonify({
                 "success": True,
                 "usuario": fila.get("usuario"),
                 "nombre_completo": fila.get("nombre_completo") or fila.get("usuario"),
-                "face_encoding": fila.get("face_encoding")
+                "face_encoding": fila.get("face_encoding"),
+                "es_superadmin": es_super,
+                "rol": "SuperAdmin" if es_super else "Analista"
             })
         return jsonify({"success": False, "message": "Usuario no encontrado."}), 404
     except Exception as e:
@@ -445,12 +455,21 @@ def actividad_latido():
         return jsonify({"success": True, "offline": True, "error": str(e)})
 
 
-# Endpoint: Historial de sesiones y días activos del usuario
 @app.route('/api/actividad/historial', methods=['GET'])
 def actividad_historial():
     usuario = request.args.get('usuario')
+    solicitante = request.args.get('solicitante', '').strip()
     if not usuario:
         return jsonify({"success": False, "message": "Falta parámetro usuario."}), 400
+
+    # Si se consulta el historial de otro usuario, se exige rol SuperAdmin
+    if solicitante and solicitante.lower() != usuario.lower():
+        if not es_superadmin(solicitante):
+            return jsonify({
+                "success": False,
+                "message": "Permiso denegado. Solo un Super Administrador puede ver el historial de otros usuarios."
+            }), 403
+
 
     SUPABASE_URL = os.environ.get("SUPABASE_URL")
     SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
@@ -560,14 +579,17 @@ def api_info_clave():
     if not es_superadmin(usuario):
         return jsonify({
             "success": False,
-            "message": "Acceso restringido. Solo el Super Administrador puede visualizar la llave secreta."
+            "message": "Acceso restringido. Solo el Super Administrador puede visualizar la llave secreta.",
+            "es_superadmin": False,
+            "rol": "Analista"
         }), 403
 
     clave_actual = obtener_clave_acceso()
     return jsonify({
         "success": True,
         "clave_actual": clave_actual,
-        "es_superadmin": True
+        "es_superadmin": True,
+        "rol": "SuperAdmin"
     })
 
 @app.route('/api/seguridad/modificar_clave', methods=['POST'])

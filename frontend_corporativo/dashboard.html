@@ -92,8 +92,19 @@
         }
         .badge-role {
             font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;
-            background: rgba(56, 189, 248, 0.18); color: #38bdf8; padding: 1px 5px;
-            border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.3);
+            padding: 2px 6px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center;
+            transition: all 0.25s ease;
+        }
+        .badge-role.badge-analista {
+            background: rgba(56, 189, 248, 0.18);
+            color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.45);
+        }
+        .badge-role.badge-superadmin {
+            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+            color: #ffffff;
+            border: 1px solid rgba(239, 68, 68, 0.6);
+            box-shadow: 0 0 10px rgba(220, 38, 38, 0.45);
         }
 
         /* 3.1: Visualización del Vector Biométrico Facial */
@@ -767,7 +778,7 @@
                         <b id="txtNombreUsuario">Cargando...</b>
                         <div class="sb-subtext">
                             <span class="alias" id="txtAliasUsuario">@admin</span>
-                            <span class="badge-role">Admin</span>
+                            <span class="badge-role badge-analista" id="badgeRolUsuario">Analista</span>
                         </div>
                     </div>
                 </div>
@@ -1560,13 +1571,14 @@
                                     <th>Estado</th>
                                     <th>Nombre</th>
                                     <th>Usuario</th>
+                                    <th>Rol</th>
                                     <th>Tiempo hoy</th>
                                     <th>Biometría</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody id="tablaUsuariosSuperadminBody">
-                                <tr><td colspan="6" style="text-align: center; color: #64748b;">Cargando usuarios desde Supabase...</td></tr>
+                                <tr><td colspan="7" style="text-align: center; color: #64748b;">Cargando usuarios desde Supabase...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -1813,6 +1825,12 @@
 
         async function mostrarVista(nombre) {
             if (!VISTAS.includes(nombre)) return;
+            // Guardia de acceso: Solo Super Administradores pueden entrar a la vista 'seguridad'
+            if (nombre === 'seguridad' && !esSuperAdminActivo) {
+                console.warn("Acceso denegado: Vista exclusiva para Super Administradores.");
+                mostrarVista('inicio');
+                return;
+            }
             document.querySelectorAll('.vista').forEach(v => v.classList.toggle('active', v.id === 'vista-' + nombre));
             document.querySelectorAll('.sb-menu button').forEach(b => b.classList.toggle('active', b.dataset.go === nombre));
             $('sidebar').classList.remove('open');
@@ -3023,7 +3041,18 @@ function rfComparar() {
                 heroTitle.textContent = `Bienvenido, ${nombreMostrar}`;
             }
 
-            // Validar privilegios de Super Administrador para control de llave secreta
+            // Inicializar rol por defecto como Analista
+            const badgeRol = $('badgeRolUsuario') || document.querySelector('.sb-user-card .badge-role');
+            const btnSec = $('btnMenuSeguridad');
+            if (badgeRol) {
+                badgeRol.textContent = 'Analista';
+                badgeRol.className = 'badge-role badge-analista';
+                badgeRol.title = 'Rol de usuario: Analista BI Alicorp';
+            }
+            if (btnSec) btnSec.style.display = 'none';
+            esSuperAdminActivo = false;
+
+            // Validar privilegios de Super Administrador para control de llave secreta y panel
             try {
                 const resSec = await fetch(`/api/seguridad/info_clave?usuario=${encodeURIComponent(sesionUsuario.usuario)}`);
                 if (resSec.ok) {
@@ -3031,19 +3060,32 @@ function rfComparar() {
                     if (dataSec.success && dataSec.es_superadmin) {
                         esSuperAdminActivo = true;
                         claveAccesoActual = dataSec.clave_actual;
-                        const btnSec = $('btnMenuSeguridad');
                         if (btnSec) btnSec.style.display = 'flex';
-                        const badgeRol = document.querySelector('.sb-user-card .badge-role');
                         if (badgeRol) {
                             badgeRol.textContent = 'Super Admin';
-                            badgeRol.style.background = '#dc2626';
-                            badgeRol.style.color = '#ffffff';
+                            badgeRol.className = 'badge-role badge-superadmin';
+                            badgeRol.title = 'Rol: Super Administrador (Acceso total y configuración de llaves)';
                         }
                         if ($('txtClaveActual')) $('txtClaveActual').value = dataSec.clave_actual;
+                    }
+                } else {
+                    // Acceso restringido (403): Usuario estándar (Analista)
+                    esSuperAdminActivo = false;
+                    if (btnSec) btnSec.style.display = 'none';
+                    if (badgeRol) {
+                        badgeRol.textContent = 'Analista';
+                        badgeRol.className = 'badge-role badge-analista';
+                        badgeRol.title = 'Rol de usuario: Analista BI Alicorp';
                     }
                 }
             } catch (e) {
                 console.warn("Verificación de rol de seguridad:", e);
+                esSuperAdminActivo = false;
+                if (btnSec) btnSec.style.display = 'none';
+                if (badgeRol) {
+                    badgeRol.textContent = 'Analista';
+                    badgeRol.className = 'badge-role badge-analista';
+                }
             }
 
             // Iniciar el timer diario en vivo
@@ -3259,7 +3301,8 @@ function rfComparar() {
             }
 
             try {
-                const res = await fetch(`/api/actividad/historial?usuario=${encodeURIComponent(usuario)}`);
+                const urlHist = `/api/actividad/historial?usuario=${encodeURIComponent(usuario)}&solicitante=${encodeURIComponent(sesionUsuario.usuario)}`;
+                const res = await fetch(urlHist);
                 if (res.ok) {
                     const data = await res.json();
                     if (tbody && data.success && data.historial && data.historial.length > 0) {
@@ -3313,12 +3356,12 @@ function rfComparar() {
                 const res = await fetch(`/api/superadmin/usuarios?usuario=${encodeURIComponent(sesionUsuario.usuario)}`);
                 const data = await res.json();
                 if (!data.success) {
-                    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#ef4444;padding:16px;">${esc(data.message || 'No se pudo cargar la lista.')}</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#ef4444;padding:16px;">${esc(data.message || 'No se pudo cargar la lista.')}</td></tr>`;
                     return;
                 }
                 if (resumen) resumen.textContent = `${data.conectados} de ${data.total} conectados ahora`;
                 if (data.usuarios.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#64748b;">No hay usuarios registrados.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#64748b;">No hay usuarios registrados.</td></tr>';
                     return;
                 }
                 tbody.innerHTML = data.usuarios.map(u => {
@@ -3328,12 +3371,16 @@ function rfComparar() {
                     const bio = u.tiene_biometria
                         ? '<span style="color:#06b6d4;">✅ Registrada</span>'
                         : '<span style="color:#64748b;">— Sin registrar</span>';
+                    const rolBadge = u.es_superadmin
+                        ? '<span class="badge-role badge-superadmin">Super Admin</span>'
+                        : '<span class="badge-role badge-analista">Analista</span>';
                     const btnVectorDisabled = u.tiene_biometria ? '' : 'disabled title="Sin biometría registrada"';
                     return `
                         <tr>
                             <td>${estado}</td>
                             <td>${esc(u.nombre_completo || u.usuario)}</td>
                             <td>@${esc(u.usuario)}</td>
+                            <td>${rolBadge}</td>
                             <td style="color:#38bdf8;font-weight:700;">${formatearTiempoTexto(u.tiempo_segundos_hoy)}</td>
                             <td>${bio}</td>
                             <td>
@@ -3344,7 +3391,7 @@ function rfComparar() {
                     `;
                 }).join('');
             } catch (e) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#ef4444;padding:16px;">Error de conexión.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#ef4444;padding:16px;">Error de conexión.</td></tr>';
             }
         }
 

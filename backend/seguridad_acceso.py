@@ -11,12 +11,19 @@ RUTA_BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(RUTA_BASE, 'data')
 ARCHIVO_CLAVE_LOCAL = os.path.join(DATA_DIR, 'seguridad_clave.json')
 
-# Valores por defecto de alta disponibilidad
+# Valores por defecto de alta disponibilidad (sincronizados con tabla configuracion_seguridad)
 CLAVE_POR_DEFECTO = "784920"
-SUPERADMINS_POR_DEFECTO = ["123456789", "admin", "aaron2502"]
+SUPERADMINS_POR_DEFECTO = ["LPerez", "manuelito"]
 
 def _obtener_supabase_client():
-    """Retorna un cliente Supabase si las credenciales están configuradas."""
+    """Retorna un cliente Supabase (usando singleton para optimizar recursos)."""
+    try:
+        from backend.datos_supabase import obtener_cliente_supabase
+        client = obtener_cliente_supabase()
+        if client:
+            return client
+    except Exception:
+        pass
     supabase_url = os.environ.get("SUPABASE_URL")
     supabase_key = os.environ.get("SUPABASE_KEY")
     if not supabase_url or not supabase_key:
@@ -111,7 +118,7 @@ def es_superadmin(usuario):
         if usuario_str in lista_env:
             return True
             
-    # 2. Chequeo de Supabase o respaldo local
+    # 2. Chequeo de Supabase (Fuente oficial y autoritativa en la nube)
     client = _obtener_supabase_client()
     if client:
         try:
@@ -119,11 +126,13 @@ def es_superadmin(usuario):
             if res.data and len(res.data) > 0:
                 raw_val = res.data[0].get('valor')
                 lista_super = json.loads(raw_val) if isinstance(raw_val, str) else raw_val
-                if isinstance(lista_super, list) and usuario_str in [str(x).strip().lower() for x in lista_super]:
-                    return True
-        except Exception:
-            pass
+                if isinstance(lista_super, list):
+                    # Si Supabase responde exitosamente, esta es la fuente definitiva de verdad:
+                    return usuario_str in [str(x).strip().lower() for x in lista_super]
+        except Exception as e:
+            print(f"[Seguridad] Error consultando superadmins en Supabase: {e}")
 
+    # 3. Respaldo local privado únicamente si Supabase no estuvo disponible
     local_data = _asegurar_archivo_local()
     lista_local = local_data.get("superadmin_usuarios", SUPERADMINS_POR_DEFECTO)
     return usuario_str in [str(x).strip().lower() for x in lista_local]

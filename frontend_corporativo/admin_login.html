@@ -188,7 +188,9 @@
                         const datosSesion = JSON.stringify({
                             usuario: data.usuario || inputUsuario.value.trim(),
                             nombre_completo: data.nombre_completo || data.usuario || inputUsuario.value.trim(),
-                            face_encoding: data.face_encoding
+                            face_encoding: data.face_encoding,
+                            es_superadmin: !!data.es_superadmin,
+                            rol: data.rol || (data.es_superadmin ? 'SuperAdmin' : 'Analista')
                         });
                         sessionStorage.setItem('usuario_activo', datosSesion);
                         localStorage.setItem('usuario_activo', datosSesion);
@@ -272,7 +274,9 @@
                             usuario: data.usuario,
                             nombre_completo: data.nombre_completo || data.usuario,
                             face_encoding: data.face_encoding,
-                            porcentaje: data.porcentaje
+                            porcentaje: data.porcentaje,
+                            es_superadmin: !!data.es_superadmin,
+                            rol: data.rol || (data.es_superadmin ? 'SuperAdmin' : 'Analista')
                         });
                         sessionStorage.setItem('usuario_activo', datosSesion);
                         localStorage.setItem('usuario_activo', datosSesion);

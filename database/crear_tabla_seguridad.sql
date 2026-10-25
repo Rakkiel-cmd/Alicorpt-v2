@@ -26,7 +26,7 @@ ON CONFLICT (clave) DO NOTHING;
 INSERT INTO public.configuracion_seguridad (clave, valor, descripcion, actualizado_por)
 VALUES (
     'superadmin_usuarios',
-    '["123456789", "admin", "aaron2502"]',
+    '["LPerez", "manuelito"]',
     'Usuarios autorizados para modificar la clave de acceso de personal.',
     'sistema_inicial'
 )

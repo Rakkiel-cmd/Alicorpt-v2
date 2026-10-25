@@ -86,6 +86,8 @@ def listar_usuarios_con_estado():
             # el booleano 'tiene_biometria'; el vector completo se pide aparte
             # en /api/superadmin/vector, uno a la vez.
 
+            es_super = es_superadmin(nombre_usuario)
+
             lista.append({
                 'usuario': nombre_usuario,
                 'nombre_completo': admin.get('nombre_completo') or nombre_usuario,
@@ -94,6 +96,8 @@ def listar_usuarios_con_estado():
                 'primer_ingreso_hoy': fila_actividad.get('primer_ingreso') if fila_actividad else None,
                 'ultimo_latido': fila_actividad.get('ultimo_latido') if fila_actividad else None,
                 'tiene_biometria': tiene_biometria,
+                'es_superadmin': es_super,
+                'rol': 'SuperAdmin' if es_super else 'Analista',
             })
 
         # Conectados primero, y dentro de cada grupo, orden alfabetico por nombre.
