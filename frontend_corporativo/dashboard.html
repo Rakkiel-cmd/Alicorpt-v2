@@ -1,3 +1,6 @@
+**********************************
+CODIGO REAL DEL DASHBOARD MEJORADO
+**********************************
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -311,7 +314,18 @@
         .product-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; transition: all .25s ease; position: relative; }
         .product-card:hover { transform: translateY(-5px); box-shadow: 0 14px 28px -8px rgba(2,132,199,0.25); border-color: #bae6fd; }
         .product-card .rank { position: absolute; top: 14px; right: 16px; font-size: 12px; font-weight: 800; color: #cbd5e1; }
-        .product-card .icon { width: 54px; height: 54px; border-radius: 14px; background: linear-gradient(135deg, #e0f2fe, #dbeafe); display: flex; align-items: center; justify-content: center; font-size: 28px; margin-bottom: 14px; }
+        /* ESTILO INTEGRADO DE ICONOS PARA PRODUCTOS */
+        .product-card .icon, .modulo .icon { 
+            width: 54px; 
+            height: 54px; 
+            border-radius: 14px; 
+            background: linear-gradient(135deg, #e0f2fe, #dbeafe); 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 28px; 
+            margin-bottom: 14px; 
+            overflow: hidden; /* Vital para que la imagen respete los bordes redondeados */ }
         .product-card h3 { margin: 0 0 4px; font-size: 15px; color: var(--primary); }
         .product-card .cat { font-size: 11px; color: var(--accent); font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
         .product-card .total { font-size: 22px; font-weight: 800; color: var(--accent); margin: 6px 0 12px; }
@@ -1685,7 +1699,13 @@
     <script>
         const charts = {};
         const COLORES = ['#0284c7', '#2563eb', '#7c3aed', '#10b981', '#ea580c'];
-        const ICONOS = { 'Aceite': '🫒', 'Fideos': '🍝', 'Mayonesa': '🥫', 'Detergente': '🧼', 'Harina': '🌾' };
+        const ICONOS = { 
+            'Aceite': 'https://plazavea.vteximg.com.br/arquivos/ids/36303074-450-450/20281566.jpg?v=639264188955000000',
+            'Fideos': 'https://metroio.vtexassets.com/arquivos/ids/461368-800-auto?v=638285960612770000&width=800&height=auto&aspect=true',
+            'Mayonesa': 'https://plazavea.vteximg.com.br/arquivos/ids/31918829-450-450/20506750.jpg?v=639232740444800000',
+            'Detergente': 'https://www.maryoriperu.com/wp-content/uploads/2020/05/bolivar-det.-dua-active-800-g.jpg',
+            'Harina': 'https://metroio.vtexassets.com/arquivos/ids/251192/Harina-Sin-Preparar-Favorita-1kg-1-317115875.jpg?v=638173956584300000'
+        };
         const VISTAS = [
             'inicio',
             'productos',
