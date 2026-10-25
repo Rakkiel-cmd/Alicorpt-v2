@@ -1148,7 +1148,7 @@
                     </div>
                 </section>
 
-                <!-- ================= VISTA: REPORTE MENSUAL (Integrante 6) ================= -->
+               <!-- ================= VISTA: REPORTE MENSUAL (Integrante 6) ================= -->
         <section id="vista-reporte" class="vista">
             <div class="page-hero">
                 <div class="crumbs">Inicio / <b>Reporte mensual</b></div>
@@ -1200,9 +1200,55 @@
                         <p class="hint">Variación = (precio futuro − precio actual) ÷ precio actual × 100. Ganancia si es mayor a +2%, pérdida si es menor a −2%, y neutro entre ambos.</p>
                     </div>
                 </div>
+
+                <!-- ===== PREDICCIÓN 2027 (Reporte mensual) ===== -->
+                <div class="bloque" style="margin-top:30px;">
+                    <h2 class="section-title">🔮 Predicción de ventas 2027</h2>
+                    <p class="section-sub">Elige un mes de 2027 (y un día si quieres) y genera la proyección con los datos históricos.</p>
+
+                    <div class="panel" style="margin-bottom:22px;">
+                        <div class="two-cols">
+                            <div class="field"><label for="pMes27">Mes a predecir</label><select id="pMes27"></select></div>
+                            <div class="field"><label for="pDia27">Día</label><select id="pDia27"></select></div>
+                        </div>
+                        <button type="button" id="btnPredecir27" class="btn-run">🔮 Generar predicción</button>
+                        <div id="p27Error" class="error-box" style="margin:14px 0 0;"></div>
+                    </div>
+
+                    <div id="p27Resultados" style="display:none;">
+                        <div class="hero-banner">
+                            <span id="p27Titulo">Total estimado a ganar</span>
+                            <h2 id="p27Total">S/. --</h2>
+                            <small id="p27Detalle"></small>
+                        </div>
+                        <div class="metrics-grid">
+                            <div class="metric-card" style="--accent:#0284c7;"><h4>Promedio diario</h4><p id="p27Diario">--</p><small>Total del mes ÷ días del mes</small></div>
+                            <div class="metric-card" id="p27DiaCard" style="--accent:#7c3aed;"><h4 id="p27DiaTit">Día elegido</h4><p id="p27Dia">--</p><small>Estimación para ese día</small></div>
+                            <div class="metric-card" id="p27CrecCard" style="--accent:#10b981;"><h4>Crecimiento vs. último año con datos</h4><p id="p27Crec">--</p><small id="p27CrecDet"></small></div>
+                            <div class="metric-card" style="--accent:#ea580c;"><h4>Producto estrella</h4><p id="p27Top" style="font-size:18px;">--</p><small id="p27TopDet"></small></div>
+                        </div>
+                        <div class="charts-grid">
+                            <div class="chart-card full">
+                                <h4>📈 Proyección mes a mes de 2027 (S/.)</h4>
+                                <div class="chart-container"><canvas id="chartPred27"></canvas></div>
+                                <p class="hint" id="p27Nota"></p>
+                            </div>
+                            <div class="chart-card full">
+                                <h4>📋 Desglose estimado por producto</h4>
+                                <div class="table-wrap">
+                                    <table>
+                                        <thead><tr><th>Producto</th><th>Categoría</th><th class="num">Participación</th><th class="num">Ventas estimadas (S/.)</th></tr></thead>
+                                        <tbody id="tablaPred27"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- ===== FIN PREDICCIÓN 2027 ===== -->
+
             </div>
         </section>
-
         <!-- ================= VISTA: ESTADÍSTICA Y PROBABILIDADES ================= -->
         <section id="vista-estadistica" class="vista">
             <style>
@@ -2285,21 +2331,22 @@
             ];
         }
 
-        // Se ejecuta la primera vez que abres la pantalla: llena el selector con los meses
-        function inicializarReporte() {
-            const opciones = ['<option value="">Elige un mes</option>'];
-            let a = MES_INICIO.anio, m = MES_INICIO.mes;
-            while (a < MES_FIN.anio || (a === MES_FIN.anio && m <= MES_FIN.mes)) {
-                const valor = a + '-' + String(m).padStart(2, '0');   // ej: "2024-06"
-                opciones.push(`<option value="${valor}">${NOMBRES_MES[m - 1]} ${a}</option>`);
-                if (++m > 12) { m = 1; a++; }
-            }
-            $('selectMesReporte').innerHTML = opciones.join('');
-            reporteListo = true;
-            // Seleccionar y cargar junio 2024 por defecto
-            $('selectMesReporte').value = '2024-06';
-            cargarReporte('2024-06');
-        }
+       // Se ejecuta la primera vez que abres la pantalla: llena el selector con los meses
+function inicializarReporte() {
+    const opciones = ['<option value="">Elige un mes</option>'];
+    let a = MES_INICIO.anio, m = MES_INICIO.mes;
+    while (a < MES_FIN.anio || (a === MES_FIN.anio && m <= MES_FIN.mes)) {
+        const valor = a + '-' + String(m).padStart(2, '0');   // ej: "2024-06"
+        opciones.push(`<option value="${valor}">${NOMBRES_MES[m - 1]} ${a}</option>`);
+        if (++m > 12) { m = 1; a++; }
+    }
+    $('selectMesReporte').innerHTML = opciones.join('');
+    reporteListo = true;
+    // Seleccionar y cargar junio 2024 por defecto
+    $('selectMesReporte').value = '2024-06';
+    inicializarPrediccion2027();   //integrante 6
+    cargarReporte('2024-06');
+}
 
         // Pide los datos del mes al backend. Si falla, usa los datos de ejemplo y avisa.
         async function cargarReporte(mes) {
@@ -2371,6 +2418,130 @@
             $('rmRiesgoDetalle').textContent = 'Variación proyectada: ' + fmt(peor.variacion) + '%';
         }
 
+
+        /* ================= PREDICCIÓN 2027 (Reporte mensual - Integrante 6) ================= */
+const ANIO_PRED = 2027;
+
+// Regresión lineal simple: y = m*x + b  (x = número de mes desde el inicio de los datos)
+function regresionLineal(serie) {
+    const n = serie.length;
+    const mx = (n - 1) / 2;
+    const my = serie.reduce((s, v) => s + v, 0) / n;
+    let num = 0, den = 0;
+    serie.forEach((y, x) => { num += (x - mx) * (y - my); den += (x - mx) ** 2; });
+    const m = den ? num / den : 0;
+    return { m, b: my - m * mx };
+}
+
+// Factor estacional: cuánto vende cada mes del calendario respecto a la tendencia (solo con 24+ meses)
+function factoresEstacionales(serie, rl) {
+    const suma = Array(12).fill(0), cuenta = Array(12).fill(0);
+    serie.forEach((y, i) => {
+        const base = rl.m * i + rl.b;
+        if (base > 0) {
+            const c = (MES_INICIO.mes - 1 + i) % 12;
+            suma[c] += y / base; cuenta[c]++;
+        }
+    });
+    return suma.map((s, c) => cuenta[c] ? s / cuenta[c] : 1);
+}
+
+// Predice las ventas (S/.) de un mes de 2027 (mes = 1..12)
+function predecirMes(serie, rl, factores, mes) {
+    const i = (ANIO_PRED - MES_INICIO.anio) * 12 + (mes - 1) - (MES_INICIO.mes - 1);
+    const f = serie.length >= 24 ? factores[mes - 1] : 1;
+    return Math.max(0, (rl.m * i + rl.b) * f);
+}
+
+function inicializarPrediccion2027() {
+    $('pMes27').innerHTML = NOMBRES_MES.map((n, i) => `<option value="${i + 1}">${n} ${ANIO_PRED}</option>`).join('');
+    actualizarDias27();
+    $('pMes27').addEventListener('change', actualizarDias27);
+    $('btnPredecir27').addEventListener('click', generarPrediccion27);
+}
+
+// Llena el selector de días según el mes elegido (28, 30 o 31)
+function actualizarDias27() {
+    const dias = new Date(ANIO_PRED, Number($('pMes27').value), 0).getDate();
+    $('pDia27').innerHTML = '<option value="0">Todo el mes</option>' +
+        Array.from({ length: dias }, (_, i) => `<option value="${i + 1}">Día ${i + 1}</option>`).join('');
+}
+
+async function generarPrediccion27() {
+    const btn = $('btnPredecir27'), err = $('p27Error');
+    err.style.display = 'none';
+    btn.disabled = true; btn.textContent = 'Calculando... ⏳';
+    try {
+        const d = await obtenerResumen();
+        const serie = (d.ventas_por_mes || []).map(Number);
+        if (serie.length < 3) throw new Error('No hay suficientes meses históricos para predecir.');
+
+        const mes = Number($('pMes27').value), dia = Number($('pDia27').value);
+        const dias = new Date(ANIO_PRED, mes, 0).getDate();
+        const rl = regresionLineal(serie);
+        const fac = factoresEstacionales(serie, rl);
+
+        // Resultado del mes elegido
+        const totalMes = predecirMes(serie, rl, fac, mes);
+        const diario = totalMes / dias;
+        $('p27Titulo').textContent = 'Total estimado a ganar en ' + NOMBRES_MES[mes - 1] + ' ' + ANIO_PRED;
+        $('p27Total').textContent = 'S/. ' + fmt(totalMes);
+        $('p27Detalle').textContent = 'Proyección con Regresión Lineal sobre ' + serie.length + ' meses de historia.';
+        $('p27Diario').textContent = 'S/. ' + fmt(diario);
+
+        // Día elegido (promedio diario del mes)
+        if (dia > 0) {
+            $('p27DiaTit').textContent = dia + ' de ' + NOMBRES_MES[mes - 1];
+            $('p27Dia').textContent = 'S/. ' + fmt(diario);
+        } else {
+            $('p27DiaTit').textContent = 'Mes completo';
+            $('p27Dia').textContent = dias + ' días';
+        }
+
+        // Crecimiento vs. el mismo mes del último año con datos
+        let ultimo = -1;
+        serie.forEach((_, i) => { if ((MES_INICIO.mes - 1 + i) % 12 === mes - 1) ultimo = i; });
+        if (ultimo >= 0 && serie[ultimo] > 0) {
+            const crec = (totalMes - serie[ultimo]) / serie[ultimo] * 100;
+            $('p27Crec').textContent = (crec >= 0 ? '+' : '') + fmt(crec) + '%';
+            $('p27CrecCard').style.setProperty('--accent', crec >= 0 ? '#10b981' : '#dc2626');
+            $('p27CrecDet').textContent = 'Real: S/. ' + fmt(serie[ultimo]);
+        }
+
+        // Desglose por producto según su participación histórica
+        const sumaVentas = d.productos.reduce((s, p) => s + p.ventas, 0);
+        const prods = d.productos.map(p => ({ nombre: p.nombre, part: p.ventas / sumaVentas, est: totalMes * p.ventas / sumaVentas }))
+                                 .sort((a, b) => b.est - a.est);
+        $('tablaPred27').innerHTML = prods.map(p => `
+            <tr><td><b>${icono(p.nombre)} ${esc(p.nombre)}</b></td>
+                <td>${nombreCategoria(p.nombre)}</td>
+                <td class="num">${fmt(p.part * 100)}%</td>
+                <td class="num">${fmt(p.est)}</td></tr>`).join('');
+        $('p27Top').textContent = prods[0].nombre;
+        $('p27TopDet').textContent = 'S/. ' + fmt(prods[0].est) + ' estimados';
+
+        // Gráfico: los 12 meses de 2027, con el mes elegido resaltado
+        $('p27Resultados').style.display = 'block';
+        const valores = NOMBRES_MES.map((_, i) => Math.round(predecirMes(serie, rl, fac, i + 1) * 100) / 100);
+        dibujar('chartPred27', {
+            type: 'line',
+            data: { labels: NOMBRES_MES, datasets: [{
+                label: 'Ventas proyectadas 2027 (S/.)', data: valores,
+                borderColor: '#7c3aed', backgroundColor: 'rgba(124,58,237,0.08)', fill: true, tension: 0.35, borderWidth: 3,
+                pointRadius: valores.map((_, i) => i === mes - 1 ? 8 : 3),
+                pointBackgroundColor: valores.map((_, i) => i === mes - 1 ? '#ea580c' : '#7c3aed')
+            }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+        $('p27Nota').textContent = 'Es una estimación: y = ' + fmt(rl.m) + 'x + ' + fmt(rl.b) + '. El punto naranja es el mes que elegiste.';
+    } catch (e) {
+        err.textContent = 'No se pudo generar la predicción: ' + e.message;
+        err.style.display = 'block';
+    } finally {
+        btn.disabled = false; btn.textContent = '🔮 Generar predicción';
+    }
+}
+        
         // Cuando eliges un mes en el selector, carga su reporte
         $('selectMesReporte').addEventListener('change', e => { if (e.target.value) cargarReporte(e.target.value); });
 
