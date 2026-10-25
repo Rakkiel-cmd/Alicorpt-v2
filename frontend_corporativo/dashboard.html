@@ -1540,6 +1540,36 @@
                     </div>
                 </div>
 
+                <!-- Tarjeta: Usuarios en vivo (estado, tiempo, biometria, historial) -->
+                <div class="panel" style="margin-bottom: 25px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 10px;">
+                        <h3 style="margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: 8px;">
+                            <span>👥</span> Usuarios y Actividad en Vivo
+                        </h3>
+                        <span id="txtResumenConectados" style="font-size: 12px; color: var(--text-muted);">Cargando...</span>
+                    </div>
+                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+                        Estado en tiempo real de cada colaborador registrado. Se actualiza solo mientras esta pestaña está abierta, para no generar tráfico de más.
+                    </p>
+                    <div class="tabla-historial-wrap" style="max-height: 420px;">
+                        <table class="tabla-historial">
+                            <thead>
+                                <tr>
+                                    <th>Estado</th>
+                                    <th>Nombre</th>
+                                    <th>Usuario</th>
+                                    <th>Tiempo hoy</th>
+                                    <th>Biometría</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaUsuariosSuperadminBody">
+                                <tr><td colspan="6" style="text-align: center; color: #64748b;">Cargando usuarios desde Supabase...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <!-- Tarjeta: Explicación de Funcionamiento -->
                 <div class="panel">
                     <h4 style="margin: 0 0 12px; display: flex; align-items: center; gap: 8px; color: var(--text-main);">
@@ -1859,8 +1889,12 @@
                     break;
 
                 case 'seguridad':
-                    // Verificado al autenticar
+                    // Control de refresco en vivo para el panel de usuarios de SuperAdmin
+                    if (typeof iniciarRefrescoPanelSuperAdmin === 'function') iniciarRefrescoPanelSuperAdmin();
                     break;
+            }
+            if (nombre !== 'seguridad' && typeof detenerRefrescoPanelSuperAdmin === 'function') {
+                detenerRefrescoPanelSuperAdmin();
             }
         }
         document.addEventListener('click', e => {
@@ -3117,13 +3151,41 @@ function rfComparar() {
             });
         }
 
-        function mostrarModalVectorBiometrico() {
+        // objetivo (opcional): { usuario, nombre_completo, face_encoding }
+        // Si no se pasa nada, muestra el vector del propio usuario con sesión
+        // iniciada (comportamiento original del botón "Ver Vectores").
+        async function mostrarModalVectorBiometrico(objetivo) {
             const modal = $('modalVectorBiometrico');
             modal.classList.add('open');
 
-            $('modalBioSub').textContent = `Usuario: ${sesionUsuario.nombre_completo || sesionUsuario.usuario} (@${sesionUsuario.usuario}) · 128 Dimensiones`;
+            let persona = objetivo || sesionUsuario;
+            let vec = persona.face_encoding;
 
-            let vec = sesionUsuario.face_encoding;
+            // Si viene de la tabla de Super Admin (otro usuario), el vector
+            // real se pide aparte, bajo demanda, para no transferirlo en la tabla general.
+            if (objetivo && objetivo.usuario && !Array.isArray(vec)) {
+                $('modalBioSub').textContent = `Usuario: ${persona.nombre_completo || persona.usuario} (@${persona.usuario}) · Cargando vector...`;
+                $('rawVectorText').textContent = 'Consultando Supabase...';
+                try {
+                    const res = await fetch(`/api/superadmin/vector?usuario=${encodeURIComponent(sesionUsuario.usuario)}&objetivo=${encodeURIComponent(objetivo.usuario)}`);
+                    const data = await res.json();
+                    if (data.success) {
+                        vec = data.face_encoding;
+                        persona = { usuario: data.usuario, nombre_completo: data.nombre_completo, face_encoding: vec };
+                    } else {
+                        $('rawVectorText').textContent = data.message || 'Este usuario no tiene biometría registrada.';
+                        $('vectorGrid').innerHTML = '';
+                        $('modalBioSub').textContent = `Usuario: ${persona.nombre_completo || persona.usuario} (@${persona.usuario}) · Sin biometría`;
+                        return;
+                    }
+                } catch (e) {
+                    $('rawVectorText').textContent = 'Error al consultar el vector.';
+                    return;
+                }
+            }
+
+            $('modalBioSub').textContent = `Usuario: ${persona.nombre_completo || persona.usuario} (@${persona.usuario}) · 128 Dimensiones`;
+
             // Si el usuario no tiene vector aún, generar representación vectorial matemática de 128 dimensiones
             if (!vec || !Array.isArray(vec) || vec.length !== 128) {
                 vec = Array.from({ length: 128 }, (_, i) => Math.sin(i * 0.35) * 0.22 + Math.cos(i * 0.8) * 0.12);
@@ -3173,55 +3235,140 @@ function rfComparar() {
         const btnCloseBio2 = $('btnCerrarModalBio2');
         if (btnCloseBio2) btnCloseBio2.addEventListener('click', () => $('modalVectorBiometrico') && $('modalVectorBiometrico').classList.remove('open'));
 
-        // Modal Historial de Sesiones en Supabase
+        // Modal Historial de Sesiones en Supabase.
+        // usuarioObjetivo, nombreObjetivo (opcionales): para que el Super Admin
+        // pueda ver el historial de CUALQUIER usuario desde su tabla, no solo
+        // el propio. Sin argumentos, se comporta igual que el botón personal ("Ver mi historial").
+        async function mostrarModalHistorial(usuarioObjetivo, nombreObjetivo) {
+            const usuario = usuarioObjetivo || sesionUsuario.usuario;
+            const nombre = nombreObjetivo || sesionUsuario.nombre_completo || sesionUsuario.usuario;
+            const esUnoMismo = usuario === sesionUsuario.usuario;
+
+            const modal = $('modalHistorialSesiones');
+            if (!modal) return;
+            modal.classList.add('open');
+            if ($('modalHistorialSub')) {
+                $('modalHistorialSub').textContent = `Historial de actividad de ${nombre} (@${usuario})`;
+            }
+
+            const tbody = $('tablaHistorialBody');
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #94a3b8; padding: 16px;">Consultando Supabase... ⏳</td></tr>';
+            }
+
+            try {
+                const res = await fetch(`/api/actividad/historial?usuario=${encodeURIComponent(usuario)}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (tbody && data.success && data.historial && data.historial.length > 0) {
+                        tbody.innerHTML = data.historial.map(h => {
+                            const tiempoTxt = formatearTiempoTexto(h.tiempo_segundos || 0);
+                            const primer = h.primer_ingreso ? new Date(h.primer_ingreso).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }) : '--:--';
+                            const ultimo = h.ultimo_latido ? new Date(h.ultimo_latido).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }) : '--:--';
+                            const esHoy = h.fecha === fechaSesionActual;
+                            const estadoBadge = esHoy 
+                                ? '<span style="color:#10b981; font-weight:700;">🟢 En curso</span>' 
+                                : '<span style="color:#94a3b8;">Cerrada</span>';
+                            return `
+                                <tr>
+                                    <td><strong>${h.fecha}</strong> ${esHoy ? '<span class="badge-role">Hoy</span>' : ''}</td>
+                                    <td>${primer}</td>
+                                    <td>${ultimo}</td>
+                                    <td style="color:#38bdf8; font-weight:700;">${tiempoTxt}</td>
+                                    <td>${estadoBadge}</td>
+                                </tr>
+                            `;
+                        }).join('');
+                    } else if (tbody) {
+                        const extra = esUnoMismo ? ` con ${formatearTiempoTexto(segundosActividadHoy)}` : '';
+                        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #94a3b8; padding: 16px;">Sin registros de actividad previa${extra}.</td></tr>`;
+                    }
+                }
+            } catch (e) {
+                if (tbody) {
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #ef4444; padding: 16px;">Error consultando base de datos.</td></tr>`;
+                }
+            }
+        }
+
         const btnHist = $('btnVerHistorial');
         if (btnHist) {
-            btnHist.addEventListener('click', async () => {
-                const modal = $('modalHistorialSesiones');
-                if (!modal) return;
-                modal.classList.add('open');
-                if ($('modalHistorialSub')) {
-                    $('modalHistorialSub').textContent = `Historial de actividad de ${sesionUsuario.nombre_completo || sesionUsuario.usuario} (@${sesionUsuario.usuario})`;
-                }
+            btnHist.addEventListener('click', () => mostrarModalHistorial());
+        }
 
-                const tbody = $('tablaHistorialBody');
-                if (tbody) {
-                    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #94a3b8; padding: 16px;">Consultando Supabase... ⏳</td></tr>';
-                }
+        // ---------------------------------------------------------------
+        // Panel de Super Admin: tabla de usuarios en vivo (solo refresca
+        // mientras la pestaña "Seguridad Super Admin" está abierta, para no
+        // generar tráfico de más en segundo plano - Carga Perezosa).
+        // ---------------------------------------------------------------
+        let intervaloPanelSuperAdmin = null;
 
-                try {
-                    const res = await fetch(`/api/actividad/historial?usuario=${encodeURIComponent(sesionUsuario.usuario)}`);
-                    if (res.ok) {
-                        const data = await res.json();
-                        if (tbody && data.success && data.historial && data.historial.length > 0) {
-                            tbody.innerHTML = data.historial.map(h => {
-                                const tiempoTxt = formatearTiempoTexto(h.tiempo_segundos || 0);
-                                const primer = h.primer_ingreso ? new Date(h.primer_ingreso).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }) : '--:--';
-                                const ultimo = h.ultimo_latido ? new Date(h.ultimo_latido).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }) : '--:--';
-                                const esHoy = h.fecha === fechaSesionActual;
-                                const estadoBadge = esHoy 
-                                    ? '<span style="color:#10b981; font-weight:700;">🟢 En curso</span>' 
-                                    : '<span style="color:#94a3b8;">Cerrada</span>';
-                                return `
-                                    <tr>
-                                        <td><strong>${h.fecha}</strong> ${esHoy ? '<span class="badge-role">Hoy</span>' : ''}</td>
-                                        <td>${primer}</td>
-                                        <td>${ultimo}</td>
-                                        <td style="color:#38bdf8; font-weight:700;">${tiempoTxt}</td>
-                                        <td>${estadoBadge}</td>
-                                    </tr>
-                                `;
-                            }).join('');
-                        } else if (tbody) {
-                            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #94a3b8; padding: 16px;">Sesión en curso iniciada hoy (${fechaSesionActual}) con ${formatearTiempoTexto(segundosActividadHoy)}. Sincronizando con Supabase.</td></tr>`;
-                        }
-                    }
-                } catch (e) {
-                    if (tbody) {
-                        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #ef4444; padding: 16px;">Error consultando base de datos. Tiempo local activo: ${formatearTiempoTexto(segundosActividadHoy)}.</td></tr>`;
-                    }
+        async function cargarPanelSuperAdminUsuarios() {
+            const tbody = $('tablaUsuariosSuperadminBody');
+            const resumen = $('txtResumenConectados');
+            if (!tbody) return;
+            try {
+                const res = await fetch(`/api/superadmin/usuarios?usuario=${encodeURIComponent(sesionUsuario.usuario)}`);
+                const data = await res.json();
+                if (!data.success) {
+                    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#ef4444;padding:16px;">${esc(data.message || 'No se pudo cargar la lista.')}</td></tr>`;
+                    return;
                 }
-            });
+                if (resumen) resumen.textContent = `${data.conectados} de ${data.total} conectados ahora`;
+                if (data.usuarios.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#64748b;">No hay usuarios registrados.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = data.usuarios.map(u => {
+                    const estado = u.conectado
+                        ? '<span style="color:#10b981;font-weight:700;">🟢 Conectado</span>'
+                        : '<span style="color:#ef4444;font-weight:700;">🔴 Desconectado</span>';
+                    const bio = u.tiene_biometria
+                        ? '<span style="color:#06b6d4;">✅ Registrada</span>'
+                        : '<span style="color:#64748b;">— Sin registrar</span>';
+                    const btnVectorDisabled = u.tiene_biometria ? '' : 'disabled title="Sin biometría registrada"';
+                    return `
+                        <tr>
+                            <td>${estado}</td>
+                            <td>${esc(u.nombre_completo || u.usuario)}</td>
+                            <td>@${esc(u.usuario)}</td>
+                            <td style="color:#38bdf8;font-weight:700;">${formatearTiempoTexto(u.tiempo_segundos_hoy)}</td>
+                            <td>${bio}</td>
+                            <td>
+                                <button type="button" class="btn-timer-historial" data-accion="ver-vector" data-usuario="${esc(u.usuario)}" data-nombre="${esc(u.nombre_completo || u.usuario)}" ${btnVectorDisabled}>🧬 Vector</button>
+                                <button type="button" class="btn-timer-historial" data-accion="ver-historial" data-usuario="${esc(u.usuario)}" data-nombre="${esc(u.nombre_completo || u.usuario)}">📊 Historial</button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (e) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#ef4444;padding:16px;">Error de conexión.</td></tr>';
+            }
+        }
+
+        // Listener delegado para acciones dinámicas en la tabla de Super Admin
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-accion]');
+            if (!btn) return;
+            const usuario = btn.dataset.usuario;
+            const nombre = btn.dataset.nombre;
+            if (btn.dataset.accion === 'ver-vector') {
+                mostrarModalVectorBiometrico({ usuario, nombre_completo: nombre });
+            } else if (btn.dataset.accion === 'ver-historial') {
+                mostrarModalHistorial(usuario, nombre);
+            }
+        });
+
+        function iniciarRefrescoPanelSuperAdmin() {
+            detenerRefrescoPanelSuperAdmin();
+            cargarPanelSuperAdminUsuarios();
+            intervaloPanelSuperAdmin = setInterval(cargarPanelSuperAdminUsuarios, 15000);
+        }
+        function detenerRefrescoPanelSuperAdmin() {
+            if (intervaloPanelSuperAdmin) {
+                clearInterval(intervaloPanelSuperAdmin);
+                intervaloPanelSuperAdmin = null;
+            }
         }
 
         const btnCloseHist = $('btnCerrarModalHist');

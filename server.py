@@ -31,6 +31,8 @@ from backend.graficos_analysis import graficos_analysis
 app.register_blueprint(graficos_analysis)
 from backend.incidencias import incidencias_bp
 app.register_blueprint(incidencias_bp)
+from backend.superadmin_panel import superadmin_panel
+app.register_blueprint(superadmin_panel)
 
 # Limpiar y forzar cabeceras de seguridad para evitar errores de Permissions-Policy ('join-ad-interest-group')
 @app.after_request
