@@ -271,7 +271,20 @@
         .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 16px; }
         .tile { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px 12px; text-align: center; cursor: pointer; font-size: 13px; font-weight: 700; color: var(--primary); transition: all .2s ease; }
         .tile:hover { border-color: var(--accent); box-shadow: 0 8px 20px -8px rgba(2,132,199,0.4); transform: translateY(-3px); }
-        .tile em { display: block; font-style: normal; font-size: 34px; margin-bottom: 8px; }
+        /* CORREGIDO: contenedor de imagen del producto en "Nuestros productos" */
+        .tile em {
+            font-style: normal;
+            font-size: 34px;
+            width: 90px;
+            height: 90px;
+            margin: 0 auto 10px;
+            border-radius: 14px;
+            overflow: hidden;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
         .news { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
         .news .banda { height: 8px; background: var(--accent-gradient); }
         .news .cuerpo { padding: 22px; }
@@ -1717,7 +1730,31 @@
         const $ = id => document.getElementById(id);
         const fmt = n => Number(n).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-        const icono = nombre => { for (const k in ICONOS) { if (nombre.startsWith(k)) return ICONOS[k]; } return '📦'; };
+
+        // CORREGIDO: icono() ahora devuelve una etiqueta <img> (tamaño completo, para tarjetas grandes)
+        const icono = nombre => {
+            for (const k in ICONOS) {
+                if (nombre.startsWith(k)) {
+                    return `<img src="${ICONOS[k]}" alt="${k}" loading="lazy" referrerpolicy="no-referrer"
+                            onerror="this.replaceWith(document.createTextNode('📦'))"
+                            style="width:100%;height:100%;object-fit:cover;display:block;">`;
+                }
+            }
+            return '📦';
+        };
+
+        // NUEVO: versión pequeña (para tablas y textos en línea)
+        const iconoMini = nombre => {
+            for (const k in ICONOS) {
+                if (nombre.startsWith(k)) {
+                    return `<img src="${ICONOS[k]}" alt="${k}" loading="lazy" referrerpolicy="no-referrer"
+                            onerror="this.replaceWith(document.createTextNode('📦'))"
+                            style="width:26px;height:26px;object-fit:cover;border-radius:6px;vertical-align:middle;margin-right:6px;">`;
+                }
+            }
+            return '📦 ';
+        };
+
         const categoria = nombre => nombre.startsWith('Detergente') ? 'hogar' : 'alimentos';
         const nombreCategoria = nombre => categoria(nombre) === 'hogar' ? 'Cuidado del hogar' : 'Alimentos';
 
@@ -2119,7 +2156,7 @@
                 options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
             $('tablaProductos').innerHTML = d.productos.map(p => `
-                <tr><td><b>${icono(p.nombre)} ${esc(p.nombre)}</b></td>
+                <tr><td><b>${iconoMini(p.nombre)} ${esc(p.nombre)}</b></td>
                     <td class="num">${fmt(p.ventas)}</td>
                     <td class="num">${p.unidades.toLocaleString('es-PE')}</td>
                     <td class="num">${fmt(p.precio_promedio)}</td>
@@ -2553,7 +2590,7 @@ function inicializarReporte() {
             // Tabla: una fila por producto
             tbody.innerHTML = datos.map(d => `
                 <tr>
-                    <td><b>${icono(d.producto)} ${esc(d.producto)}</b></td>
+                    <td><b>${iconoMini(d.producto)} ${esc(d.producto)}</b></td>
                     <td>${nombreCategoria(d.producto)}</td>
                     <td class="num">${fmt(d.actual)}</td>
                     <td class="num">${fmt(d.futuro)}</td>
@@ -2727,7 +2764,7 @@ async function rfGenerar() {
 
         $('rfTabla').innerHTML = datos.map(d => `
             <tr>
-                <td><b>${icono(d.producto)} ${esc(d.producto)}</b></td>
+                <td><b>${iconoMini(d.producto)} ${esc(d.producto)}</b></td>
                 <td>${nombreCategoria(d.producto)}</td>
                 <td class="num">${fmt(d.actual)}</td>
                 <td class="num">${fmt(d.futuro)}</td>
@@ -2793,7 +2830,7 @@ function rfComparar() {
 
     $('rfTablaCmp').innerHTML = filas.map(f => `
         <tr>
-            <td><b>${icono(f.producto)} ${esc(f.producto)}</b></td>
+            <td><b>${iconoMini(f.producto)} ${esc(f.producto)}</b></td>
             <td class="num">${fmt(f.pred)}</td>
             <td class="num">${fmt(f.real)}</td>
             <td class="num ${f.dif >= 0 ? 'rm-pos' : 'rm-neg'}">${f.dif >= 0 ? '▲ +' : '▼ '}${fmt(f.dif)}</td>
