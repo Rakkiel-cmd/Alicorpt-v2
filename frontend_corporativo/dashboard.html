@@ -1158,6 +1158,143 @@
             <div class="contenido">
                 <div id="rmDemo" class="rm-demo"></div>
 
+                <!-- ===== REPORTE FUTURO: botones, ventanas, resultado y comparación (Integrante 6) ===== -->
+                <style>
+                    .rf-vs { display: grid; grid-template-columns: 1fr auto 1fr; gap: 18px; align-items: stretch; margin-bottom: 25px; }
+                    .rf-lado { background: var(--surface); border: 1px solid var(--border); border-top: 4px solid #7c3aed; border-radius: var(--radius); padding: 24px; text-align: center; }
+                    .rf-lado.real { border-top-color: #0284c7; }
+                    .rf-lado.ganador { box-shadow: 0 0 0 2px #10b981; }
+                    .rf-lado h3 { margin: 10px 0 16px; font-size: 20px; color: var(--text-main); }
+                    .rf-tag { display: inline-block; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); }
+                    .rf-valor { display: block; font-size: 28px; font-weight: 800; color: var(--text-main); margin-top: 4px; font-variant-numeric: tabular-nums; }
+                    .rf-lado small { display: block; color: var(--text-muted); font-size: 12px; margin-bottom: 14px; }
+                    .rf-badge { display: inline-block; padding: 5px 14px; border-radius: 30px; font-size: 12px; font-weight: 800; }
+                    .rf-badge.mayor { background: rgba(16,185,129,.16); color: #10b981; }
+                    .rf-badge.menor { background: rgba(220,38,38,.14); color: #dc2626; }
+                    .rf-badge.igual { background: rgba(100,116,139,.18); color: var(--text-muted); }
+                    .rf-centro { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-width: 110px; }
+                    .rf-centro .vs { width: 58px; height: 58px; border-radius: 50%; background: var(--accent-gradient); color: #fff; font-weight: 800; font-size: 18px; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(2,132,199,.35); }
+                    .rf-centro em { font-style: normal; font-weight: 800; font-size: 13px; text-align: center; color: var(--text-main); }
+                    @media (max-width: 800px) { .rf-vs { grid-template-columns: 1fr; } }
+                </style>
+
+                <!-- Los 2 botones -->
+                <div class="action-bar">
+                    <p>Predice un reporte para una fecha futura que aún no está en la base de datos y compáralo con un mes guardado. <b>(Primero genera la predicción para activar la comparación.)</b></p>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                        <button type="button" id="rfBtnAbrirPred" class="btn-run">🔮 Predecir reporte futuro</button>
+                        <button type="button" id="rfBtnAbrirCmp" class="btn-run" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);" disabled>⚖️ Comparar reportes</button>
+                    </div>
+                </div>
+
+                <!-- Ventana 1: elegir año y mes a predecir -->
+                <div class="modal-overlay" id="rfModalPred">
+                    <div class="modal-card" style="max-width:480px;">
+                        <div class="modal-header">
+                            <div>
+                                <h3><span>🔮</span> Predecir reporte futuro</h3>
+                                <p>Elige el año y el mes que quieres predecir (solo fechas futuras).</p>
+                            </div>
+                            <button type="button" class="modal-close" id="rfCerrarPred">✕</button>
+                        </div>
+                        <div class="two-cols">
+                            <div class="field"><label for="rfAnio">Año</label><select id="rfAnio"></select></div>
+                            <div class="field"><label for="rfMes">Mes</label><select id="rfMes"></select></div>
+                        </div>
+                        <div id="rfError" class="error-box" style="margin-bottom:14px;"></div>
+                        <p id="rfCargando" class="loading-text">Leyendo el historial de la base de datos... ⏳</p>
+                        <button type="button" id="rfBtnGenerar" class="btn-run" style="width:100%;">Generar reporte</button>
+                    </div>
+                </div>
+
+                <!-- Ventana 2: elegir el mes guardado para comparar -->
+                <div class="modal-overlay" id="rfModalCmp">
+                    <div class="modal-card" style="max-width:480px;">
+                        <div class="modal-header">
+                            <div>
+                                <h3><span>⚖️</span> Comparar reportes</h3>
+                                <p>Elige un mes guardado en la base de datos para compararlo con tu predicción.</p>
+                            </div>
+                            <button type="button" class="modal-close" id="rfCerrarCmp">✕</button>
+                        </div>
+                        <div class="field"><label for="rfMesGuardado">Mes guardado (real)</label><select id="rfMesGuardado"></select></div>
+                        <button type="button" id="rfBtnComparar" class="btn-run" style="width:100%;">Comparar</button>
+                    </div>
+                </div>
+
+                <!-- Resultado: el reporte predicho (se ve igual que el reporte mensual) -->
+                <div id="rfResultado" class="bloque" style="display:none;">
+                    <div class="hero-banner">
+                        <span>Reporte proyectado (predicción)</span>
+                        <h2 id="rfFecha">--</h2>
+                        <small>Estimado con Regresión Lineal a partir del historial real guardado en la base de datos.</small>
+                    </div>
+                    <div class="metrics-grid">
+                        <div class="metric-card" style="--accent:#0284c7;"><h4>Venta total proyectada</h4><p id="rfVentaTotal">S/. --</p><small>Suma de las ventas proyectadas de todos los productos</small></div>
+                        <div class="metric-card" id="rfMargenCard" style="--accent:#10b981;"><h4>Indicador lineal: margen promedio proyectado</h4><p id="rfMargen">--</p><small>Promedio de las variaciones de precio</small></div>
+                        <div class="metric-card" style="--accent:#dc2626;"><h4>Producto con mayor riesgo</h4><p id="rfRiesgo" style="font-size:18px;">--</p><small id="rfRiesgoDet"></small></div>
+                    </div>
+                    <div class="chart-card full">
+                        <h4>📋 Rendimiento y proyección por producto</h4>
+                        <div class="table-wrap">
+                            <table>
+                                <thead><tr>
+                                    <th>Producto</th><th>Categoría</th>
+                                    <th class="num">Precio actual (S/.)</th>
+                                    <th class="num">Precio futuro proyectado (S/.)</th>
+                                    <th class="num">Variación estimada (%)</th>
+                                    <th class="num">Ventas proyectadas (S/.)</th>
+                                    <th>Estado de rentabilidad</th>
+                                </tr></thead>
+                                <tbody id="rfTabla"></tbody>
+                            </table>
+                        </div>
+                        <p class="hint">Precio actual = último precio real registrado. Variación = (precio futuro − precio actual) ÷ precio actual × 100.</p>
+                    </div>
+                </div>
+
+                <!-- Comparación: predicción VS mes guardado -->
+                <div id="rfComparacion" class="bloque" style="display:none;">
+                    <h2 class="section-title">⚖️ Comparación de reportes</h2>
+                    <p class="section-sub">Predicción frente al mes guardado en la base de datos.</p>
+                    <div class="rf-vs">
+                        <div class="rf-lado" id="rfLadoPred">
+                            <span class="rf-tag">🔮 Predicción</span>
+                            <h3 id="rfCmpTitPred">--</h3>
+                            <span class="rf-valor" id="rfCmpTotPred">--</span><small>Venta total</small>
+                            <span class="rf-valor" id="rfCmpMargPred">--</span><small>Margen promedio proyectado</small>
+                            <span class="rf-badge igual" id="rfCmpBadgePred">--</span>
+                        </div>
+                        <div class="rf-centro">
+                            <div class="vs">VS</div>
+                            <em id="rfCmpDif">--</em>
+                        </div>
+                        <div class="rf-lado real" id="rfLadoReal">
+                            <span class="rf-tag">🗄️ Mes guardado</span>
+                            <h3 id="rfCmpTitReal">--</h3>
+                            <span class="rf-valor" id="rfCmpTotReal">--</span><small>Venta total</small>
+                            <span class="rf-valor" id="rfCmpMargReal">--</span><small>Margen promedio</small>
+                            <span class="rf-badge igual" id="rfCmpBadgeReal">--</span>
+                        </div>
+                    </div>
+                    <div class="charts-grid">
+                        <div class="chart-card full">
+                            <h4>📊 Ventas por producto: predicción vs. mes guardado</h4>
+                            <div class="chart-container"><canvas id="rfChartCmp"></canvas></div>
+                        </div>
+                        <div class="chart-card full">
+                            <h4>📋 Detalle de la comparación</h4>
+                            <div class="table-wrap">
+                                <table>
+                                    <thead><tr><th>Producto</th><th class="num">Predicción (S/.)</th><th class="num">Mes guardado (S/.)</th><th class="num">Diferencia (S/.)</th><th class="num">Diferencia (%)</th></tr></thead>
+                                    <tbody id="rfTablaCmp"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- ===== FIN REPORTE FUTURO ===== -->
+
                 <div class="field rm-filtro">
                     <label for="selectMesReporte">Mes a consultar</label>
                     <select id="selectMesReporte"></select>
@@ -2344,7 +2481,8 @@ function inicializarReporte() {
     reporteListo = true;
     // Seleccionar y cargar junio 2024 por defecto
     $('selectMesReporte').value = '2024-06';
-    inicializarPrediccion2027();   //integrante 6
+    rfInicializar();   // integrante 6: reporte futuro + comparación (LÍNEA NUEVA)
+    try { inicializarPrediccion2027(); } catch (e) { console.warn('Predicción 2027:', e); }   // integrante 6
     cargarReporte('2024-06');
 }
 
@@ -2419,127 +2557,237 @@ function inicializarReporte() {
         }
 
 
-        /* ================= PREDICCIÓN 2027 (Reporte mensual - Integrante 6) ================= */
-const ANIO_PRED = 2027;
+        /* ================= REPORTE FUTURO + COMPARACIÓN (Integrante 6) ================= */
+const RF_ANIOS = [2026, 2027];
+let rfHistorial = null;   // historial real leído de la BD (se lee una sola vez)
+let rfPred = null;        // última predicción generada (la usa el botón Comparar)
 
-// Regresión lineal simple: y = m*x + b  (x = número de mes desde el inicio de los datos)
-function regresionLineal(serie) {
-    const n = serie.length;
-    const mx = (n - 1) / 2;
-    const my = serie.reduce((s, v) => s + v, 0) / n;
-    let num = 0, den = 0;
-    serie.forEach((y, x) => { num += (x - mx) * (y - my); den += (x - mx) ** 2; });
-    const m = den ? num / den : 0;
-    return { m, b: my - m * mx };
+function rfClave(a, m) { return a + '-' + String(m).padStart(2, '0'); }
+
+// Meses con datos reales en la BD: enero 2024 ... diciembre 2025
+function rfListaMeses() {
+    const lista = [];
+    let a = MES_INICIO.anio, m = MES_INICIO.mes;
+    while (a < MES_FIN.anio || (a === MES_FIN.anio && m <= MES_FIN.mes)) {
+        lista.push({ a, m });
+        if (++m > 12) { m = 1; a++; }
+    }
+    return lista;
 }
 
-// Factor estacional: cuánto vende cada mes del calendario respecto a la tendencia (solo con 24+ meses)
-function factoresEstacionales(serie, rl) {
-    const suma = Array(12).fill(0), cuenta = Array(12).fill(0);
-    serie.forEach((y, i) => {
-        const base = rl.m * i + rl.b;
-        if (base > 0) {
-            const c = (MES_INICIO.mes - 1 + i) % 12;
-            suma[c] += y / base; cuenta[c]++;
-        }
-    });
-    return suma.map((s, c) => cuenta[c] ? s / cuenta[c] : 1);
-}
-
-// Predice las ventas (S/.) de un mes de 2027 (mes = 1..12)
-function predecirMes(serie, rl, factores, mes) {
-    const i = (ANIO_PRED - MES_INICIO.anio) * 12 + (mes - 1) - (MES_INICIO.mes - 1);
-    const f = serie.length >= 24 ? factores[mes - 1] : 1;
-    return Math.max(0, (rl.m * i + rl.b) * f);
-}
-
-function inicializarPrediccion2027() {
-    $('pMes27').innerHTML = NOMBRES_MES.map((n, i) => `<option value="${i + 1}">${n} ${ANIO_PRED}</option>`).join('');
-    actualizarDias27();
-    $('pMes27').addEventListener('change', actualizarDias27);
-    $('btnPredecir27').addEventListener('click', generarPrediccion27);
-}
-
-// Llena el selector de días según el mes elegido (28, 30 o 31)
-function actualizarDias27() {
-    const dias = new Date(ANIO_PRED, Number($('pMes27').value), 0).getDate();
-    $('pDia27').innerHTML = '<option value="0">Todo el mes</option>' +
-        Array.from({ length: dias }, (_, i) => `<option value="${i + 1}">Día ${i + 1}</option>`).join('');
-}
-
-async function generarPrediccion27() {
-    const btn = $('btnPredecir27'), err = $('p27Error');
-    err.style.display = 'none';
-    btn.disabled = true; btn.textContent = 'Calculando... ⏳';
-    try {
-        const d = await obtenerResumen();
-        const serie = (d.ventas_por_mes || []).map(Number);
-        if (serie.length < 3) throw new Error('No hay suficientes meses históricos para predecir.');
-
-        const mes = Number($('pMes27').value), dia = Number($('pDia27').value);
-        const dias = new Date(ANIO_PRED, mes, 0).getDate();
-        const rl = regresionLineal(serie);
-        const fac = factoresEstacionales(serie, rl);
-
-        // Resultado del mes elegido
-        const totalMes = predecirMes(serie, rl, fac, mes);
-        const diario = totalMes / dias;
-        $('p27Titulo').textContent = 'Total estimado a ganar en ' + NOMBRES_MES[mes - 1] + ' ' + ANIO_PRED;
-        $('p27Total').textContent = 'S/. ' + fmt(totalMes);
-        $('p27Detalle').textContent = 'Proyección con Regresión Lineal sobre ' + serie.length + ' meses de historia.';
-        $('p27Diario').textContent = 'S/. ' + fmt(diario);
-
-        // Día elegido (promedio diario del mes)
-        if (dia > 0) {
-            $('p27DiaTit').textContent = dia + ' de ' + NOMBRES_MES[mes - 1];
-            $('p27Dia').textContent = 'S/. ' + fmt(diario);
-        } else {
-            $('p27DiaTit').textContent = 'Mes completo';
-            $('p27Dia').textContent = dias + ' días';
-        }
-
-        // Crecimiento vs. el mismo mes del último año con datos
-        let ultimo = -1;
-        serie.forEach((_, i) => { if ((MES_INICIO.mes - 1 + i) % 12 === mes - 1) ultimo = i; });
-        if (ultimo >= 0 && serie[ultimo] > 0) {
-            const crec = (totalMes - serie[ultimo]) / serie[ultimo] * 100;
-            $('p27Crec').textContent = (crec >= 0 ? '+' : '') + fmt(crec) + '%';
-            $('p27CrecCard').style.setProperty('--accent', crec >= 0 ? '#10b981' : '#dc2626');
-            $('p27CrecDet').textContent = 'Real: S/. ' + fmt(serie[ultimo]);
-        }
-
-        // Desglose por producto según su participación histórica
-        const sumaVentas = d.productos.reduce((s, p) => s + p.ventas, 0);
-        const prods = d.productos.map(p => ({ nombre: p.nombre, part: p.ventas / sumaVentas, est: totalMes * p.ventas / sumaVentas }))
-                                 .sort((a, b) => b.est - a.est);
-        $('tablaPred27').innerHTML = prods.map(p => `
-            <tr><td><b>${icono(p.nombre)} ${esc(p.nombre)}</b></td>
-                <td>${nombreCategoria(p.nombre)}</td>
-                <td class="num">${fmt(p.part * 100)}%</td>
-                <td class="num">${fmt(p.est)}</td></tr>`).join('');
-        $('p27Top').textContent = prods[0].nombre;
-        $('p27TopDet').textContent = 'S/. ' + fmt(prods[0].est) + ' estimados';
-
-        // Gráfico: los 12 meses de 2027, con el mes elegido resaltado
-        $('p27Resultados').style.display = 'block';
-        const valores = NOMBRES_MES.map((_, i) => Math.round(predecirMes(serie, rl, fac, i + 1) * 100) / 100);
-        dibujar('chartPred27', {
-            type: 'line',
-            data: { labels: NOMBRES_MES, datasets: [{
-                label: 'Ventas proyectadas 2027 (S/.)', data: valores,
-                borderColor: '#7c3aed', backgroundColor: 'rgba(124,58,237,0.08)', fill: true, tension: 0.35, borderWidth: 3,
-                pointRadius: valores.map((_, i) => i === mes - 1 ? 8 : 3),
-                pointBackgroundColor: valores.map((_, i) => i === mes - 1 ? '#ea580c' : '#7c3aed')
-            }] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+// Pide a la BD (vía /api/reporte_mensual) el reporte de cada mes real y arma las series por producto
+async function rfCargarHistorial() {
+    if (rfHistorial) return rfHistorial;
+    const meses = rfListaMeses();
+    const respuestas = await Promise.all(meses.map(async ({ a, m }) => {
+        try {
+            const r = await fetch('/api/reporte_mensual?mes=' + rfClave(a, m));
+            if (!r.ok) return null;
+            const d = await r.json();
+            if (d.success === false) return null;
+            return Array.isArray(d) ? d : d.productos;
+        } catch (e) { return null; }
+    }));
+    const productos = {};
+    let mesesOk = 0;
+    respuestas.forEach((filas, i) => {
+        if (!filas || !filas.length) return;
+        mesesOk++;
+        filas.forEach(f => {
+            const p = productos[f.producto] || (productos[f.producto] = {
+                ventas:  Array(meses.length).fill(null),
+                precios: Array(meses.length).fill(null),
+                futuros: Array(meses.length).fill(null)
+            });
+            p.ventas[i]  = Number(f.ventas_mes);
+            p.precios[i] = Number(f.precio_actual);
+            p.futuros[i] = Number(f.precio_futuro);
         });
-        $('p27Nota').textContent = 'Es una estimación: y = ' + fmt(rl.m) + 'x + ' + fmt(rl.b) + '. El punto naranja es el mes que elegiste.';
+    });
+    if (mesesOk < 6) throw new Error('No se pudo leer el historial de /api/reporte_mensual (solo ' + mesesOk + ' meses con datos).');
+    rfHistorial = { meses, productos };
+    return rfHistorial;
+}
+
+// Regresión lineal y = m*x + b con los meses que tienen dato (x = nº de mes desde enero 2024)
+function rfAjuste(serie) {
+    const pts = [];
+    serie.forEach((y, x) => { if (y !== null && !isNaN(y)) pts.push([x, y]); });
+    const n = pts.length;
+    if (!n) return { m: 0, b: 0, pts };
+    const mx = pts.reduce((s, p) => s + p[0], 0) / n;
+    const my = pts.reduce((s, p) => s + p[1], 0) / n;
+    let num = 0, den = 0;
+    pts.forEach(([x, y]) => { num += (x - mx) * (y - my); den += (x - mx) ** 2; });
+    const m = den ? num / den : 0;
+    return { m, b: my - m * mx, pts };
+}
+
+// Proyecta un mes futuro. Con estacional=true ajusta según cómo se comporta ese mes del calendario
+function rfProyectar(serie, anio, mes, estacional) {
+    const rl = rfAjuste(serie);
+    if (!rl.pts.length) return 0;
+    const x = (anio - MES_INICIO.anio) * 12 + (mes - MES_INICIO.mes);
+    let valor = rl.m * x + rl.b;
+    if (estacional && rl.pts.length >= 24) {
+        const ratios = rl.pts
+            .filter(([i]) => (MES_INICIO.mes - 1 + i) % 12 === mes - 1)
+            .map(([i, y]) => y / (rl.m * i + rl.b))
+            .filter(r => isFinite(r) && r > 0);
+        if (ratios.length) valor *= ratios.reduce((s, r) => s + r, 0) / ratios.length;
+    }
+    return Math.max(0, valor);
+}
+
+// Margen promedio (variación de precio) de un mes real guardado
+function rfMargenMes(h, idx) {
+    const vars = Object.values(h.productos).map(p => {
+        const act = p.precios[idx], fut = p.futuros[idx];
+        return (act && fut !== null && !isNaN(fut)) ? ((fut - act) / act) * 100 : null;
+    }).filter(v => v !== null);
+    return vars.length ? vars.reduce((s, v) => s + v, 0) / vars.length : 0;
+}
+
+// Prepara selectores y botones (se llama una sola vez al abrir Reporte mensual)
+function rfInicializar() {
+    $('rfAnio').innerHTML = RF_ANIOS.map(a => `<option value="${a}">${a}</option>`).join('');
+    $('rfAnio').value = '2027';
+    $('rfMes').innerHTML = NOMBRES_MES.map((n, i) => `<option value="${i + 1}">${n}</option>`).join('');
+    $('rfMesGuardado').innerHTML = rfListaMeses()
+        .map(({ a, m }) => `<option value="${rfClave(a, m)}">${NOMBRES_MES[m - 1]} ${a}</option>`).join('');
+    $('rfMesGuardado').value = rfClave(MES_FIN.anio, MES_FIN.mes);
+
+    $('rfBtnAbrirPred').addEventListener('click', () => { $('rfError').style.display = 'none'; $('rfModalPred').classList.add('open'); });
+    $('rfCerrarPred').addEventListener('click', () => $('rfModalPred').classList.remove('open'));
+    $('rfBtnAbrirCmp').addEventListener('click', () => { if (rfPred) $('rfModalCmp').classList.add('open'); });
+    $('rfCerrarCmp').addEventListener('click', () => $('rfModalCmp').classList.remove('open'));
+    $('rfBtnGenerar').addEventListener('click', rfGenerar);
+    $('rfBtnComparar').addEventListener('click', rfComparar);
+}
+
+// BOTÓN 1: genera el reporte de la fecha futura elegida
+async function rfGenerar() {
+    const btn = $('rfBtnGenerar'), err = $('rfError'), cargando = $('rfCargando');
+    err.style.display = 'none';
+    btn.disabled = true;
+    cargando.style.display = 'block';
+    try {
+        const h = await rfCargarHistorial();
+        const anio = Number($('rfAnio').value), mes = Number($('rfMes').value);
+
+        // Una fila por producto, con el mismo formato del reporte mensual
+        const datos = Object.keys(h.productos).map(nombre => {
+            const p = h.productos[nombre];
+            const ultimoPrecio = [...p.precios].reverse().find(v => v !== null && !isNaN(v)) || 0;
+            const futuro = rfProyectar(p.precios, anio, mes, false);
+            const variacion = ultimoPrecio ? ((futuro - ultimoPrecio) / ultimoPrecio) * 100 : 0;
+            return {
+                producto: nombre,
+                actual: ultimoPrecio,
+                futuro,
+                variacion,
+                ventas: rfProyectar(p.ventas, anio, mes, true),
+                estado: estadoRentabilidad(variacion)
+            };
+        });
+        const total = datos.reduce((s, d) => s + d.ventas, 0);
+        const margen = datos.reduce((s, d) => s + d.variacion, 0) / datos.length;
+        rfPred = { anio, mes, datos, total, margen };
+
+        $('rfFecha').textContent = NOMBRES_MES[mes - 1] + ' ' + anio;
+        $('rfVentaTotal').textContent = 'S/. ' + fmt(total);
+        $('rfMargen').textContent = (margen >= 0 ? '+' : '') + fmt(margen) + '%';
+        $('rfMargenCard').style.setProperty('--accent', margen >= 0 ? '#10b981' : '#dc2626');
+        const peor = datos.reduce((a, b) => (b.variacion < a.variacion ? b : a));
+        $('rfRiesgo').textContent = peor.producto;
+        $('rfRiesgoDet').textContent = 'Variación proyectada: ' + fmt(peor.variacion) + '%';
+
+        $('rfTabla').innerHTML = datos.map(d => `
+            <tr>
+                <td><b>${icono(d.producto)} ${esc(d.producto)}</b></td>
+                <td>${nombreCategoria(d.producto)}</td>
+                <td class="num">${fmt(d.actual)}</td>
+                <td class="num">${fmt(d.futuro)}</td>
+                <td class="num ${d.variacion >= 0 ? 'rm-pos' : 'rm-neg'}">${d.variacion >= 0 ? '+' : ''}${fmt(d.variacion)}%</td>
+                <td class="num">${fmt(d.ventas)}</td>
+                <td><span class="rm-badge ${d.estado.clase}">${d.estado.texto}</span></td>
+            </tr>`).join('');
+
+        $('rfResultado').style.display = 'block';
+        $('rfComparacion').style.display = 'none';
+        $('rfBtnAbrirCmp').disabled = false;          // ya se puede comparar
+        $('rfModalPred').classList.remove('open');
+        $('rfResultado').scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch (e) {
         err.textContent = 'No se pudo generar la predicción: ' + e.message;
         err.style.display = 'block';
     } finally {
-        btn.disabled = false; btn.textContent = '🔮 Generar predicción';
+        btn.disabled = false;
+        cargando.style.display = 'none';
     }
+}
+
+// Pinta la etiqueta "Mayor / Menor / Igual" de cada lado del VS
+function rfPonerBadge(id, esMayor, esIgual) {
+    const b = $(id);
+    b.className = 'rf-badge ' + (esIgual ? 'igual' : esMayor ? 'mayor' : 'menor');
+    b.textContent = esIgual ? '= Igual' : esMayor ? '▲ Mayor venta' : '▼ Menor venta';
+}
+
+// BOTÓN 2: compara la predicción contra un mes guardado en la BD
+function rfComparar() {
+    if (!rfPred || !rfHistorial) return;
+    const h = rfHistorial;
+    const idx = h.meses.findIndex(({ a, m }) => rfClave(a, m) === $('rfMesGuardado').value);
+    if (idx < 0) return;
+    const { a, m } = h.meses[idx];
+
+    const filas = rfPred.datos.map(d => {
+        const real = Number(h.productos[d.producto].ventas[idx]) || 0;
+        const dif = d.ventas - real;
+        return { producto: d.producto, pred: d.ventas, real, dif, pct: real ? (dif / real) * 100 : 0 };
+    });
+    const totPred = rfPred.total;
+    const totReal = filas.reduce((s, f) => s + f.real, 0);
+    const difTot = totPred - totReal;
+    const pctTot = totReal ? (difTot / totReal) * 100 : 0;
+    const igual = Math.abs(difTot) < 0.005;
+    const margReal = rfMargenMes(h, idx);
+
+    // Lado izquierdo: predicción | centro: VS | lado derecho: mes guardado
+    $('rfCmpTitPred').textContent = NOMBRES_MES[rfPred.mes - 1] + ' ' + rfPred.anio;
+    $('rfCmpTotPred').textContent = 'S/. ' + fmt(totPred);
+    $('rfCmpMargPred').textContent = (rfPred.margen >= 0 ? '+' : '') + fmt(rfPred.margen) + '%';
+    $('rfCmpTitReal').textContent = NOMBRES_MES[m - 1] + ' ' + a;
+    $('rfCmpTotReal').textContent = 'S/. ' + fmt(totReal);
+    $('rfCmpMargReal').textContent = (margReal >= 0 ? '+' : '') + fmt(margReal) + '%';
+    $('rfCmpDif').innerHTML = (igual ? '=' : difTot > 0 ? '▲ +' : '▼ ') + 'S/. ' + fmt(difTot) +
+        '<br>(' + (pctTot >= 0 ? '+' : '') + fmt(pctTot) + '%)';
+    rfPonerBadge('rfCmpBadgePred', totPred > totReal, igual);
+    rfPonerBadge('rfCmpBadgeReal', totReal > totPred, igual);
+    $('rfLadoPred').classList.toggle('ganador', !igual && totPred > totReal);
+    $('rfLadoReal').classList.toggle('ganador', !igual && totReal > totPred);
+
+    $('rfTablaCmp').innerHTML = filas.map(f => `
+        <tr>
+            <td><b>${icono(f.producto)} ${esc(f.producto)}</b></td>
+            <td class="num">${fmt(f.pred)}</td>
+            <td class="num">${fmt(f.real)}</td>
+            <td class="num ${f.dif >= 0 ? 'rm-pos' : 'rm-neg'}">${f.dif >= 0 ? '▲ +' : '▼ '}${fmt(f.dif)}</td>
+            <td class="num ${f.pct >= 0 ? 'rm-pos' : 'rm-neg'}">${f.pct >= 0 ? '+' : ''}${fmt(f.pct)}%</td>
+        </tr>`).join('');
+
+    $('rfComparacion').style.display = 'block';
+    dibujar('rfChartCmp', {
+        type: 'bar',
+        data: { labels: filas.map(f => f.producto), datasets: [
+            { label: 'Predicción ' + NOMBRES_MES[rfPred.mes - 1] + ' ' + rfPred.anio, data: filas.map(f => f.pred), backgroundColor: '#7c3aed', borderRadius: 6 },
+            { label: 'Guardado ' + NOMBRES_MES[m - 1] + ' ' + a, data: filas.map(f => f.real), backgroundColor: '#0284c7', borderRadius: 6 }
+        ] },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+    $('rfModalCmp').classList.remove('open');
+    $('rfComparacion').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
         
         // Cuando eliges un mes en el selector, carga su reporte
