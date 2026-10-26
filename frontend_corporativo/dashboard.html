@@ -37,8 +37,8 @@
         html.dark-mode, body.dark-mode {
             --bg-main: #060b18;
             --surface: #0f172a; 
-            --text-main: #e2e8f0;
-            --text-muted: #94a3b8;
+            --text-main: #f1f5f9;
+            --text-muted: #cbd5e1;
             --border: rgba(255, 255, 255, 0.08);
         }
 
@@ -260,9 +260,56 @@
         .stat b { display: block; margin-top: 6px; font-size: 26px; color: var(--primary); font-weight: 800; }
         .bienvenida { display: grid; grid-template-columns: 1fr 1.4fr; gap: 40px; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 36px; }
         .bienvenida h2 { margin: 0; font-size: 28px; color: var(--primary); letter-spacing: -0.5px; }
+        .bienvenida h3 { margin: 0; font-size: 20px; color: var(--primary); }
         .bienvenida p { margin: 0 0 14px; color: var(--text-muted); font-size: 14px; line-height: 1.75; }
         .link { background: none; border: none; color: var(--accent); font-weight: 700; font-size: 14px; cursor: pointer; padding: 0; }
         .link:hover { text-decoration: underline; }
+
+        /* ===== TARJETAS INFORMATIVAS KERAS ===== */
+        .keras-info-card {
+            display: block;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--accent);
+            border-radius: var(--radius);
+            padding: 26px 30px;
+            box-shadow: 0 6px 20px rgba(11, 19, 41, 0.04);
+            transition: all .25s ease;
+        }
+        .keras-info-title {
+            margin: 0 0 10px 0;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            letter-spacing: -0.3px;
+        }
+        .keras-info-desc {
+            font-size: 13.5px;
+            color: var(--text-muted);
+            line-height: 1.8;
+            margin: 0;
+        }
+        .keras-info-desc b,
+        .keras-info-desc strong {
+            color: var(--primary);
+            font-weight: 700;
+        }
+        code {
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            background: #f1f5f9;
+            color: #0369a1;
+            padding: 2.5px 7px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid #e2e8f0;
+            display: inline-block;
+            vertical-align: middle;
+            margin: 1px 2px;
+        }
         .cards3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 22px; }
         .modulo { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; cursor: pointer; text-align: left; transition: all .25s ease; }
         .modulo:hover { transform: translateY(-6px); box-shadow: 0 16px 30px -10px rgba(2,132,199,0.3); border-color: #bae6fd; }
@@ -570,6 +617,8 @@
         }
         body.dark-mode .stat b,
         body.dark-mode .bienvenida h2,
+        body.dark-mode .bienvenida h3,
+        body.dark-mode .bienvenida h4,
         body.dark-mode .modulo h3,
         body.dark-mode .tile,
         body.dark-mode .news h3,
@@ -578,8 +627,38 @@
         body.dark-mode .product-card h3,
         body.dark-mode .product-card .row b,
         body.dark-mode .panel h3,
-        body.dark-mode .panel h4 {
+        body.dark-mode .panel h4,
+        body.dark-mode .keras-info-title {
             color: #f8fafc !important;
+        }
+
+        body.dark-mode .bienvenida p,
+        body.dark-mode .panel p,
+        body.dark-mode .keras-info-desc {
+            color: #cbd5e1 !important;
+        }
+
+        body.dark-mode .bienvenida b,
+        body.dark-mode .bienvenida strong,
+        body.dark-mode .panel b,
+        body.dark-mode .panel strong,
+        body.dark-mode .keras-info-desc b,
+        body.dark-mode .keras-info-desc strong {
+            color: #38bdf8 !important;
+        }
+
+        body.dark-mode code {
+            background: rgba(56, 189, 248, 0.12) !important;
+            color: #7dd3fc !important;
+            border-color: rgba(56, 189, 248, 0.3) !important;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.08) !important;
+        }
+
+        body.dark-mode .keras-info-card {
+            background: var(--surface) !important;
+            border-color: var(--border) !important;
+            border-left-color: #38bdf8 !important;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35) !important;
         }
 
         body.dark-mode .stat,
@@ -1049,16 +1128,14 @@
             </div>
             <div class="contenido">
                 <div class="bloque">
-                    <div class="bienvenida" style="grid-template-columns: 1fr;">
-                        <div>
-                            <h3 style="margin-top:0;color:var(--primary);">🎯 Inferencia Neural con Datos Corporativos</h3>
-                            <p style="font-size:13px;color:var(--text-muted);line-height:1.7;margin:0;">
-                                El modelo procesa la totalidad de las <b>100,000 transacciones históricas</b> sincronizadas directamente desde la base de datos PostgreSQL en Supabase.
-                                Las variables analizadas son producto, tienda, precio unitario, stock, temperatura, mes y día de la semana;
-                                la etiqueta que la Red Neuronal estima con alta precisión es <b>ventas_totales</b> en soles.
-                                Los indicadores reflejan la capacidad predictiva del modelo sobre el volumen masivo de operaciones reales corporativas.
-                            </p>
-                        </div>
+                    <div class="keras-info-card">
+                        <h3 class="keras-info-title">🎯 Inferencia Neural con Datos Corporativos</h3>
+                        <p class="keras-info-desc">
+                            El modelo procesa la totalidad de las <b>100,000 transacciones históricas</b> sincronizadas directamente desde la base de datos PostgreSQL en Supabase.
+                            Las variables analizadas son producto, tienda, precio unitario, stock, temperatura, mes y día de la semana;
+                            la etiqueta que la Red Neuronal estima con alta precisión es <b>ventas_totales</b> en soles.
+                            Los indicadores reflejan la capacidad predictiva del modelo sobre el volumen masivo de operaciones reales corporativas.
+                        </p>
                     </div>
                 </div>
                 <div class="metrics-grid" style="margin-bottom:25px;">
@@ -1086,7 +1163,7 @@
 
                 <div class="sim-layout">
                     <div class="panel">
-                        <h3 style="margin-top:0;color:var(--primary);font-size:18px;">🧪 Inferencia en Tiempo Real</h3>
+                        <h3 style="margin-top:0;font-size:18px;">🧪 Inferencia en Tiempo Real</h3>
                         <p style="color:var(--text-muted);font-size:13px;margin-bottom:14px;">Ajuste los parámetros o elija un escenario rápido para consultar la Red Neuronal de Keras:</p>
                         <div class="chips" id="kEscenarios">
                             <button type="button" data-escenario="economico">💸 Precio bajo, poco stock</button>
@@ -1116,23 +1193,21 @@
                             <h2 id="kResultado">S/. --</h2>
                             <small id="kUnidades">Calculando predicción...</small>
                         </div>
-                        <h4 style="margin:0 0 10px;color:var(--primary);font-size:15px;">Comparación de Demanda por Producto (Keras)</h4>
+                        <h4 style="margin:0 0 10px;font-size:15px;">Comparación de Demanda por Producto (Keras)</h4>
                         <div class="chart-container" style="height: 240px;"><canvas id="chartKerasSim"></canvas></div>
                     </div>
                 </div>
 
                 <div class="bloque">
-                    <div class="bienvenida" style="grid-template-columns: 1fr;">
-                        <div>
-                            <h3 style="margin-top:0;color:var(--primary);">📐 Ficha Técnica de la Arquitectura Keras</h3>
-                            <p style="font-size:13px;color:var(--text-muted);line-height:1.7;margin:0;">
-                                • <b>Tipo de Modelo:</b> Deep Neural Network (DNN) con <code>tf.keras.Sequential</code>.<br>
-                                • <b>Capas:</b> <code>Input(14)</code> ➔ <code>Dense(64, ReLU)</code> ➔ <code>BatchNormalization()</code> ➔ <code>Dropout(0.1)</code> ➔ <code>Dense(32, ReLU)</code> ➔ <code>Dense(16, ReLU)</code> ➔ <code>Dense(1, Linear)</code>.<br>
-                                • <b>Optimizador:</b> Adam (Learning Rate = 0.002 con reducción por meseta <code>ReduceLROnPlateau</code>).<br>
-                                • <b>Entrenamiento Masivo:</b> 100,000 transacciones procesadas directamente desde Supabase PostgreSQL con convergencia acelerada y EarlyStopping.<br>
-                                • <b>Optimización para la Nube (Render):</b> Arquitectura Dual-Engine que preserva el archivo nativo <code>modelo_ventas_keras.keras</code> y utiliza pesos matriciales exportados para garantizar alta velocidad con menos de 10 MB de RAM.
-                            </p>
-                        </div>
+                    <div class="keras-info-card">
+                        <h3 class="keras-info-title">📐 Ficha Técnica de la Arquitectura Keras</h3>
+                        <p class="keras-info-desc">
+                            • <b>Tipo de Modelo:</b> Deep Neural Network (DNN) con <code>tf.keras.Sequential</code>.<br>
+                            • <b>Capas:</b> <code>Input(14)</code> ➔ <code>Dense(64, ReLU)</code> ➔ <code>BatchNormalization()</code> ➔ <code>Dropout(0.1)</code> ➔ <code>Dense(32, ReLU)</code> ➔ <code>Dense(16, ReLU)</code> ➔ <code>Dense(1, Linear)</code>.<br>
+                            • <b>Optimizador:</b> Adam (Learning Rate = 0.002 con reducción por meseta <code>ReduceLROnPlateau</code>).<br>
+                            • <b>Entrenamiento Masivo:</b> 100,000 transacciones procesadas directamente desde Supabase PostgreSQL con convergencia acelerada y EarlyStopping.<br>
+                            • <b>Optimización para la Nube (Render):</b> Arquitectura Dual-Engine que preserva el archivo nativo <code>modelo_ventas_keras.keras</code> y utiliza pesos matriciales exportados para garantizar alta velocidad con menos de 10 MB de RAM.
+                        </p>
                     </div>
                 </div>
             </div>
