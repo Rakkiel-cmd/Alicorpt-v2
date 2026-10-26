@@ -1287,6 +1287,11 @@
                     .rf-centro { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-width: 110px; }
                     .rf-centro .vs { width: 58px; height: 58px; border-radius: 50%; background: var(--accent-gradient); color: #fff; font-weight: 800; font-size: 18px; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(2,132,199,.35); }
                     .rf-centro em { font-style: normal; font-weight: 800; font-size: 13px; text-align: center; color: var(--text-main); }
+                    .rf-cache-badge { display: inline-flex; align-items: center; gap: 8px; padding: 7px 16px; border-radius: 20px; font-size: 12.5px; font-weight: 700; margin-top: 10px; transition: all .25s ease; }
+                    .rf-cache-badge.reutilizado { background: rgba(16,185,129,.16); color: #059669; border: 1px solid rgba(16,185,129,.35); }
+                    .rf-cache-badge.nuevo { background: rgba(56,189,248,.16); color: #0284c7; border: 1px solid rgba(56,189,248,.35); }
+                    body.dark-mode .rf-cache-badge.reutilizado { background: rgba(16,185,129,.22); color: #34d399; border-color: rgba(52,211,153,.45); }
+                    body.dark-mode .rf-cache-badge.nuevo { background: rgba(56,189,248,.22); color: #7dd3fc; border-color: rgba(125,211,252,.45); }
                     @media (max-width: 800px) { .rf-vs { grid-template-columns: 1fr; } }
                 </style>
 
@@ -1339,7 +1344,10 @@
                     <div class="hero-banner">
                         <span>Reporte proyectado (predicción)</span>
                         <h2 id="rfFecha">--</h2>
-                        <small>Estimado con Regresión Lineal a partir del historial real guardado en la base de datos.</small>
+                        <small id="rfMotorTexto">Estimado con Red Neuronal Profunda (Keras DNN) sincronizado con Supabase PostgreSQL.</small>
+                        <div style="margin-top:10px;">
+                            <div id="rfBadgeOrigen" class="rf-cache-badge" style="display:none;"></div>
+                        </div>
                     </div>
                     <div class="metrics-grid">
                         <div class="metric-card" style="--accent:#0284c7;"><h4>Venta total proyectada</h4><p id="rfVentaTotal">S/. --</p><small>Suma de las ventas proyectadas de todos los productos</small></div>
@@ -2695,7 +2703,7 @@ function inicializarReporte() {
 
 
         /* ================= REPORTE FUTURO + COMPARACIÓN (Integrante 6) ================= */
-const RF_ANIOS = [2026, 2027];
+const RF_ANIOS = [2026, 2027, 2028, 2029, 2030];
 let rfHistorial = null;   // historial real leído de la BD (se lee una sola vez)
 let rfPred = null;        // última predicción generada (la usa el botón Comparar)
 
@@ -2802,43 +2810,67 @@ function rfInicializar() {
     $('rfBtnComparar').addEventListener('click', rfComparar);
 }
 
-// BOTÓN 1: genera el reporte de la fecha futura elegida
+// BOTÓN 1: genera o recupera el reporte de la fecha futura elegida con Red Neuronal & BD
 async function rfGenerar() {
     const btn = $('rfBtnGenerar'), err = $('rfError'), cargando = $('rfCargando');
     err.style.display = 'none';
     btn.disabled = true;
     cargando.style.display = 'block';
+    cargando.textContent = 'Consultando Base de Datos y Red Neuronal... ⏳';
+
     try {
-        const h = await rfCargarHistorial();
         const anio = Number($('rfAnio').value), mes = Number($('rfMes').value);
+        const usuarioSesion = (typeof sesionUsuario !== 'undefined' && sesionUsuario.usuario) ? sesionUsuario.usuario : 'analista';
 
-        // Una fila por producto, con el mismo formato del reporte mensual
-        const datos = Object.keys(h.productos).map(nombre => {
-            const p = h.productos[nombre];
-            const ultimoPrecio = [...p.precios].reverse().find(v => v !== null && !isNaN(v)) || 0;
-            const futuro = rfProyectar(p.precios, anio, mes, false);
-            const variacion = ultimoPrecio ? ((futuro - ultimoPrecio) / ultimoPrecio) * 100 : 0;
-            return {
-                producto: nombre,
-                actual: ultimoPrecio,
-                futuro,
-                variacion,
-                ventas: rfProyectar(p.ventas, anio, mes, true),
-                estado: estadoRentabilidad(variacion)
-            };
-        });
-        const total = datos.reduce((s, d) => s + d.ventas, 0);
-        const margen = datos.reduce((s, d) => s + d.variacion, 0) / datos.length;
-        rfPred = { anio, mes, datos, total, margen };
+        // 1. Consultar a la API si ya existe en Supabase o generar nueva con Red Neuronal Keras
+        const resp = await fetch(`/api/reporte_mensual/predecir_futuro?anio=${anio}&mes=${mes}&usuario=${encodeURIComponent(usuarioSesion)}`);
+        if (!resp.ok) throw new Error('Servidor retornó error HTTP ' + resp.status);
+        const res = await resp.json();
+        if (!res.success) throw new Error(res.message || 'No se pudo generar la predicción.');
 
-        $('rfFecha').textContent = NOMBRES_MES[mes - 1] + ' ' + anio;
+        // 2. Cargar historial de la BD si aún no se cargó (necesario para el botón Comparar)
+        if (!rfHistorial) {
+            try { await rfCargarHistorial(); } catch (e) { console.warn('Aviso cargando historial real:', e); }
+        }
+
+        const datos = res.datos || [];
+        const total = Number(res.total || 0);
+        const margen = Number(res.margen || 0);
+        rfPred = {
+            anio,
+            mes,
+            datos,
+            total,
+            margen,
+            reutilizado: res.reutilizado,
+            origen: res.origen,
+            mensaje: res.mensaje
+        };
+
+        $('rfFecha').textContent = res.nombre_mes || (NOMBRES_MES[mes - 1] + ' ' + anio);
         $('rfVentaTotal').textContent = 'S/. ' + fmt(total);
         $('rfMargen').textContent = (margen >= 0 ? '+' : '') + fmt(margen) + '%';
         $('rfMargenCard').style.setProperty('--accent', margen >= 0 ? '#10b981' : '#dc2626');
-        const peor = datos.reduce((a, b) => (b.variacion < a.variacion ? b : a));
+
+        const peor = datos.reduce((a, b) => (b.variacion < a.variacion ? b : a), datos[0] || { producto: '--', variacion: 0 });
         $('rfRiesgo').textContent = peor.producto;
         $('rfRiesgoDet').textContent = 'Variación proyectada: ' + fmt(peor.variacion) + '%';
 
+        // Badge indicador de persistencia / reutilización
+        const badgeBox = $('rfBadgeOrigen');
+        if (badgeBox) {
+            if (res.reutilizado) {
+                badgeBox.className = 'rf-cache-badge reutilizado';
+                badgeBox.innerHTML = '⚡ <b>Reporte reutilizado de la Base de Datos</b> (PostgreSQL Supabase · 0 ms de reproceso)';
+                badgeBox.style.display = 'inline-flex';
+            } else {
+                badgeBox.className = 'rf-cache-badge nuevo';
+                badgeBox.innerHTML = '🧠 <b>Nueva predicción con Red Neuronal Keras (DNN)</b> guardada en Base de Datos';
+                badgeBox.style.display = 'inline-flex';
+            }
+        }
+
+        // Renderizado de la tabla de productos
         $('rfTabla').innerHTML = datos.map(d => `
             <tr>
                 <td><b>${iconoMini(d.producto)} ${esc(d.producto)}</b></td>
@@ -2847,12 +2879,12 @@ async function rfGenerar() {
                 <td class="num">${fmt(d.futuro)}</td>
                 <td class="num ${d.variacion >= 0 ? 'rm-pos' : 'rm-neg'}">${d.variacion >= 0 ? '+' : ''}${fmt(d.variacion)}%</td>
                 <td class="num">${fmt(d.ventas)}</td>
-                <td><span class="rm-badge ${d.estado.clase}">${d.estado.texto}</span></td>
+                <td><span class="rm-badge ${d.estado ? d.estado.clase : 'neutro'}">${d.estado ? d.estado.texto : '⚪ Neutro'}</span></td>
             </tr>`).join('');
 
         $('rfResultado').style.display = 'block';
         $('rfComparacion').style.display = 'none';
-        $('rfBtnAbrirCmp').disabled = false;          // ya se puede comparar
+        $('rfBtnAbrirCmp').disabled = false;          // Habilitar botón Comparar
         $('rfModalPred').classList.remove('open');
         $('rfResultado').scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch (e) {
@@ -2873,14 +2905,19 @@ function rfPonerBadge(id, esMayor, esIgual) {
 
 // BOTÓN 2: compara la predicción contra un mes guardado en la BD
 function rfComparar() {
-    if (!rfPred || !rfHistorial) return;
+    if (!rfPred) return;
+    if (!rfHistorial) {
+        alert('Cargando el historial de meses de la base de datos para la comparación, por favor espera un momento...');
+        return;
+    }
     const h = rfHistorial;
     const idx = h.meses.findIndex(({ a, m }) => rfClave(a, m) === $('rfMesGuardado').value);
     if (idx < 0) return;
     const { a, m } = h.meses[idx];
 
     const filas = rfPred.datos.map(d => {
-        const real = Number(h.productos[d.producto].ventas[idx]) || 0;
+        const prodHist = h.productos ? h.productos[d.producto] : null;
+        const real = (prodHist && prodHist.ventas && Number(prodHist.ventas[idx])) || 0;
         const dif = d.ventas - real;
         return { producto: d.producto, pred: d.ventas, real, dif, pct: real ? (dif / real) * 100 : 0 };
     });
@@ -2915,6 +2952,9 @@ function rfComparar() {
         </tr>`).join('');
 
     $('rfComparacion').style.display = 'block';
+    $('rfModalCmp').classList.remove('open');
+    $('rfComparacion').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
     dibujar('rfChartCmp', {
         type: 'bar',
         data: { labels: filas.map(f => f.producto), datasets: [
@@ -2923,8 +2963,6 @@ function rfComparar() {
         ] },
         options: { responsive: true, maintainAspectRatio: false }
     });
-    $('rfModalCmp').classList.remove('open');
-    $('rfComparacion').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
         
         // Cuando eliges un mes en el selector, carga su reporte

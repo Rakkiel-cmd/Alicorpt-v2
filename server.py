@@ -33,6 +33,8 @@ from backend.incidencias import incidencias_bp
 app.register_blueprint(incidencias_bp)
 from backend.superadmin_panel import superadmin_panel
 app.register_blueprint(superadmin_panel)
+from backend.reporte_predictivo_service import reporte_predictivo_bp
+app.register_blueprint(reporte_predictivo_bp)
 from backend.seguridad_acceso import es_superadmin
 
 # Limpiar y forzar cabeceras de seguridad para evitar errores de Permissions-Policy ('join-ad-interest-group')
