@@ -38,6 +38,28 @@ app.register_blueprint(superadmin_panel)
 from backend.reporte_predictivo_service import reporte_predictivo_bp
 app.register_blueprint(reporte_predictivo_bp)
 from backend.seguridad_acceso import es_superadmin
+from datetime import datetime, timezone, timedelta
+
+# Zona horaria oficial Corporación Alicorp Perú (UTC-5, ciclo diario estricto de 00:00 a 24:00)
+ZONA_HORARIA_PERU = timezone(timedelta(hours=-5))
+
+def obtener_ahora_peru():
+    """Retorna el datetime actual en la zona horaria de Perú (UTC-5)."""
+    return datetime.now(ZONA_HORARIA_PERU)
+
+def obtener_fecha_hoy_peru():
+    """Retorna la fecha calendario de hoy en Perú (YYYY-MM-DD), reiniciando exactamente a las 00:00."""
+    return obtener_ahora_peru().date().isoformat()
+
+def obtener_iso_ahora_peru():
+    """Retorna timestamp ISO 8601 con offset explícito -05:00."""
+    return obtener_ahora_peru().isoformat()
+
+def segundos_transcurridos_desde_medianoche():
+    """Segundos transcurridos desde las 00:00:00 del día actual en Perú (máx 86400)."""
+    ahora = obtener_ahora_peru()
+    inicio_dia = ahora.replace(hour=0, minute=0, second=0, microsecond=0)
+    return max(0, min(86400, int((ahora - inicio_dia).total_seconds())))
 
 # Limpiar y forzar cabeceras de seguridad para evitar errores de Permissions-Policy ('join-ad-interest-group')
 @app.after_request
@@ -90,11 +112,10 @@ def login_password():
                 nombre_completo = fila.get('nombre_completo') or fila.get('usuario')
                 face_encoding = fila.get('face_encoding')
                 
-                # Inicializar o registrar actividad para el día de hoy
+                # Inicializar o registrar actividad para el día calendario actual (00:00 a 24:00 Perú)
                 try:
-                    from datetime import date, datetime
-                    hoy = date.today().isoformat()
-                    now_iso = datetime.utcnow().isoformat()
+                    hoy = obtener_fecha_hoy_peru()
+                    now_iso = obtener_iso_ahora_peru()
                     act_check = supabase.table('actividad_usuarios').select('id').eq('usuario', usuario_input).eq('fecha', hoy).execute()
                     if not act_check.data:
                         supabase.table('actividad_usuarios').insert({
@@ -104,6 +125,10 @@ def login_password():
                             'primer_ingreso': now_iso,
                             'ultimo_latido': now_iso
                         }).execute()
+                    else:
+                        supabase.table('actividad_usuarios').update({
+                            'ultimo_latido': now_iso
+                        }).eq('id', act_check.data[0]['id']).execute()
                 except Exception:
                     pass
 
@@ -175,10 +200,9 @@ def login_facial():
                         nombre_completo = u_res.data[0].get('nombre_completo') or usuario_reconocido
                         face_encoding = u_res.data[0].get('face_encoding')
                     
-                    # Inicializar actividad de hoy
-                    from datetime import date, datetime
-                    hoy = date.today().isoformat()
-                    now_iso = datetime.utcnow().isoformat()
+                    # Inicializar actividad del día calendario actual (00:00 a 24:00 Perú)
+                    hoy = obtener_fecha_hoy_peru()
+                    now_iso = obtener_iso_ahora_peru()
                     act_check = supabase.table('actividad_usuarios').select('id').eq('usuario', usuario_reconocido).eq('fecha', hoy).execute()
                     if not act_check.data:
                         supabase.table('actividad_usuarios').insert({
@@ -188,6 +212,10 @@ def login_facial():
                             'primer_ingreso': now_iso,
                             'ultimo_latido': now_iso
                         }).execute()
+                    else:
+                        supabase.table('actividad_usuarios').update({
+                            'ultimo_latido': now_iso
+                        }).eq('id', act_check.data[0]['id']).execute()
                 except Exception:
                     pass
 
@@ -345,16 +373,16 @@ def usuario_perfil():
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 
-# Endpoint: Obtener tiempo de actividad acumulado hoy
+# Endpoint: Obtener tiempo de actividad acumulado hoy (ciclo diario 00:00 a 24:00 hora Perú)
 @app.route('/api/actividad/hoy', methods=['GET'])
 def actividad_hoy():
     usuario = request.args.get('usuario')
     if not usuario:
         return jsonify({"success": False, "message": "Falta parámetro usuario."}), 400
 
-    from datetime import date, datetime
-    hoy = date.today().isoformat()
-    now_iso = datetime.utcnow().isoformat()
+    hoy = obtener_fecha_hoy_peru()
+    now_iso = obtener_iso_ahora_peru()
+    max_seg_hoy = segundos_transcurridos_desde_medianoche()
 
     SUPABASE_URL = os.environ.get("SUPABASE_URL")
     SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
@@ -362,22 +390,31 @@ def actividad_hoy():
         return jsonify({"success": True, "usuario": usuario, "fecha": hoy, "tiempo_segundos": 0, "offline": True})
 
     try:
-        from supabase import create_client, Client
-        supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+        from backend.datos_supabase import obtener_cliente_supabase
+        supabase = obtener_cliente_supabase()
 
         res = supabase.table('actividad_usuarios').select('*').eq('usuario', usuario).eq('fecha', hoy).execute()
         if res.data and len(res.data) > 0:
             fila = res.data[0]
+            tiempo_db = max(0, int(fila.get("tiempo_segundos", 0) or 0))
+            # Garantizar que el tiempo del día nunca supere los segundos transcurridos desde las 00:00
+            if tiempo_db > max_seg_hoy + 15:
+                tiempo_db = max_seg_hoy
+                try:
+                    supabase.table('actividad_usuarios').update({"tiempo_segundos": tiempo_db}).eq('id', fila['id']).execute()
+                except Exception:
+                    pass
             return jsonify({
                 "success": True,
                 "usuario": usuario,
-                "fecha": fila.get("fecha"),
-                "tiempo_segundos": fila.get("tiempo_segundos", 0),
+                "fecha": fila.get("fecha") or hoy,
+                "tiempo_segundos": tiempo_db,
                 "primer_ingreso": fila.get("primer_ingreso"),
-                "ultimo_latido": fila.get("ultimo_latido")
+                "ultimo_latido": fila.get("ultimo_latido"),
+                "segundos_desde_medianoche": max_seg_hoy
             })
         else:
-            # Crear nueva fila para hoy
+            # Crear nueva fila para hoy iniciando en 0 segundos (conteo desde las 00:00 hasta las 24:00)
             nuevo = {
                 "usuario": usuario,
                 "fecha": hoy,
@@ -394,7 +431,9 @@ def actividad_hoy():
                 "usuario": usuario,
                 "fecha": hoy,
                 "tiempo_segundos": 0,
-                "primer_ingreso": now_iso
+                "primer_ingreso": now_iso,
+                "ultimo_latido": now_iso,
+                "segundos_desde_medianoche": max_seg_hoy
             })
     except Exception as e:
         return jsonify({
@@ -406,49 +445,105 @@ def actividad_hoy():
             "error": str(e)
         })
 
-# Endpoint: Latido en vivo para registrar tiempo de actividad en Supabase
+# Endpoint: Latido en vivo para registrar tiempo de actividad en Supabase (reinicio estricto a las 00:00)
 @app.route('/api/actividad/latido', methods=['POST'])
 def actividad_latido():
     try:
         data = request.get_json(silent=True) or {}
         usuario = (data.get('usuario') or 'admin').strip()
+        fecha_cliente = (data.get('fecha') or '').strip()
+        cierre_dia = bool(data.get('cierre_dia', False))
         tiempo_total_hoy = data.get('tiempo_total_hoy')
         try:
-            segundos_delta = int(data.get('segundos_delta', 15))
+            segundos_delta = max(0, min(60, int(data.get('segundos_delta', 15))))
         except (ValueError, TypeError):
             segundos_delta = 15
 
-        from datetime import date, datetime
-        hoy = date.today().isoformat()
-        now_iso = datetime.utcnow().isoformat()
+        hoy = obtener_fecha_hoy_peru()
+        now_iso = obtener_iso_ahora_peru()
+        max_seg_hoy = segundos_transcurridos_desde_medianoche()
 
         SUPABASE_URL = os.environ.get("SUPABASE_URL")
         SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
         if not SUPABASE_URL or not SUPABASE_KEY:
-            return jsonify({"success": True, "offline": True})
+            return jsonify({"success": True, "offline": True, "fecha": hoy})
 
         try:
             from backend.datos_supabase import obtener_cliente_supabase
             supabase = obtener_cliente_supabase()
 
-            # Buscar si ya existe fila para el día de hoy
+            # CASO 1: El cliente reporta el cierre exacto a las 24:00 (00:00) del día que acaba de terminar
+            if cierre_dia and fecha_cliente and fecha_cliente != hoy:
+                res_ayer = supabase.table('actividad_usuarios').select('id, tiempo_segundos').eq('usuario', usuario).eq('fecha', fecha_cliente).execute()
+                if res_ayer.data and len(res_ayer.data) > 0:
+                    id_ayer = res_ayer.data[0]['id']
+                    actual_ayer = int(res_ayer.data[0].get('tiempo_segundos', 0) or 0)
+                    final_ayer = actual_ayer + segundos_delta
+                    if tiempo_total_hoy is not None:
+                        try:
+                            final_ayer = max(final_ayer, int(tiempo_total_hoy))
+                        except (ValueError, TypeError):
+                            pass
+                    final_ayer = min(86400, final_ayer)
+                    supabase.table('actividad_usuarios').update({
+                        "tiempo_segundos": final_ayer,
+                        "ultimo_latido": f"{fecha_cliente}T23:59:59-05:00"
+                    }).eq('id', id_ayer).execute()
+
+                # Garantizar que la fila del nuevo día (hoy, desde las 00:00) inicie en 0 segundos
+                res_hoy = supabase.table('actividad_usuarios').select('id, tiempo_segundos').eq('usuario', usuario).eq('fecha', hoy).execute()
+                if not res_hoy.data:
+                    supabase.table('actividad_usuarios').insert({
+                        "usuario": usuario,
+                        "fecha": hoy,
+                        "tiempo_segundos": 0,
+                        "primer_ingreso": f"{hoy}T00:00:00-05:00",
+                        "ultimo_latido": now_iso
+                    }).execute()
+                return jsonify({
+                    "success": True,
+                    "fecha": hoy,
+                    "tiempo_segundos": 0,
+                    "reset_medianoche": True
+                })
+
+            # CASO 2: El cliente mandó un latido con fecha del día anterior (ej. pestaña que despertó tras cruzar las 00:00)
+            # NUNCA arrastrar tiempo_total_hoy del día anterior al nuevo día.
+            es_cambio_dia_no_sincronizado = bool(fecha_cliente and fecha_cliente != hoy)
+
+            # Buscar si ya existe fila para el día calendario actual (hoy: 00:00 a 24:00)
             res = supabase.table('actividad_usuarios').select('id, tiempo_segundos').eq('usuario', usuario).eq('fecha', hoy).execute()
             if res.data and len(res.data) > 0:
                 reg_id = res.data[0]['id']
-                actual = res.data[0].get('tiempo_segundos', 0)
+                actual = max(0, int(res.data[0].get('tiempo_segundos', 0) or 0))
                 nuevo_tiempo = actual + segundos_delta
-                if tiempo_total_hoy is not None and int(tiempo_total_hoy) >= actual:
-                    nuevo_tiempo = int(tiempo_total_hoy)
+
+                # Solo aceptar sincronización de tiempo_total_hoy si pertenece al mismo día hoy y no excede el tiempo desde las 00:00
+                if not es_cambio_dia_no_sincronizado and tiempo_total_hoy is not None:
+                    try:
+                        t_cliente = int(tiempo_total_hoy)
+                        if actual <= t_cliente <= actual + 45:
+                            nuevo_tiempo = t_cliente
+                    except (ValueError, TypeError):
+                        pass
+
+                # Tope físico: nunca puede superar los segundos transcurridos desde las 00:00 de hoy
+                nuevo_tiempo = min(86400, min(nuevo_tiempo, max_seg_hoy + 15))
 
                 supabase.table('actividad_usuarios').update({
                     "tiempo_segundos": nuevo_tiempo,
                     "ultimo_latido": now_iso
                 }).eq('id', reg_id).execute()
 
-                return jsonify({"success": True, "fecha": hoy, "tiempo_segundos": nuevo_tiempo})
+                return jsonify({
+                    "success": True,
+                    "fecha": hoy,
+                    "tiempo_segundos": nuevo_tiempo,
+                    "reset_medianoche": es_cambio_dia_no_sincronizado
+                })
             else:
-                # Nuevo registro para hoy (o cambio de medianoche a nuevo día)
-                init_tiempo = int(tiempo_total_hoy) if tiempo_total_hoy is not None else segundos_delta
+                # Nuevo registro para hoy (empieza desde 0 + el delta del latido actual, jamás arrastrando el total de ayer)
+                init_tiempo = min(segundos_delta, max_seg_hoy + 5)
                 nuevo = {
                     "usuario": usuario,
                     "fecha": hoy,
@@ -457,11 +552,68 @@ def actividad_latido():
                     "ultimo_latido": now_iso
                 }
                 supabase.table('actividad_usuarios').insert(nuevo).execute()
-                return jsonify({"success": True, "fecha": hoy, "tiempo_segundos": init_tiempo})
+                return jsonify({
+                    "success": True,
+                    "fecha": hoy,
+                    "tiempo_segundos": init_tiempo,
+                    "reset_medianoche": True
+                })
         except Exception as e:
-            return jsonify({"success": True, "offline": True, "error": str(e)})
+            return jsonify({"success": True, "offline": True, "error": str(e), "fecha": hoy})
     except Exception as e:
         return jsonify({"success": True, "offline": True, "error": str(e)})
+
+
+def _normalizar_registro_historial_peru(fila):
+    """
+    Asegura que primer_ingreso y ultimo_latido tengan zona horaria de Perú (-05:00)
+    y correspondan coherentemente al día 00:00 - 24:00 de la fila.
+    """
+    if not isinstance(fila, dict):
+        return fila
+    copia = dict(fila)
+    fecha_str = str(copia.get("fecha") or "")
+    tiempo_seg = max(0, int(copia.get("tiempo_segundos") or 0))
+
+    def _a_dt_peru(val):
+        if not val:
+            return None
+        try:
+            s = str(val).strip().replace('Z', '+00:00')
+            dt = datetime.fromisoformat(s)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt.astimezone(ZONA_HORARIA_PERU)
+        except Exception:
+            return None
+
+    dt_primer = _a_dt_peru(copia.get("primer_ingreso"))
+    dt_ultimo = _a_dt_peru(copia.get("ultimo_latido"))
+
+    if fecha_str:
+        try:
+            inicio_dia = datetime.fromisoformat(f"{fecha_str}T00:00:00-05:00")
+            fin_dia = datetime.fromisoformat(f"{fecha_str}T23:59:59-05:00")
+            if dt_ultimo:
+                if dt_ultimo < inicio_dia:
+                    dt_ultimo = min(fin_dia, inicio_dia + timedelta(seconds=tiempo_seg))
+                elif dt_ultimo > fin_dia:
+                    dt_ultimo = fin_dia
+            if dt_primer:
+                # Si por el antiguo corte UTC (7pm) el primer_ingreso quedó en el día anterior o después del último latido
+                if dt_primer < inicio_dia or (dt_ultimo and dt_primer > dt_ultimo):
+                    if dt_ultimo:
+                        dt_primer = max(inicio_dia, dt_ultimo - timedelta(seconds=max(tiempo_seg, 60)))
+                    else:
+                        dt_primer = inicio_dia
+        except Exception:
+            pass
+
+    if dt_primer:
+        copia["primer_ingreso"] = dt_primer.isoformat()
+    if dt_ultimo:
+        copia["ultimo_latido"] = dt_ultimo.isoformat()
+    return copia
 
 
 @app.route('/api/actividad/historial', methods=['GET'])
@@ -479,19 +631,20 @@ def actividad_historial():
                 "message": "Permiso denegado. Solo un Super Administrador puede ver el historial de otros usuarios."
             }), 403
 
-
+    hoy = obtener_fecha_hoy_peru()
     SUPABASE_URL = os.environ.get("SUPABASE_URL")
     SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
     if not SUPABASE_URL or not SUPABASE_KEY:
-        return jsonify({"success": True, "historial": []})
+        return jsonify({"success": True, "historial": [], "fecha_hoy": hoy})
 
     try:
-        from supabase import create_client, Client
-        supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+        from backend.datos_supabase import obtener_cliente_supabase
+        supabase = obtener_cliente_supabase()
         res = supabase.table('actividad_usuarios').select('*').eq('usuario', usuario).order('fecha', desc=True).limit(30).execute()
-        return jsonify({"success": True, "historial": res.data or []})
+        filas = [_normalizar_registro_historial_peru(f) for f in (res.data or [])]
+        return jsonify({"success": True, "historial": filas, "fecha_hoy": hoy})
     except Exception as e:
-        return jsonify({"success": True, "historial": [], "error": str(e)})
+        return jsonify({"success": True, "historial": [], "fecha_hoy": hoy, "error": str(e)})
 
 # Subproyecto 2: API Endpoint para predecir ventas con Red Neuronal
 @app.route('/api/predecir_ventas', methods=['POST'])

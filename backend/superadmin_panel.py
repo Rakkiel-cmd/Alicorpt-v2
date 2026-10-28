@@ -17,7 +17,7 @@ Ambos endpoints exigen que 'usuario' (quien pregunta) sea Super Administrador,
 reutilizando la misma validacion que ya usa el resto del sistema de seguridad
 (backend/seguridad_acceso.py), para no duplicar esa logica.
 """
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timezone, timedelta
 
 from flask import Blueprint, jsonify, request
 
@@ -27,6 +27,7 @@ from backend.seguridad_acceso import es_superadmin
 superadmin_panel = Blueprint('superadmin_panel', __name__)
 
 SEGUNDOS_PARA_DESCONECTADO = 60
+ZONA_HORARIA_PERU = timezone(timedelta(hours=-5))
 
 
 def _segundos_desde(iso_timestamp):
@@ -61,7 +62,7 @@ def listar_usuarios_con_estado():
 
     try:
         supabase = obtener_cliente_supabase()
-        hoy = date.today().isoformat()
+        hoy = datetime.now(ZONA_HORARIA_PERU).date().isoformat()
 
         res_admins = supabase.table('administradores') \
             .select('usuario, nombre_completo, face_encoding').execute()

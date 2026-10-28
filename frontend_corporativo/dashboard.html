@@ -3151,14 +3151,38 @@ function rfComparar() {
             });
         }
 
-        /* ================= GESTIÓN DE USUARIO, BIOMETRÍA Y TIMER DIARIO ================= */
+        /* ================= GESTIÓN DE USUARIO, BIOMETRÍA Y TIMER DIARIO (00:00 A 24:00) ================= */
         let sesionUsuario = {
             usuario: 'admin',
             nombre_completo: 'Administrador',
             face_encoding: null
         };
+
+        // Obtiene la fecha calendario actual en zona horaria de Perú (America/Lima, ciclo estricto 00:00 a 24:00)
+        function obtenerFechaHoyPeru() {
+            try {
+                const partes = new Intl.DateTimeFormat('en-CA', {
+                    timeZone: 'America/Lima',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                }).formatToParts(new Date());
+                const y = partes.find(p => p.type === 'year').value;
+                const m = partes.find(p => p.type === 'month').value;
+                const d = partes.find(p => p.type === 'day').value;
+                return `${y}-${m}-${d}`;
+            } catch (e) {
+                const d = new Date();
+                const y = d.getFullYear();
+                const m = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${y}-${m}-${day}`;
+            }
+        }
+
         let segundosActividadHoy = 0;
-        let fechaSesionActual = new Date().toISOString().split('T')[0];
+        let segundosPendientesSincronizar = 0;
+        let fechaSesionActual = obtenerFechaHoyPeru();
         let intervaloTimer = null;
         let intervaloHeartbeat = null;
 
@@ -3280,19 +3304,22 @@ function rfComparar() {
             iniciarTimerDiario();
         }
 
-        // Iniciar el Timer y sincronización con Supabase (actividad_usuarios)
+        // Iniciar el Timer y sincronización con Supabase (actividad_usuarios: reinicio diario 00:00 a 24:00)
         async function iniciarTimerDiario() {
-            const hoy = new Date().toISOString().split('T')[0];
+            const hoy = obtenerFechaHoyPeru();
             fechaSesionActual = hoy;
+            segundosActividadHoy = 0;
+            segundosPendientesSincronizar = 0;
             $('timerFechaBadge').textContent = hoy;
 
-            // 1. Obtener tiempo acumulado de hoy desde Supabase
+            // 1. Obtener tiempo acumulado de hoy (desde las 00:00) desde Supabase
             try {
                 const res = await fetch(`/api/actividad/hoy?usuario=${encodeURIComponent(sesionUsuario.usuario)}`);
                 if (res.ok) {
                     const data = await res.json();
                     if (data.success && typeof data.tiempo_segundos === 'number') {
-                        segundosActividadHoy = data.tiempo_segundos;
+                        segundosActividadHoy = Math.max(0, data.tiempo_segundos);
+                        segundosPendientesSincronizar = 0;
                         if (data.fecha) {
                             fechaSesionActual = data.fecha;
                             $('timerFechaBadge').textContent = data.fecha;
@@ -3305,22 +3332,38 @@ function rfComparar() {
 
             $('liveTimerDisplay').textContent = formatearTiempo(segundosActividadHoy);
 
-            // 2. Ticker cada segundo en pantalla
+            // 2. Ticker cada segundo en pantalla (verifica las 00:00 exactas de cada día)
             if (intervaloTimer) clearInterval(intervaloTimer);
             intervaloTimer = setInterval(() => {
-                segundosActividadHoy++;
-                $('liveTimerDisplay').textContent = formatearTiempo(segundosActividadHoy);
+                const fechaAhora = obtenerFechaHoyPeru();
 
-                // Validar cambio de día (Medianoche exacta: resetea a 0 e inicia nuevo registro)
-                const fechaAhora = new Date().toISOString().split('T')[0];
+                // Si el reloj acaba de marcar las 00:00:00 del nuevo día:
                 if (fechaAhora !== fechaSesionActual) {
-                    enviarLatidoActividad(true); // Enviar último latido del día anterior
+                    const fechaDiaAnterior = fechaSesionActual;
+                    const totalDiaAnterior = segundosActividadHoy;
+                    const deltaDiaAnterior = segundosPendientesSincronizar;
+
+                    // Reiniciar inmediatamente el contador en vivo a 0 para el nuevo día (00:00 a 24:00)
                     fechaSesionActual = fechaAhora;
-                    segundosActividadHoy = 0; // Reset a 0 para el nuevo día
+                    segundosActividadHoy = 0;
+                    segundosPendientesSincronizar = 0;
                     $('timerFechaBadge').textContent = fechaAhora;
                     $('liveTimerDisplay').textContent = formatearTiempo(0);
-                    $('timerSyncStatus').textContent = '🌅 Nuevo Día Iniciado';
+                    $('timerSyncStatus').textContent = '🌅 00:00 · Contador reiniciado a 0';
+
+                    // Guardar en BD el cierre del día anterior (00:00 a 24:00) e inicializar en 0 el nuevo día
+                    enviarLatidoActividad({
+                        cierreDia: true,
+                        fechaOverride: fechaDiaAnterior,
+                        totalOverride: totalDiaAnterior,
+                        deltaOverride: deltaDiaAnterior
+                    });
+                    return;
                 }
+
+                segundosActividadHoy++;
+                segundosPendientesSincronizar++;
+                $('liveTimerDisplay').textContent = formatearTiempo(segundosActividadHoy);
             }, 1000);
 
             // 3. Heartbeat a Supabase cada 15 segundos
@@ -3330,14 +3373,27 @@ function rfComparar() {
             }, 15000);
         }
 
-        // Enviar latido de sincronización
-        async function enviarLatidoActividad(esCambioDia = false) {
+        // Enviar latido de sincronización (guarda solo el tiempo activo del día 00:00 a 24:00)
+        async function enviarLatidoActividad(opciones = {}) {
+            const esCierreDia = !!(opciones && opciones.cierreDia);
+            const fechaEnviar = (opciones && opciones.fechaOverride) ? opciones.fechaOverride : fechaSesionActual;
+            const totalEnviar = (opciones && typeof opciones.totalOverride === 'number') ? opciones.totalOverride : segundosActividadHoy;
+            const deltaEnviar = (opciones && typeof opciones.deltaOverride === 'number')
+                ? opciones.deltaOverride
+                : Math.max(0, segundosPendientesSincronizar);
+
+            if (!esCierreDia) {
+                segundosPendientesSincronizar = 0;
+            }
+
             try {
                 const usuarioActual = (sesionUsuario && sesionUsuario.usuario) ? sesionUsuario.usuario : 'admin';
                 const payload = {
                     usuario: usuarioActual,
-                    tiempo_total_hoy: segundosActividadHoy,
-                    segundos_delta: 15
+                    fecha: fechaEnviar,
+                    tiempo_total_hoy: totalEnviar,
+                    segundos_delta: deltaEnviar,
+                    cierre_dia: esCierreDia
                 };
                 const res = await fetch('/api/actividad/latido', {
                     method: 'POST',
@@ -3347,26 +3403,43 @@ function rfComparar() {
                 if (res.ok) {
                     const data = await res.json();
                     if (data && data.success) {
+                        // Si el servidor indica cambio de día a las 00:00, sincronizar el contador a 0 del nuevo día
+                        if (data.fecha && data.fecha !== fechaSesionActual) {
+                            fechaSesionActual = data.fecha;
+                            segundosActividadHoy = typeof data.tiempo_segundos === 'number' ? data.tiempo_segundos : 0;
+                            segundosPendientesSincronizar = 0;
+                            $('timerFechaBadge').textContent = data.fecha;
+                            $('liveTimerDisplay').textContent = formatearTiempo(segundosActividadHoy);
+                        } else if (data.reset_medianoche && !esCierreDia && typeof data.tiempo_segundos === 'number') {
+                            segundosActividadHoy = data.tiempo_segundos;
+                            $('liveTimerDisplay').textContent = formatearTiempo(segundosActividadHoy);
+                        }
                         $('timerSyncStatus').textContent = '🟢 En vivo (Supabase)';
                         $('timerSyncStatus').style.color = '#10b981';
                     }
                 } else {
+                    if (!esCierreDia) segundosPendientesSincronizar += deltaEnviar;
                     $('timerSyncStatus').textContent = '🟡 En espera de sincronización';
                     $('timerSyncStatus').style.color = '#f59e0b';
                 }
             } catch (e) {
+                if (!esCierreDia) segundosPendientesSincronizar += deltaEnviar;
                 $('timerSyncStatus').textContent = '🟡 Local (Reintentando)';
                 $('timerSyncStatus').style.color = '#f59e0b';
             }
         }
 
-        // Sincronizar en salida de página
+        // Sincronizar en salida de página (envía únicamente los segundos pendientes del día actual)
         window.addEventListener('beforeunload', () => {
             try {
+                const deltaPendiente = Math.max(0, segundosPendientesSincronizar);
+                segundosPendientesSincronizar = 0;
                 const payload = JSON.stringify({
                     usuario: sesionUsuario.usuario,
+                    fecha: fechaSesionActual,
                     tiempo_total_hoy: segundosActividadHoy,
-                    segundos_delta: 5
+                    segundos_delta: deltaPendiente,
+                    cierre_dia: false
                 });
                 if (navigator.sendBeacon) {
                     const blob = new Blob([payload], { type: 'application/json' });
@@ -3494,11 +3567,25 @@ function rfComparar() {
                 if (res.ok) {
                     const data = await res.json();
                     if (tbody && data.success && data.historial && data.historial.length > 0) {
+                        const fechaHoyRef = data.fecha_hoy || obtenerFechaHoyPeru();
+                        const fmtHoraPeru = (isoStr) => {
+                            if (!isoStr) return '--:--';
+                            try {
+                                return new Date(isoStr).toLocaleTimeString('es-PE', {
+                                    timeZone: 'America/Lima',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    hour12: true
+                                });
+                            } catch (e) {
+                                return new Date(isoStr).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+                            }
+                        };
                         tbody.innerHTML = data.historial.map(h => {
                             const tiempoTxt = formatearTiempoTexto(h.tiempo_segundos || 0);
-                            const primer = h.primer_ingreso ? new Date(h.primer_ingreso).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }) : '--:--';
-                            const ultimo = h.ultimo_latido ? new Date(h.ultimo_latido).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }) : '--:--';
-                            const esHoy = h.fecha === fechaSesionActual;
+                            const primer = fmtHoraPeru(h.primer_ingreso);
+                            const ultimo = fmtHoraPeru(h.ultimo_latido);
+                            const esHoy = h.fecha === fechaHoyRef;
                             const estadoBadge = esHoy 
                                 ? '<span style="color:#10b981; font-weight:700;">🟢 En curso</span>' 
                                 : '<span style="color:#94a3b8;">Cerrada</span>';
