@@ -1,0 +1,10 @@
+/* Ilustraciones y collages de productos (reemplazan las fotos al azar de relleno). No afecta a Contacto. */
+.collage { display: grid; gap: 12px; padding: 16px; border-radius: 18px; background: linear-gradient(135deg, #eef2ff 0%, #fdf2f2 100%); box-shadow: 0 20px 40px rgba(0,0,0,0.10); }
+.collage.c3 { grid-template-columns: repeat(3, 1fr); }
+.collage.c2 { grid-template-columns: repeat(2, 1fr); }
+.collage.c6 { grid-template-columns: repeat(6, 1fr); }
+.collage .ficha { background: #fff; border-radius: 14px; aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center; padding: 8px; box-shadow: 0 4px 12px rgba(30,58,138,0.10); }
+.collage .ficha img { width: 100%; height: 100%; object-fit: contain; border-radius: 0; box-shadow: none; margin: 0; max-height: none; }
+@media (max-width: 700px) { .collage.c6 { grid-template-columns: repeat(3, 1fr); } }
+.ilustracion { display: block; width: 100%; border-radius: 15px; }
+.ilustracion svg { display: block; width: 100%; height: auto; border-radius: 15px; }
