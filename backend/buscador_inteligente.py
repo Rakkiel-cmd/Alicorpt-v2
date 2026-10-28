@@ -11,6 +11,8 @@ Cómo funciona (explicado fácil):
 3. El puntaje final de cada producto mezcla tres cosas:
       similitud de texto (coseno)  +  probabilidad de la red neuronal  +  palabras exactas encontradas.
 """
+import hashlib
+import os
 import random
 import re
 import threading
@@ -18,8 +20,15 @@ import unicodedata
 import warnings
 
 import numpy as np
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.neural_network import MLPClassifier
+
+# Modelo ya entrenado (se crea con scripts/entrenar_buscador.py). Así el servidor NO entrena nada al arrancar:
+# solo lo lee, usa muy poca memoria y funciona rápido hasta en Render gratis.
+RUTA_MODELO = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "buscador_modelo.npz")
+
+
+def huella_catalogo(productos):
+    """Resumen corto de los SKU del catálogo; sirve para saber si el modelo guardado es de este mismo catálogo."""
+    return hashlib.md5("|".join(sorted(str(p["sku"]) for p in productos)).encode()).hexdigest()
 
 
 def normalizar(texto):
@@ -50,6 +59,55 @@ def _con_errores(texto, azar):
     return texto[:i] + texto[i + 1] + texto[i] + texto[i + 2:]
 
 
+class VectorizadorLigero:
+    """Hace lo mismo que TfidfVectorizer(analyzer='char_wb', ngram_range=(2,4), sublinear_tf=True) pero ya entrenado y solo con numpy."""
+
+    def __init__(self, vocabulario, idf):
+        self.vocab = {str(t): i for i, t in enumerate(vocabulario)}
+        self.idf = np.asarray(idf, dtype=np.float32)
+        self.n = len(self.vocab)
+
+    def transform(self, textos):
+        from scipy import sparse
+        filas, cols, vals = [], [], []
+        for fila, texto in enumerate(textos):
+            cuenta = {}
+            for palabra in texto.split():
+                w = " " + palabra + " "
+                for n in (2, 3, 4):
+                    for i in range(len(w) - n + 1):
+                        j = self.vocab.get(w[i:i + n])
+                        if j is not None:
+                            cuenta[j] = cuenta.get(j, 0) + 1
+            if not cuenta:
+                continue
+            idx = np.fromiter(cuenta.keys(), dtype=np.int64)
+            tf = 1.0 + np.log(np.fromiter(cuenta.values(), dtype=np.float64))
+            v = tf * self.idf[idx]
+            norma = np.sqrt((v * v).sum())
+            if norma > 0:
+                v = v / norma
+            filas.extend([fila] * len(idx))
+            cols.extend(idx.tolist())
+            vals.extend(v.tolist())
+        return sparse.csr_matrix((np.array(vals, dtype=np.float32), (filas, cols)), shape=(len(textos), self.n), dtype=np.float32)
+
+
+class RedLigera:
+    """La red neuronal ya entrenada (1 capa oculta ReLU + softmax), calculada solo con numpy."""
+
+    def __init__(self, w1, b1, w2, b2, clases):
+        self.w1, self.b1, self.w2, self.b2 = w1, b1, w2, b2
+        self.classes_ = np.asarray(clases, dtype=np.int64)
+
+    def predict_proba(self, x):
+        oculta = np.maximum(x @ self.w1 + self.b1, 0.0)
+        z = np.asarray(oculta @ self.w2 + self.b2)
+        z = z - z.max(axis=1, keepdims=True)
+        e = np.exp(z)
+        return e / e.sum(axis=1, keepdims=True)
+
+
 class BuscadorInteligente:
     def __init__(self, productos):
         self.productos = productos
@@ -58,17 +116,56 @@ class BuscadorInteligente:
             for p in productos
         ]
         self.palabras_nombre = [set(normalizar(p["nombre"]).split()) for p in productos]
-        self.vectorizador = TfidfVectorizer(analyzer="char_wb", ngram_range=(2, 4), sublinear_tf=True, max_features=9000, dtype=np.float32)
-        self.matriz = self.vectorizador.fit_transform(self.docs)          # productos x caracteristicas (dispersa)
+        self.red = None
+        self.entrenada = False
+        self.candado = threading.Lock()
+        self.origen = "entrenado en el servidor"
+        if not self._cargar_modelo_guardado():
+            from sklearn.feature_extraction.text import TfidfVectorizer
+            self.vectorizador = TfidfVectorizer(analyzer="char_wb", ngram_range=(2, 4), sublinear_tf=True, max_features=9000, dtype=np.float32)
+            self.matriz = self.vectorizador.fit_transform(self.docs)          # productos x caracteristicas (dispersa)
         self.subcategorias = sorted({p["subcategoria"] for p in productos})
         self.indice_sub = {s: i for i, s in enumerate(self.subcategorias)}
         self.sub_de_producto = np.array([self.indice_sub[p["subcategoria"]] for p in productos])
         self.categoria_de_sub = {}
         for p in productos:
             self.categoria_de_sub[self.indice_sub[p["subcategoria"]]] = p["categoria"]
-        self.red = None
-        self.entrenada = False
-        self.candado = threading.Lock()
+
+    # ------------------------------------------------------------------ modelo guardado
+    def _cargar_modelo_guardado(self):
+        """Lee data/buscador_modelo.npz si existe y corresponde a este mismo catálogo. Devuelve True si lo logró."""
+        try:
+            if not os.path.exists(RUTA_MODELO):
+                return False
+            from scipy import sparse
+            with np.load(RUTA_MODELO, allow_pickle=False) as m:
+                if str(m["huella"]) != huella_catalogo(self.productos) or int(m["n_productos"]) != len(self.productos):
+                    print("[TIENDA] El modelo guardado no coincide con el catálogo; se entrenará de nuevo.")
+                    return False
+                self.vectorizador = VectorizadorLigero(m["vocabulario"], m["idf"])
+                self.matriz = sparse.csr_matrix((m["mat_data"], m["mat_indices"], m["mat_indptr"]), shape=tuple(m["mat_shape"]), dtype=np.float32)
+                self.red = RedLigera(m["w1"].astype(np.float32), m["b1"].astype(np.float32), m["w2"].astype(np.float32), m["b2"].astype(np.float32), m["clases"])
+            self.entrenada = True
+            self.origen = "modelo guardado (data/buscador_modelo.npz)"
+            return True
+        except Exception as e:
+            print("[TIENDA] No se pudo leer el modelo guardado:", e)
+            return False
+
+    def guardar_modelo(self, ruta=RUTA_MODELO):
+        """Guarda el vectorizador y la red ya entrenados (los usa scripts/entrenar_buscador.py)."""
+        self.entrenar()
+        v = self.vectorizador
+        vocab = np.array(sorted(v.vocabulary_, key=v.vocabulary_.get))
+        m = self.matriz.tocsr()
+        red = self.red
+        np.savez_compressed(
+            ruta, huella=np.array(huella_catalogo(self.productos)), n_productos=np.array(len(self.productos)),
+            vocabulario=vocab, idf=v.idf_.astype(np.float32),
+            mat_data=m.data.astype(np.float32), mat_indices=m.indices.astype(np.int32), mat_indptr=m.indptr.astype(np.int32), mat_shape=np.array(m.shape),
+            w1=red.coefs_[0].astype(np.float16), b1=red.intercepts_[0].astype(np.float32),
+            w2=red.coefs_[1].astype(np.float16), b2=red.intercepts_[1].astype(np.float32), clases=red.classes_,
+        )
 
     # ------------------------------------------------------------------ entrenamiento
     def _consultas_de_practica(self, cantidad=5000, semilla=7):
@@ -108,6 +205,7 @@ class BuscadorInteligente:
         with self.candado:
             if self.entrenada:
                 return
+            from sklearn.neural_network import MLPClassifier
             X, y = self._consultas_de_practica()
             red = MLPClassifier(hidden_layer_sizes=(64,), max_iter=25, batch_size=256, random_state=42, alpha=1e-4)
             with warnings.catch_warnings():
