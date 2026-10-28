@@ -944,6 +944,20 @@
                     <div class="stat"><span>Tiendas</span><b id="hTiendas">--</b></div>
                 </div>
 
+                <!-- Tienda en línea (datos en vivo de /api/tienda/*) -->
+                <div class="bloque" id="tiendaResumen">
+                    <h2 class="section-title">🛍️ Tienda en línea</h2>
+                    <p class="section-sub">Lo que ocurre en el carrito de compras de la web, en tiempo real.</p>
+                    <div class="stats" style="margin-top: 0; margin-bottom: 16px;">
+                        <div class="stat"><span>Productos en la tienda</span><b id="tdProductos">--</b></div>
+                        <div class="stat"><span>Categorías</span><b id="tdCategorias">--</b></div>
+                        <div class="stat"><span>Compras registradas</span><b id="tdCompras">--</b></div>
+                        <div class="stat"><span>Monto comprado</span><b id="tdMonto">--</b></div>
+                    </div>
+                    <p class="hint" id="tdBuscador" style="margin: 0 0 14px;">Buscador: comprobando...</p>
+                    <a class="btn-run" href="tienda.html" target="_blank" rel="noopener" style="display: inline-block; text-decoration: none;">Abrir la tienda →</a>
+                </div>
+
                 <div class="bloque">
                     <div class="bienvenida">
                         <h2>Bienvenido al panel de inteligencia de ventas</h2>
@@ -1015,6 +1029,11 @@
                                 <tbody id="tablaProductos"></tbody>
                             </table>
                         </div>
+                    </div>
+                    <div class="chart-card full">
+                        <h4>🛍️ Catálogo de la tienda: productos por categoría</h4>
+                        <div class="chart-container" style="height: 340px;"><canvas id="chartTiendaCategorias"></canvas></div>
+                        <p class="hint" id="tdCatHint">Cada barra es una categoría del catálogo que ve el cliente en la tienda.</p>
                     </div>
                 </div>
             </div>
@@ -3751,6 +3770,60 @@ function rfComparar() {
         const hashInicial = location.hash.replace('#', '').trim();
         const vistaInicial = VISTAS.includes(hashInicial) ? hashInicial : 'inicio';
         mostrarVista(vistaInicial);
+    </script>
+
+    <!-- Tienda en línea: resumen en Inicio y gráfico en Productos (script independiente: si falla, el resto del panel sigue igual) -->
+    <script>
+    (function () {
+        "use strict";
+        const el = (id) => document.getElementById(id);
+        const miles = (n) => Number(n || 0).toLocaleString('es-PE');
+        const pedir = (url) => fetch(url).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
+        let graficoCat = null;
+
+        function cargarResumen() {
+            pedir('/api/tienda/estado').then(e => {
+                el('tdProductos').textContent = miles(e.total_productos);
+                el('tdBuscador').textContent = 'Buscador: ' + (e.motor || '--') + (e.buscador_listo ? ' (listo)' : ' (cargando)') + ' · Catálogo desde: ' + (e.fuente === 'supabase' ? 'Supabase' : 'archivo local');
+            }).catch(() => { el('tdBuscador').textContent = 'No se pudo consultar la tienda.'; });
+            pedir('/api/tienda/categorias').then(c => {
+                el('tdCategorias').textContent = (c.categorias || []).length;
+            }).catch(() => {});
+            pedir('/api/tienda/compras?limite=500').then(c => {
+                const lista = c.compras || [];
+                el('tdCompras').textContent = miles(lista.length);
+                const total = lista.reduce((suma, x) => suma + Number(x.total || 0), 0);
+                el('tdMonto').textContent = 'S/ ' + total.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }).catch(() => { el('tdCompras').textContent = '0'; el('tdMonto').textContent = 'S/ 0.00'; });
+        }
+
+        function dibujarCategorias() {
+            if (graficoCat || typeof Chart === 'undefined' || !el('chartTiendaCategorias')) return;
+            pedir('/api/tienda/categorias').then(c => {
+                const cats = (c.categorias || []).slice().sort((a, b) => b.cantidad - a.cantidad);
+                if (!cats.length) return;
+                graficoCat = new Chart(el('chartTiendaCategorias').getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: cats.map(x => x.categoria),
+                        datasets: [{ label: 'Productos', data: cats.map(x => x.cantidad), backgroundColor: '#0284c7', borderRadius: 6 }]
+                    },
+                    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                });
+                el('tdCatHint').textContent = cats.length + ' categorías · ' + miles(cats.reduce((s, x) => s + x.cantidad, 0)) + ' productos en total.';
+            }).catch(() => {});
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            cargarResumen();
+            const vista = el('vista-productos');
+            if (vista) {
+                if (vista.classList.contains('active')) dibujarCategorias();
+                new MutationObserver(() => { if (vista.classList.contains('active')) dibujarCategorias(); })
+                    .observe(vista, { attributes: true, attributeFilter: ['class'] });
+            }
+        });
+    })();
     </script>
 </body>
 </html>
