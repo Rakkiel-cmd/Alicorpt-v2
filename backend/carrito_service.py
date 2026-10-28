@@ -19,6 +19,7 @@ import json
 import os
 import re
 import threading
+import time
 from datetime import datetime, timezone
 
 from flask import Blueprint, jsonify, request
@@ -36,7 +37,8 @@ _candado_archivo = threading.Lock()
 MAX_UNIDADES_POR_LINEA = 100000     # compras grandes permitidas (mayoristas)
 MAX_LINEAS = 200
 
-_estado = {"productos": None, "fuente": None, "buscador": None, "cargando": False}
+_estado = {"productos": None, "fuente": None, "buscador": None, "cargando": False,
+           "detalle_supabase": "sin revisar", "ultimo_intento_supabase": 0.0}
 _candado_carga = threading.Lock()
 
 
@@ -60,6 +62,7 @@ def _leer_productos_supabase():
     """Lee TODOS los productos de la tabla (de 1000 en 1000). Devuelve [] si no hay datos."""
     cliente = _cliente_supabase()
     if cliente is None:
+        _estado["detalle_supabase"] = "sin configurar (faltan SUPABASE_URL / SUPABASE_KEY)"
         return []
     productos, inicio = [], 0
     try:
@@ -71,7 +74,9 @@ def _leer_productos_supabase():
             inicio += 1000
     except Exception as e:
         print("[TIENDA] No se pudo leer la tabla productos:", e)
+        _estado["detalle_supabase"] = "error al leer la tabla productos: " + str(e)[:120]
         return []
+    _estado["detalle_supabase"] = "conectado" if productos else "la tabla productos está vacía (falta importar el CSV)"
     for p in productos:
         p["precio"] = float(p["precio"])
         p["stock"] = int(p["stock"])
@@ -116,9 +121,33 @@ def _cargar_catalogo():
             _estado["buscador"] = None
 
 
+def _reintentar_supabase():
+    """Si la tienda usa el catálogo local, revisa cada 60 s si ya se cargó la tabla productos en Supabase
+    (así Leonardo importa el CSV y la web lo toma sola, sin reiniciar nada)."""
+    ahora = time.time()
+    if _estado["fuente"] != "catalogo_local" or ahora - _estado["ultimo_intento_supabase"] < 60:
+        return
+    _estado["ultimo_intento_supabase"] = ahora
+    cliente = _cliente_supabase()
+    if cliente is None:
+        return
+    try:
+        hay = cliente.table("productos").select("sku").limit(1).execute().data
+    except Exception as e:
+        _estado["detalle_supabase"] = "error al consultar productos: " + str(e)[:120]
+        return
+    if hay:
+        print("[TIENDA] Se detectaron productos en Supabase; recargando el catálogo.")
+        with _candado_carga:
+            _estado["productos"] = None
+        _cargar_catalogo()
+
+
 def _productos():
     if _estado["productos"] is None:
         _cargar_catalogo()
+    else:
+        _reintentar_supabase()
     return _estado["productos"]
 
 
@@ -151,6 +180,7 @@ def tienda_estado():
         "total_productos": len(productos),
         "buscador_listo": bool(buscador and buscador.entrenada),
         "motor": "Red neuronal MLP + TF-IDF" if buscador else "Búsqueda simple",
+        "supabase": _estado["detalle_supabase"],
     })
 
 
