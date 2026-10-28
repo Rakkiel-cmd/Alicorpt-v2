@@ -3633,6 +3633,8 @@ function rfComparar() {
                 try {
                     sessionStorage.removeItem('usuario_activo');
                     localStorage.removeItem('usuario_activo');
+                    sessionStorage.removeItem('empleado_desbloqueado');
+                    localStorage.removeItem('empleado_desbloqueado');
                     sessionStorage.clear();
                 } catch (e) {}
             });

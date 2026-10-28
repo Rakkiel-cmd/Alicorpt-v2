@@ -83,6 +83,51 @@
     </div>
 
     <script>
+        // --- PROTECCIÓN DE ACCESO: VERIFICAR LLAVE O SESIÓN ACTIVA ---
+        (async function verificarAccesoRegistro() {
+            localStorage.removeItem('empleado_desbloqueado');
+            const ses = sessionStorage.getItem('usuario_activo') || localStorage.getItem('usuario_activo');
+            if (ses) return;
+
+            const urlObj = new URL(window.location.href);
+            const keyParam = urlObj.searchParams.get('key') || urlObj.searchParams.get('clave') || urlObj.searchParams.get('access') || urlObj.searchParams.get('token');
+            if (keyParam) {
+                try {
+                    const resp = await fetch('/api/seguridad/validar_key', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ key: keyParam.trim() })
+                    });
+                    const data = await resp.json();
+                    if (resp.ok && data.success && data.desbloqueado) {
+                        sessionStorage.setItem('empleado_desbloqueado', 'true');
+                        urlObj.searchParams.delete('key');
+                        urlObj.searchParams.delete('clave');
+                        urlObj.searchParams.delete('access');
+                        urlObj.searchParams.delete('token');
+                        window.history.replaceState({}, document.title, urlObj.pathname + (urlObj.search ? urlObj.search : ''));
+                        return;
+                    }
+                } catch (e) {}
+            }
+
+            if (sessionStorage.getItem('empleado_desbloqueado') === 'true') return;
+
+            document.body.innerHTML = `
+                <div style="font-family:'Inter',sans-serif; min-height:100vh; display:flex; align-items:center; justify-content:center; background:#f8fafc; color:#0f172a; text-align:center; padding:20px;">
+                    <div style="background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:36px; max-width:440px; box-shadow:0 10px 25px rgba(0,0,0,0.08);">
+                        <div style="font-size:42px; margin-bottom:12px;">🔒</div>
+                        <h2 style="color:#e31b23; margin-bottom:8px; font-weight:800;">Acceso Restringido</h2>
+                        <p style="color:#64748b; font-size:14px; margin-bottom:24px;">El registro biométrico es exclusivo para personal autorizado de Corporación Alicorp. Redirigiendo al portal público...</p>
+                        <a href="index.html" style="background:#0284c7; color:#fff; padding:10px 24px; border-radius:30px; text-decoration:none; font-weight:700; font-size:13.5px; display:inline-block;">Ir a Inicio</a>
+                    </div>
+                </div>
+            `;
+            setTimeout(() => {
+                window.location.replace("index.html");
+            }, 1800);
+        })();
+
         const paso1 = document.getElementById('paso1');
         const paso2 = document.getElementById('paso2');
         const btnSiguiente = document.getElementById('btnSiguiente');

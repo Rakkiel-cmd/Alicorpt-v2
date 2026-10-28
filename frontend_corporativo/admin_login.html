@@ -104,13 +104,15 @@
     <script>
         // --- PROTECCIÓN DE ACCESO: VERIFICAR LLAVE O SESIÓN ACTIVA ---
         (async function verificarAccesoAdmin() {
+            localStorage.removeItem('empleado_desbloqueado');
+
             // 1. ¿Tiene sesión iniciada?
             const ses = sessionStorage.getItem('usuario_activo') || localStorage.getItem('usuario_activo');
             if (ses) return; // Permitido
 
             // 2. ¿Tiene la llave en la URL?
             const urlObj = new URL(window.location.href);
-            const keyParam = urlObj.searchParams.get('key') || urlObj.searchParams.get('clave') || urlObj.searchParams.get('access');
+            const keyParam = urlObj.searchParams.get('key') || urlObj.searchParams.get('clave') || urlObj.searchParams.get('access') || urlObj.searchParams.get('token');
             if (keyParam) {
                 try {
                     const resp = await fetch('/api/seguridad/validar_key', {
@@ -121,19 +123,18 @@
                     const data = await resp.json();
                     if (resp.ok && data.success && data.desbloqueado) {
                         sessionStorage.setItem('empleado_desbloqueado', 'true');
-                        localStorage.setItem('empleado_desbloqueado', 'true');
                         urlObj.searchParams.delete('key');
                         urlObj.searchParams.delete('clave');
                         urlObj.searchParams.delete('access');
+                        urlObj.searchParams.delete('token');
                         window.history.replaceState({}, document.title, urlObj.pathname + (urlObj.search ? urlObj.search : ''));
                         return; // Permitido
                     }
                 } catch (e) {}
             }
 
-            // 3. ¿Fue desbloqueado previamente en esta sesión?
-            const desbloqueado = sessionStorage.getItem('empleado_desbloqueado') === 'true' || 
-                                 localStorage.getItem('empleado_desbloqueado') === 'true';
+            // 3. ¿Fue desbloqueado previamente en esta sesión activa (desde index.html?key=...)?
+            const desbloqueado = sessionStorage.getItem('empleado_desbloqueado') === 'true';
             if (desbloqueado) return; // Permitido
 
             // 4. Si es un cliente común o acceso no autorizado:
@@ -334,7 +335,10 @@
                         document.getElementById('btnCerrarSesionEnLogin').addEventListener('click', () => {
                             sessionStorage.removeItem('usuario_activo');
                             localStorage.removeItem('usuario_activo');
+                            sessionStorage.removeItem('empleado_desbloqueado');
+                            localStorage.removeItem('empleado_desbloqueado');
                             banner.remove();
+                            window.location.replace("index.html");
                         });
                     }
                 }

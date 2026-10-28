@@ -64,9 +64,15 @@ function mostrarToastSeguridad(mensaje) {
     }, 4000);
 }
 
+// Flag en memoria de la página actual: solo es true si se ingresó con ?key=... válida en esta carga
+let keyValidadaEnEstaCarga = false;
+
 // Verifica si vino una key en la URL (?key=... o ?clave=...) y la valida en el backend
 async function verificarKeyUrl() {
     try {
+        // Limpiar siempre cualquier residuo antiguo en localStorage para evitar que quede pegado
+        localStorage.removeItem('empleado_desbloqueado');
+
         const urlObj = new URL(window.location.href);
         const params = urlObj.searchParams;
         const key = params.get('key') || params.get('clave') || params.get('access') || params.get('token');
@@ -89,13 +95,22 @@ async function verificarKeyUrl() {
 
             const data = await resp.json();
             if (resp.ok && data.success && data.desbloqueado) {
+                keyValidadaEnEstaCarga = true;
                 sessionStorage.setItem('empleado_desbloqueado', 'true');
-                localStorage.setItem('empleado_desbloqueado', 'true');
                 mostrarToastSeguridad('🔑 Acceso de Personal Autorizado desbloqueado');
                 inicializarNavbarSesion();
                 return true;
             } else {
+                keyValidadaEnEstaCarga = false;
+                sessionStorage.removeItem('empleado_desbloqueado');
                 console.warn("Llave de acceso no válida.");
+            }
+        } else {
+            // Si entró a la página pública SIN ?key=... en la URL:
+            keyValidadaEnEstaCarga = false;
+            const haySesion = !!(sessionStorage.getItem('usuario_activo') || localStorage.getItem('usuario_activo'));
+            if (!haySesion) {
+                sessionStorage.removeItem('empleado_desbloqueado');
             }
         }
     } catch (e) {
@@ -118,16 +133,16 @@ function inicializarNavbarSesion() {
     }
 
     const estaLogueado = !!(sesion && (sesion.usuario || sesion.nombre_completo));
-    const estaDesbloqueado = sessionStorage.getItem('empleado_desbloqueado') === 'true' || 
-                             localStorage.getItem('empleado_desbloqueado') === 'true';
+    const estaDesbloqueado = keyValidadaEnEstaCarga;
 
     const navActionsContainers = document.querySelectorAll('.nav-actions');
     if (!navActionsContainers || navActionsContainers.length === 0) return;
 
     navActionsContainers.forEach(container => {
-        // Si NO está logueado Y TAMPOCO está desbloqueado con la llave: OCULTAR COMPLETAMENTE
+        // Si NO está logueado Y TAMPOCO ingresó con ?key=... en esta vista: OCULTAR COMPLETAMENTE
         if (!estaLogueado && !estaDesbloqueado) {
             container.classList.remove('desbloqueado');
+            container.style.display = 'none';
             document.body.classList.remove('empleado-desbloqueado');
             container.innerHTML = '';
             return;
@@ -135,9 +150,10 @@ function inicializarNavbarSesion() {
 
         // Si llegó aquí, está autorizado para ver la sección de personal:
         container.classList.add('desbloqueado');
+        container.style.display = 'inline-flex';
         document.body.classList.add('empleado-desbloqueado');
 
-        // CASO A: Está desbloqueado por llave pero AÚN NO ha iniciado sesión
+        // CASO A: Está desbloqueado por llave en esta carga pero AÚN NO ha iniciado sesión
         if (!estaLogueado) {
             container.innerHTML = `<a href="admin_login.html" class="btn-outline">Personal Autorizado</a>`;
             return;
@@ -198,6 +214,7 @@ function inicializarNavbarSesion() {
         if (btnNavLogout) {
             btnNavLogout.addEventListener('click', (e) => {
                 e.stopPropagation();
+                keyValidadaEnEstaCarga = false;
                 try {
                     sessionStorage.removeItem('usuario_activo');
                     localStorage.removeItem('usuario_activo');
@@ -237,10 +254,17 @@ document.addEventListener('keydown', (e) => {
 
 // Función de arranque unificada
 async function iniciarSistemaNavegacion() {
+    // Primero actualizamos estado inicial (oculta el botón de inmediato si no hay sesión)
+    inicializarNavbarSesion();
+    // Luego verificamos si vino ?key=... en la URL
     await verificarKeyUrl();
     inicializarNavbarSesion();
 }
 
-// Ejecución al cargar el DOM y en 'pageshow' (para soporte con el botón atrás del navegador)
-document.addEventListener("DOMContentLoaded", iniciarSistemaNavegacion);
-window.addEventListener("pageshow", iniciarSistemaNavegacion);
+// Ejecución al cargar el DOM y en 'pageshow' cuando vuelve desde bfcache (botón atrás)
+document.addEventListener("DOMContentLoaded", () => iniciarSistemaNavegacion());
+window.addEventListener("pageshow", (e) => {
+    if (e && e.persisted) {
+        iniciarSistemaNavegacion();
+    }
+});
