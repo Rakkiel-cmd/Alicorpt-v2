@@ -318,6 +318,7 @@
                 <h2>¡Compra registrada!</h2>
                 <p class="sub">Gracias por tu compra. Te contactaremos para coordinar la entrega.</p>
                 <div class="num">N.º de compra: ${esc(d.compra_id)}<br>Total: ${dinero(d.total)}<br><small>Guardada en: ${d.guardado_en === "supabase" ? "base de datos Supabase" : "respaldo del servidor"}</small></div>
+                ${d.correo_enviado ? `<p class="sub">📧 Te enviamos el seguimiento de tu pedido a <b>${esc(cuerpo.correo)}</b>. Si no lo ves, revisa Spam.</p>` : ""}
                 <p class="sub">Guarda tu número de compra: con él y tu correo puedes ver el estado en <b>📦 Mi pedido</b>.</p>
                 <button type="button" class="btn-secundario" id="cVerPedido" style="width:100%;margin-bottom:8px;">Ver estado de mi pedido</button>
                 <button type="button" class="btn-grande" id="cSeguir">Seguir comprando</button>

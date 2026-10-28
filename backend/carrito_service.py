@@ -26,6 +26,7 @@ from datetime import datetime, timezone
 from flask import Blueprint, jsonify, request
 
 from backend.catalogo_productos import generar_catalogo
+from backend.correo_pedido import correo_configurado, enviar_seguimiento
 from backend.incidencias import PATRON_CORREO, PATRON_SQL_INJECTION, sanitizar_cadena
 
 carrito_bp = Blueprint("carrito", __name__)
@@ -182,6 +183,7 @@ def tienda_estado():
         "buscador_listo": bool(buscador and buscador.entrenada),
         "motor": "Red neuronal MLP + TF-IDF" if buscador else "Búsqueda simple",
         "supabase": _estado["detalle_supabase"],
+        "correo_configurado": correo_configurado(),
     })
 
 
@@ -348,7 +350,8 @@ def tienda_comprar():
                     cliente.table("productos").update({"stock": por_sku[d["sku"]]["stock"]}).eq("sku", d["sku"]).execute()
                 except Exception:
                     pass
-            return jsonify({"ok": True, "compra_id": compra_id, "total": total, "guardado_en": "supabase", "lineas": len(detalle)})
+            correo_enviado = enviar_seguimiento(correo, nombre, compra_id, total, direccion, detalle)
+            return jsonify({"ok": True, "compra_id": compra_id, "total": total, "guardado_en": "supabase", "lineas": len(detalle), "correo_enviado": correo_enviado})
         except Exception as e:
             print("[TIENDA] No se pudo guardar en Supabase, se guarda localmente:", e)
 
@@ -356,7 +359,8 @@ def tienda_comprar():
     _guardar_compra_local({"id": compra_id, "fecha_compra": ahora, "cliente_nombre": nombre, "cliente_correo": correo,
                            "cliente_telefono": telefono, "direccion_entrega": direccion, "total": total,
                            "estado": "pendiente", "items": detalle})
-    return jsonify({"ok": True, "compra_id": compra_id, "total": total, "guardado_en": "archivo_local", "lineas": len(detalle)})
+    correo_enviado = enviar_seguimiento(correo, nombre, compra_id, total, direccion, detalle)
+    return jsonify({"ok": True, "compra_id": compra_id, "total": total, "guardado_en": "archivo_local", "lineas": len(detalle), "correo_enviado": correo_enviado})
 
 
 @carrito_bp.route("/api/tienda/compras", methods=["GET"])
