@@ -348,6 +348,6 @@ def tienda_compras():
     return jsonify({"ok": True, "fuente": "archivo_local", "total": len(locales), "compras": locales})
 
 
-# Precalienta el catálogo y entrena la red neuronal apenas arranca el servidor (así la primera búsqueda ya es inteligente)
-if os.environ.get("TIENDA_PRECALENTAR", "1") == "1":
+# Precalentamiento opcional (TIENDA_PRECALENTAR=1). Por defecto apagado: Render gratis tiene solo 512 MB y el catálogo se carga en la primera visita a la tienda
+if os.environ.get("TIENDA_PRECALENTAR", "0") == "1":
     threading.Thread(target=_cargar_catalogo, daemon=True).start()

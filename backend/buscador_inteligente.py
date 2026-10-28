@@ -58,7 +58,7 @@ class BuscadorInteligente:
             for p in productos
         ]
         self.palabras_nombre = [set(normalizar(p["nombre"]).split()) for p in productos]
-        self.vectorizador = TfidfVectorizer(analyzer="char_wb", ngram_range=(2, 4), sublinear_tf=True, max_features=20000)
+        self.vectorizador = TfidfVectorizer(analyzer="char_wb", ngram_range=(2, 4), sublinear_tf=True, max_features=9000, dtype=np.float32)
         self.matriz = self.vectorizador.fit_transform(self.docs)          # productos x caracteristicas (dispersa)
         self.subcategorias = sorted({p["subcategoria"] for p in productos})
         self.indice_sub = {s: i for i, s in enumerate(self.subcategorias)}
@@ -71,7 +71,7 @@ class BuscadorInteligente:
         self.candado = threading.Lock()
 
     # ------------------------------------------------------------------ entrenamiento
-    def _consultas_de_practica(self, cantidad=8000, semilla=7):
+    def _consultas_de_practica(self, cantidad=5000, semilla=7):
         """Crea búsquedas de ejemplo (con sinónimos y errores) para enseñarle a la red."""
         azar = random.Random(semilla)
         por_sub = {}
@@ -109,7 +109,7 @@ class BuscadorInteligente:
             if self.entrenada:
                 return
             X, y = self._consultas_de_practica()
-            red = MLPClassifier(hidden_layer_sizes=(96,), max_iter=20, batch_size=256, random_state=42, alpha=1e-4)
+            red = MLPClassifier(hidden_layer_sizes=(64,), max_iter=25, batch_size=256, random_state=42, alpha=1e-4)
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")     # evita el aviso 'no convergió' (es normal con pocas épocas)
                 red.fit(self.vectorizador.transform(X), y)
