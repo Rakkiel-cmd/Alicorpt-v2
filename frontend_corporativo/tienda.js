@@ -318,9 +318,72 @@
                 <h2>¡Compra registrada!</h2>
                 <p class="sub">Gracias por tu compra. Te contactaremos para coordinar la entrega.</p>
                 <div class="num">N.º de compra: ${esc(d.compra_id)}<br>Total: ${dinero(d.total)}<br><small>Guardada en: ${d.guardado_en === "supabase" ? "base de datos Supabase" : "respaldo del servidor"}</small></div>
+                <p class="sub">Guarda tu número de compra: con él y tu correo puedes ver el estado en <b>📦 Mi pedido</b>.</p>
+                <button type="button" class="btn-secundario" id="cVerPedido" style="width:100%;margin-bottom:8px;">Ver estado de mi pedido</button>
                 <button type="button" class="btn-grande" id="cSeguir">Seguir comprando</button>
             </div>`;
+        recordarPedido(d.compra_id, cuerpo.correo);
+        $("cVerPedido").onclick = () => abrirModalPedido(d.compra_id, cuerpo.correo);
         $("cSeguir").onclick = () => { $("modalCompra").classList.remove("visible"); cargarProductos(); };
+    }
+
+
+    // ---------------------------------------------------------------- consultar mi pedido
+    const ESTADOS = ["pendiente", "preparando", "enviado", "entregado"];
+    const ETIQUETA = { pendiente: "Recibido", preparando: "Preparando", enviado: "En camino", entregado: "Entregado" };
+
+    function recordarPedido(id, correo) {
+        try { localStorage.setItem("alicorp_ultimo_pedido", JSON.stringify({ id: String(id), correo })); } catch (e) { /* sin almacenamiento */ }
+    }
+    function ultimoPedido() {
+        try { return JSON.parse(localStorage.getItem("alicorp_ultimo_pedido")) || {}; } catch (e) { return {}; }
+    }
+
+    function abrirModalPedido(idInicial, correoInicial) {
+        const u = ultimoPedido();
+        $("cajaCompra").innerHTML = `
+            <h2>📦 Mi pedido</h2>
+            <p class="sub">Escribe el número de compra y el correo con el que compraste.</p>
+            <form id="formPedido" autocomplete="on">
+                <label for="pId">N.º de compra</label>
+                <input id="pId" required maxlength="30" placeholder="Ej: 15" value="${esc(idInicial || u.id || "")}">
+                <label for="pCorreo">Correo electrónico</label>
+                <input id="pCorreo" type="email" required maxlength="120" placeholder="tucorreo@ejemplo.com" value="${esc(correoInicial || u.correo || "")}">
+                <div class="error" id="errPedido"></div>
+                <div class="fila-botones">
+                    <button type="button" class="btn-secundario" id="pCerrar">Cerrar</button>
+                    <button type="submit" class="btn-grande" id="pConsultar">Consultar</button>
+                </div>
+            </form>
+            <div id="resPedido"></div>`;
+        $("modalCompra").classList.add("visible");
+        $("pCerrar").onclick = () => $("modalCompra").classList.remove("visible");
+        $("formPedido").onsubmit = consultarPedido;
+    }
+
+    async function consultarPedido(ev) {
+        ev.preventDefault();
+        const err = $("errPedido"); err.classList.remove("visible");
+        $("resPedido").innerHTML = "";
+        const boton = $("pConsultar"); boton.disabled = true; boton.textContent = "Buscando...";
+        let d;
+        try {
+            d = await pedir("/api/tienda/pedido", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ compra_id: $("pId").value, correo: $("pCorreo").value }) });
+        } catch (e) { d = { ok: false, error: "No se pudo conectar con el servidor. Intenta otra vez." }; }
+        boton.disabled = false; boton.textContent = "Consultar";
+        if (!d.ok) { err.textContent = d.error || "No se pudo consultar el pedido."; err.classList.add("visible"); return; }
+        recordarPedido($("pId").value, $("pCorreo").value);
+        const p = d.pedido;
+        const estado = String(p.estado || "pendiente").toLowerCase();
+        const pos = ESTADOS.indexOf(estado);
+        const pasos = ESTADOS.map((e, i) => `<div class="paso ${pos >= 0 && i < pos ? "hecho" : ""} ${i === pos ? "actual" : ""}"><i>${pos >= 0 && i < pos ? "✓" : i + 1}</i>${ETIQUETA[e]}</div>`).join("");
+        const fecha = p.fecha ? new Date(p.fecha).toLocaleString("es-PE") : "";
+        $("resPedido").innerHTML = `
+            <div class="pasos">${pasos}</div>
+            ${pos < 0 ? `<p class="sub">Estado: <b>${esc(p.estado)}</b></p>` : ""}
+            <p class="sub">Compra N.º ${esc(p.id)} · ${esc(fecha)}<br>A nombre de: ${esc(p.cliente || "")}</p>
+            <div class="pedido-lista">${(p.items || []).map((i) => `<div><span>${esc(i.cantidad)} x ${esc(i.producto)}</span><b>${dinero(i.subtotal)}</b></div>`).join("")}</div>
+            <p class="sub"><b>Total: ${dinero(p.total)}</b></p>`;
     }
 
     // ---------------------------------------------------------------- eventos
@@ -329,6 +392,7 @@
         $("btnCerrarCarrito").onclick = () => abrirCarrito(false);
         $("fondoOscuro").onclick = () => abrirCarrito(false);
         $("btnComprar").onclick = abrirModalCompra;
+        $("btnPedido").onclick = () => abrirModalPedido();
         $("btnVaciar").onclick = () => { if (Object.keys(carrito).length && confirm("¿Vaciar todo el carrito?")) { carrito = {}; guardarCarrito(); pintarCarrito(); } };
         $("modalCompra").onclick = (e) => { if (e.target === $("modalCompra")) $("modalCompra").classList.remove("visible"); };
         document.addEventListener("keydown", (e) => { if (e.key === "Escape") { abrirCarrito(false); $("modalCompra").classList.remove("visible"); } });

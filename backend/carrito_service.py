@@ -10,6 +10,7 @@ Endpoints:
 - GET  /api/tienda/destacados   : productos para la portada.
 - POST /api/tienda/comprar      : guarda la compra (tablas compras y detalle_compra).
 - GET  /api/tienda/compras      : historial de compras (para el dashboard).
+- POST /api/tienda/pedido       : el cliente consulta el estado de SU compra (N.º de compra + correo).
 
 Los productos se leen de la tabla "productos" de Supabase (consultas SQL).
 Si la tabla aún está vacía o no hay conexión, se usa el mismo catálogo generado por
@@ -376,6 +377,39 @@ def tienda_compras():
             print("[TIENDA] No se pudo leer compras de Supabase:", e)
     locales = _leer_compras_locales()[:limite]
     return jsonify({"ok": True, "fuente": "archivo_local", "total": len(locales), "compras": locales})
+
+
+@carrito_bp.route("/api/tienda/pedido", methods=["POST"])
+def tienda_pedido():
+    """El cliente consulta el estado de su compra. Exige el N.º de compra Y el correo con el que compró."""
+    datos = request.get_json(silent=True) or {}
+    compra_id = str(datos.get("compra_id", "")).strip().lstrip("#")[:30]
+    correo = str(datos.get("correo", "")).strip().lower()[:120]
+    if not compra_id or not PATRON_CORREO.match(correo) or not re.fullmatch(r"[A-Za-z0-9]+", compra_id):
+        return jsonify({"ok": False, "error": "Escribe el número de compra y el correo con el que compraste."}), 400
+
+    compra = None
+    cliente = _cliente_supabase()
+    if cliente is not None and compra_id.isdigit():
+        try:
+            filas = cliente.table("compras").select("*").eq("id", int(compra_id)).limit(1).execute().data or []
+            if filas:
+                compra = filas[0]
+                compra["items"] = cliente.table("detalle_compra").select("*").eq("compra_id", int(compra_id)).execute().data or []
+        except Exception as e:
+            print("[TIENDA] No se pudo consultar el pedido en Supabase:", e)
+    if compra is None:
+        compra = next((c for c in _leer_compras_locales() if str(c.get("id")) == compra_id), None)
+
+    # Mismo mensaje si no existe o si el correo no coincide (así nadie puede adivinar compras ajenas)
+    if not compra or str(compra.get("cliente_correo", "")).strip().lower() != correo:
+        return jsonify({"ok": False, "error": "No encontramos una compra con esos datos. Revisa el número y el correo."}), 404
+    return jsonify({"ok": True, "pedido": {
+        "id": compra.get("id"), "fecha": compra.get("fecha_compra"), "estado": compra.get("estado") or "pendiente",
+        "total": float(compra.get("total") or 0), "cliente": compra.get("cliente_nombre"),
+        "direccion": compra.get("direccion_entrega") or "",
+        "items": [{"producto": i.get("producto"), "cantidad": i.get("cantidad"), "subtotal": float(i.get("subtotal") or 0)} for i in compra.get("items", [])],
+    }})
 
 
 # Precalentamiento opcional (TIENDA_PRECALENTAR=1). Por defecto apagado: Render gratis tiene solo 512 MB y el catálogo se carga en la primera visita a la tienda
