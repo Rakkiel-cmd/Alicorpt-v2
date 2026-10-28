@@ -31,6 +31,8 @@ from backend.graficos_analysis import graficos_analysis
 app.register_blueprint(graficos_analysis)
 from backend.incidencias import incidencias_bp
 app.register_blueprint(incidencias_bp)
+from backend.carrito_service import carrito_bp
+app.register_blueprint(carrito_bp)
 from backend.superadmin_panel import superadmin_panel
 app.register_blueprint(superadmin_panel)
 from backend.reporte_predictivo_service import reporte_predictivo_bp

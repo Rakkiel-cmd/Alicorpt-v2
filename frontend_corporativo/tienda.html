@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tienda | Alicorp</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="apple-touch-icon" href="favicon.png">
+    <link rel="stylesheet" href="estilos.css">
+    <link rel="stylesheet" href="tienda.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navbar (igual que el resto de la web) -->
+    <header class="navbar">
+        <div class="container nav-container">
+            <div class="logo">
+                <a href="index.html" style="text-decoration: none;">
+                    <span class="logo-red">à</span><span class="logo-blue">licorp</span>
+                </a>
+            </div>
+            <nav class="nav-links">
+                <a href="inversionistas.html">Inversionistas</a>
+                <a href="clientes.html">Clientes y proveedores</a>
+                <a href="tienda.html" style="color: var(--color-secondary);">Comprar productos</a>
+                <a href="contacto.html">Contacto</a>
+                <a href="etica.html">Unico Ética Alicorp</a>
+            </nav>
+            <div class="nav-derecha">
+                <!-- El carrito va FUERA de .nav-actions porque script.js vacía ese bloque para los clientes -->
+                <button type="button" class="btn-carrito" id="btnCarrito" aria-label="Abrir carrito">
+                    🛒 <span>Carrito</span> <span class="contador" id="contadorCarrito">0</span>
+                </button>
+                <div class="nav-actions">
+                    <a href="admin_login.html" class="btn-outline">Personal Autorizado</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Portada con buscador inteligente -->
+    <section class="tienda-hero">
+        <div class="container">
+            <h1>Compra productos Alicorp</h1>
+            <p>Más de 7 000 productos reales. Escribe lo que necesitas, como lo dirías normalmente.</p>
+            <form class="buscador-caja" id="formBuscar" autocomplete="off">
+                <span class="lupa">🔎</span>
+                <input type="text" id="cajaBuscar" maxlength="120" placeholder='Prueba: "aceite para freír", "lavar ropa", "comida de perro"...'>
+                <button type="button" class="limpiar" id="btnLimpiar" aria-label="Borrar búsqueda">✕</button>
+                <button type="submit" class="buscar-btn">Buscar</button>
+            </form>
+            <div class="sugerencias" id="sugerencias">
+                <button type="button" data-q="aceite para freir">aceite para freír</button>
+                <button type="button" data-q="lavar ropa">lavar ropa</button>
+                <button type="button" data-q="leche para bebe">leche para bebé</button>
+                <button type="button" data-q="galletas para la lonchera">galletas para la lonchera</button>
+                <button type="button" data-q="espageti">espageti</button>
+                <button type="button" data-q="comida de perro">comida de perro</button>
+            </div>
+        </div>
+    </section>
+
+    <main class="container tienda-cuerpo">
+        <aside class="panel-categorias" id="panelCategorias">
+            <h3>Categorías</h3>
+        </aside>
+
+        <section>
+            <div class="cinta-inteligente" id="cintaInteligente"></div>
+            <div class="barra-herramientas">
+                <div class="titulo-lista"><span id="tituloLista">Todos los productos</span><span class="conteo" id="conteoLista"></span></div>
+                <div class="filtros" id="filtros">
+                    <select id="selMarca" aria-label="Marca"><option value="">Todas las marcas</option></select>
+                    <select id="selOrden" aria-label="Ordenar">
+                        <option value="">Orden normal</option>
+                        <option value="precio_asc">Precio: menor a mayor</option>
+                        <option value="precio_desc">Precio: mayor a menor</option>
+                        <option value="nombre">Nombre A-Z</option>
+                    </select>
+                </div>
+            </div>
+            <div class="rejilla" id="rejilla"></div>
+            <div class="paginacion" id="paginacion"></div>
+        </section>
+    </main>
+
+    <!-- Carrito -->
+    <div class="fondo-oscuro" id="fondoOscuro"></div>
+    <aside class="carrito-panel" id="carritoPanel" aria-label="Carrito de compras">
+        <header>
+            <h2>🛒 Tu carrito</h2>
+            <button type="button" class="cerrar" id="btnCerrarCarrito" aria-label="Cerrar">✕</button>
+        </header>
+        <div class="carrito-lista" id="carritoLista"></div>
+        <div class="carrito-pie">
+            <div class="resumen"><span>Productos distintos</span><span id="resLineas">0</span></div>
+            <div class="resumen"><span>Unidades</span><span id="resUnidades">0</span></div>
+            <div class="resumen total"><span>Total</span><span id="resTotal">S/ 0.00</span></div>
+            <button type="button" class="btn-grande" id="btnComprar" disabled>Finalizar compra</button>
+            <button type="button" class="btn-vaciar" id="btnVaciar">Vaciar carrito</button>
+        </div>
+    </aside>
+
+    <!-- Ventana para finalizar la compra -->
+    <div class="modal" id="modalCompra">
+        <div class="caja" id="cajaCompra"></div>
+    </div>
+
+    <div class="aviso" id="aviso"></div>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-bottom">
+                &copy; 2026 Alicorp S.A.A. Todos los derechos reservados.
+            </div>
+        </div>
+    </footer>
+    <script src="script.js"></script>
+    <script src="tienda_imagenes.js"></script>
+    <script src="tienda.js"></script>
+</body>
+</html>

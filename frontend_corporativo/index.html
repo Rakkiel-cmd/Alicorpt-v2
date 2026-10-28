@@ -7,6 +7,7 @@
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="apple-touch-icon" href="favicon.png">
     <link rel="stylesheet" href="estilos.css">
+    <link rel="stylesheet" href="tienda.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -21,6 +22,7 @@
             <nav class="nav-links">
                 <a href="inversionistas.html">Inversionistas</a>
                 <a href="clientes.html">Clientes y proveedores</a>
+                <a href="tienda.html" class="enlace-tienda">Comprar productos</a>
                 <a href="contacto.html">Contacto</a>
                 <a href="etica.html">Unico Ética Alicorp</a>
                 <a href="#">Perú ▾</a>
@@ -30,6 +32,38 @@
             </div>
         </div>
     </header>
+
+    <!-- Tienda en línea: buscador inteligente, categorías y productos destacados -->
+    <section class="tienda-hero portada-tienda">
+        <div class="container">
+            <span class="insignia-nueva">🛒 NUEVO · Tienda en línea</span>
+            <h1>Todo Alicorp en un solo lugar</h1>
+            <p>Más de 7 000 productos reales para tu hogar y tu negocio. Compra por unidad o por cantidades grandes.</p>
+            <form class="buscador-caja" action="tienda.html" method="get" autocomplete="off">
+                <span class="lupa">🔎</span>
+                <input type="text" name="q" maxlength="120" placeholder='¿Qué necesitas? Prueba "aceite para freír" o "lavar ropa"'>
+                <button type="submit" class="buscar-btn">Buscar</button>
+            </form>
+            <div class="sugerencias">
+                <a href="tienda.html" class="btn-pill btn-primary" style="padding:8px 22px;font-size:.9rem">Ver toda la tienda</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="section portada-categorias">
+        <div class="container">
+            <h2 class="section-title">Explora por categoría</h2>
+            <div class="rejilla-categorias" id="portadaCategorias"></div>
+        </div>
+    </section>
+
+    <section class="section portada-destacados">
+        <div class="container">
+            <h2 class="section-title">Productos destacados</h2>
+            <div class="rejilla" id="portadaDestacados"></div>
+            <div style="text-align:center;margin-top:26px"><a href="tienda.html" class="btn-pill btn-primary">Ver todos los productos</a></div>
+        </div>
+    </section>
 
     <!-- Hero Section -->
     <section class="hero-alicorp" style="background: linear-gradient(135deg, #4b5563, #1f2937); height: auto; padding: 100px 20px; text-align: center;">
@@ -103,5 +137,22 @@
         </div>
     </footer>
     <script src="script.js"></script>
+    <script src="tienda_imagenes.js"></script>
+    <script>
+    // Portada: categorías y destacados desde la base de datos (solo lectura)
+    (function () {
+        const esc = (t) => String(t == null ? "" : t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+        fetch("/api/tienda/categorias").then((r) => r.json()).then((d) => {
+            const cont = document.getElementById("portadaCategorias");
+            if (!cont || !d.ok) return;
+            cont.innerHTML = d.categorias.map((c) => `<a class="tarjeta-cat" href="tienda.html?cat=${encodeURIComponent(c.categoria)}"><span class="emoji">${esc(c.emoji)}</span><b>${esc(c.categoria)}</b><small>${c.cantidad} productos</small></a>`).join("");
+        }).catch(() => {});
+        fetch("/api/tienda/destacados").then((r) => r.json()).then((d) => {
+            const cont = document.getElementById("portadaDestacados");
+            if (!cont || !d.ok) return;
+            cont.innerHTML = d.items.map((p) => `<a class="producto" style="text-decoration:none;color:inherit" href="tienda.html?q=${encodeURIComponent(p.subcategoria)}"><div class="foto">${window.fotoProducto(p)}</div><div class="info"><span class="marca">${esc(p.marca)}</span><span class="nombre">${esc(p.nombre)}</span><span class="present">${esc(p.presentacion)}</span><span class="precio">S/ ${Number(p.precio).toFixed(2)}</span></div></a>`).join("");
+        }).catch(() => {});
+    })();
+    </script>
 </body>
 </html>
