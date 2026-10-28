@@ -3825,5 +3825,92 @@ function rfComparar() {
         });
     })();
     </script>
+
+    <!-- Descargar el reporte mensual (CSV para Excel) o imprimirlo / guardarlo como PDF. Script independiente. -->
+    <style>
+        .rm-herramientas { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: -10px 0 22px; }
+        .rm-herramientas button { background: var(--surface); color: var(--primary); border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 16px; font-weight: 700; font-size: 13px; cursor: pointer; transition: all .2s ease; }
+        .rm-herramientas button:hover { background: var(--primary); color: #fff; transform: translateY(-1px); }
+        .rm-herramientas .rm-aviso { font-size: 12.5px; color: var(--text-muted); }
+        @media print {
+            .sidebar, .top-nav-bar, .footer, #errorGlobal, .rm-herramientas, .rm-filtro, .theme-toggle-btn, .sb-link-web, .btn-logout, .hero-btns, .modal-overlay { display: none !important; }
+            .main { margin-left: 0 !important; }
+            .vista { display: none !important; }
+            .vista.active { display: block !important; }
+            .chart-card, .metric-card { break-inside: avoid; }
+            body { background: #fff !important; }
+        }
+    </style>
+    <script>
+    (function () {
+        "use strict";
+        const el = (id) => document.getElementById(id);
+        const csvCelda = (t) => '"' + String(t == null ? "" : t).replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, "").replace(/\s+/g, " ").trim().replace(/"/g, '""') + '"';
+        const texto = (id) => (el(id) ? el(id).textContent.trim() : "");
+
+        function filasTabla(idCuerpo) {
+            const cuerpo = el(idCuerpo);
+            if (!cuerpo) return [];
+            return Array.from(cuerpo.querySelectorAll("tr")).map((tr) => Array.from(tr.children).map((td) => td.textContent)).filter((f) => f.length > 2);
+        }
+        function cabeceras(idCuerpo) {
+            const tabla = el(idCuerpo) && el(idCuerpo).closest("table");
+            return tabla ? Array.from(tabla.querySelectorAll("thead th")).map((th) => th.textContent) : [];
+        }
+        function descargar(nombre, filas) {
+            const csv = "\uFEFF" + filas.map((f) => f.map(csvCelda).join(",")).join("\r\n");
+            const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+            const a = document.createElement("a");
+            a.href = url; a.download = nombre;
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1500);
+        }
+        function aviso(msg) {
+            const a = el("rmAviso");
+            a.textContent = msg;
+            clearTimeout(aviso._t);
+            aviso._t = setTimeout(() => { a.textContent = ""; }, 5000);
+        }
+
+        function descargarMes() {
+            const filas = filasTabla("tablaReporte");
+            if (!filas.length) { aviso("Primero elige un mes para generar el reporte."); return; }
+            const sel = el("selectMesReporte");
+            const mes = sel && sel.selectedOptions[0] ? sel.selectedOptions[0].textContent.trim() : "mes";
+            const todo = [
+                ["Reporte mensual", mes], ["Venta total del mes", texto("rmVentaTotal")],
+                ["Margen promedio proyectado", texto("rmMargen")], ["Producto con mayor riesgo", texto("rmRiesgo")], [],
+                cabeceras("tablaReporte"), ...filas,
+            ];
+            descargar("reporte_mensual_" + mes.toLowerCase().replace(/[^a-z0-9]+/g, "_") + ".csv", todo);
+        }
+        function descargarFuturo() {
+            const caja = el("rfResultado");
+            const filas = filasTabla("rfTabla");
+            if (!caja || caja.style.display === "none" || !filas.length) { aviso("Primero usa 'Predecir reporte futuro' y genera el reporte."); return; }
+            const todo = [
+                ["Reporte futuro (predicción)", texto("rfFecha")], ["Venta total proyectada", texto("rfVentaTotal")],
+                ["Margen promedio proyectado", texto("rfMargen")], ["Producto con mayor riesgo", texto("rfRiesgo")], [],
+                cabeceras("rfTabla"), ...filas,
+            ];
+            descargar("reporte_futuro_" + texto("rfFecha").toLowerCase().replace(/[^a-z0-9]+/g, "_") + ".csv", todo);
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const filtro = document.querySelector("#vista-reporte .rm-filtro");
+            if (!filtro) return;
+            const barra = document.createElement("div");
+            barra.className = "rm-herramientas";
+            barra.innerHTML = '<button type="button" id="rmBtnMes">⬇️ Descargar reporte del mes (Excel/CSV)</button>' +
+                '<button type="button" id="rmBtnFuturo">⬇️ Descargar reporte futuro (Excel/CSV)</button>' +
+                '<button type="button" id="rmBtnImprimir">🖨️ Imprimir / guardar como PDF</button>' +
+                '<span class="rm-aviso" id="rmAviso" role="status"></span>';
+            filtro.insertAdjacentElement("afterend", barra);
+            el("rmBtnMes").onclick = descargarMes;
+            el("rmBtnFuturo").onclick = descargarFuturo;
+            el("rmBtnImprimir").onclick = () => window.print();
+        });
+    })();
+    </script>
 </body>
 </html>
