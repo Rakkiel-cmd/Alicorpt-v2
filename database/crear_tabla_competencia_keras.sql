@@ -90,3 +90,4 @@ ON CONFLICT (codigo_empresa, producto_alicorp) DO UPDATE SET
     cuota_mercado_pct = EXCLUDED.cuota_mercado_pct;
 
 SELECT 'Tabla empresas_competencia_simuladas creada y poblada con éxito en Supabase' AS resultado;
+

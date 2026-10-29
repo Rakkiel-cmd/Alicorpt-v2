@@ -400,15 +400,7 @@ RUTA_CATALOGO_REAL = os.path.join(os.path.dirname(os.path.dirname(os.path.abspat
 
 
 def generar_catalogo():
-    """Devuelve el catálogo real si existe data/catalogo_real.json; si no, el sintético de respaldo."""
-    if os.path.exists(RUTA_CATALOGO_REAL):
-        try:
-            with open(RUTA_CATALOGO_REAL, "r", encoding="utf-8") as f:
-                productos = json.load(f)
-            if productos:
-                return productos
-        except Exception as e:
-            print("[CATALOGO] No se pudo leer catalogo_real.json, se usa el catálogo de respaldo:", e)
+    """Devuelve el catálogo sintético de respaldo cuando Supabase no está disponible."""
     return generar_catalogo_sintetico()
 
 

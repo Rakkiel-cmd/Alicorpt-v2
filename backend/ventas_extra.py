@@ -15,8 +15,6 @@ from flask import Blueprint, jsonify, request
 
 ventas_extra = Blueprint('ventas_extra', __name__)
 
-RUTA_CSV = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'transacciones_alicorp_100k.csv')
-
 _resumen_cache = None
 _modelo_cache = None
 _candado = threading.Lock()
@@ -125,44 +123,27 @@ def _calcular_resumen():
     except Exception as e:
         print("[!] Aviso calculando resumen desde vistas Supabase:", e)
 
-    # Respaldo rápido y liviano desde JSON agregado de 100k (0 RAM en Render)
-    ruta_json = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'resumen_100k_supabase.json')
-    if os.path.exists(ruta_json):
-        try:
-            import json
-            with open(ruta_json, 'r', encoding='utf-8') as f:
-                d = json.load(f)
-                if 'resumen' in d:
-                    return d['resumen']
-        except Exception as e:
-            print("[!] Aviso leyendo resumen_100k_supabase.json:", e)
-
-    columnas = ['fecha', 'producto', 'tienda', 'precio_unitario', 'stock_actual',
-                'cantidad_vendida', 'ventas_totales']
-    ruta_real = RUTA_CSV if os.path.exists(RUTA_CSV) else os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'transacciones_alicorp_100k.csv')
-    if os.path.exists(ruta_real):
-        df = pd.read_csv(ruta_real, usecols=columnas)
-        df['mes'] = pd.to_datetime(df['fecha']).dt.strftime('%Y-%m')
-        por_mes = df.groupby('mes')['ventas_totales'].sum()
-        # Relacion real de los datos: mas stock -> mas unidades vendidas
-        df['nivel_stock'] = pd.cut(df['stock_actual'], bins=[0, 150, 250, 350, 450, 1000],
-                                   labels=['50-149', '150-249', '250-349', '350-449', '450-500'], right=False)
-        por_stock = df.groupby('nivel_stock', observed=True).agg(
-            unidades=('cantidad_vendida', 'mean'), ventas=('ventas_totales', 'mean'))
-        return {
-            'success': True,
-            'total_registros': int(len(df)),
-            'ventas_totales': round(float(df['ventas_totales'].sum()), 2),
-            'productos': _grupo_a_lista(df, 'producto'),
-            'tiendas': _grupo_a_lista(df, 'tienda'),
-            'meses': list(por_mes.index),
-            'ventas_por_mes': [round(float(v), 2) for v in por_mes.values],
-            'stock_niveles': [str(n) for n in por_stock.index],
-            'stock_unidades': [round(float(v), 2) for v in por_stock['unidades']],
-            'stock_ventas': [round(float(v), 2) for v in por_stock['ventas']],
-        }
-
-    raise RuntimeError("No se pudieron cargar los datos de resumen.")
+    # Si las vistas aún no respondieron, agregar desde el DataFrame de Supabase
+    from backend.datos_supabase import obtener_transacciones
+    df = obtener_transacciones().copy()
+    df['mes'] = pd.to_datetime(df['fecha']).dt.strftime('%Y-%m')
+    por_mes = df.groupby('mes')['ventas_totales'].sum()
+    df['nivel_stock'] = pd.cut(df['stock_actual'], bins=[0, 150, 250, 350, 450, 1000],
+                               labels=['50-149', '150-249', '250-349', '350-449', '450-500'], right=False)
+    por_stock = df.groupby('nivel_stock', observed=True).agg(
+        unidades=('cantidad_vendida', 'mean'), ventas=('ventas_totales', 'mean'))
+    return {
+        'success': True,
+        'total_registros': int(len(df)),
+        'ventas_totales': round(float(df['ventas_totales'].sum()), 2),
+        'productos': _grupo_a_lista(df, 'producto'),
+        'tiendas': _grupo_a_lista(df, 'tienda'),
+        'meses': list(por_mes.index),
+        'ventas_por_mes': [round(float(v), 2) for v in por_mes.values],
+        'stock_niveles': [str(n) for n in por_stock.index],
+        'stock_unidades': [round(float(v), 2) for v in por_stock['unidades']],
+        'stock_ventas': [round(float(v), 2) for v in por_stock['ventas']],
+    }
 
 
 @ventas_extra.route('/api/resumen_productos', methods=['GET'])
@@ -197,7 +178,7 @@ def _obtener_modelo():
         from sklearn.pipeline import make_pipeline
         from sklearn.preprocessing import StandardScaler
 
-        # 1. Consultar primero en la nube: bloque de 5,000 registros directamente desde Supabase
+        # Consultar bloque de 5,000 registros directamente desde Supabase
         df = None
         supabase = _cliente_supabase()
         if supabase:
@@ -214,14 +195,9 @@ def _obtener_modelo():
             except Exception as e:
                 print("[!] Error consultando Supabase para modelo:", e)
 
-        # 2. Respaldo local si Supabase no respondió
         if df is None:
-            ruta_real = RUTA_CSV if os.path.exists(RUTA_CSV) else os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'transacciones_alicorp_100k.csv')
-            if os.path.exists(ruta_real):
-                try:
-                    df = pd.read_csv(ruta_real, nrows=5000)
-                except Exception:
-                    df = None
+            from backend.datos_supabase import obtener_transacciones
+            df = obtener_transacciones().head(5000).copy()
 
         if df is None or df.empty:
             raise RuntimeError("No se pudieron cargar datos para entrenar el modelo de ventas.")

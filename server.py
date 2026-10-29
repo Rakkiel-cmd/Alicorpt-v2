@@ -686,22 +686,16 @@ def predecir_ventas():
         except Exception as e_rpc:
             print("[!] Aviso consultando RPC estadisticas_dashboard en predecir_ventas:", e_rpc)
 
-        # 2. Respaldo desde resumen_100k_supabase.json si la función RPC aún no se ejecutó en Supabase
+        # 2. Respaldo calculando directamente desde las transacciones de Supabase
         if stats is None:
-            ruta_json = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "resumen_100k_supabase.json")
-            if os.path.exists(ruta_json):
-                try:
-                    import json
-                    with open(ruta_json, "r", encoding="utf-8") as f:
-                        stats = json.load(f)["estadisticas"]
-                except Exception:
-                    pass
-
-        if stats is None:
-            from backend.datos_supabase import obtener_transacciones
-            from backend.estadistica_service import calcular_estadisticas
-            df = obtener_transacciones()
-            stats = calcular_estadisticas(df)
+            try:
+                from backend.datos_supabase import obtener_transacciones
+                from backend.estadistica_service import calcular_estadisticas
+                df = obtener_transacciones()
+                stats = calcular_estadisticas(df)
+            except Exception:
+                from backend.estadistica_service import calcular_estadisticas_memoria
+                stats = calcular_estadisticas_memoria(200.0, 100.0)
 
         # Usar el modelo entrenado con los datos reales
         from backend.ventas_extra import _obtener_modelo

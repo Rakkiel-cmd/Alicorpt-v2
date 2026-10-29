@@ -17,12 +17,6 @@ from sklearn.preprocessing import StandardScaler
 graficos_analysis = Blueprint("graficos_analysis", __name__)
 _log = logging.getLogger(__name__)
 
-RUTA_CSV = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "data",
-    "transacciones_alicorp_100k.csv",
-)
-
 _COLUMNAS = [
     "fecha",
     "precio_unitario",
@@ -87,24 +81,8 @@ def _cargar_datos():
     except Exception as error:
         _log.warning("No se pudo cargar Supabase para graficos; se usara respaldo local: %s", error)
 
-    if datos is None and os.path.exists(RUTA_CSV):
-        try:
-            datos = pd.read_csv(RUTA_CSV, usecols=_COLUMNAS, nrows=limite).dropna()
-            datos.attrs["fuente"] = "Supabase PostgreSQL (transacciones_alicorp)"
-        except Exception:
-            pass
-
     if datos is None:
-        ruta_alt = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "transacciones_alicorp_100k.csv")
-        if os.path.exists(ruta_alt):
-            try:
-                datos = pd.read_csv(ruta_alt, usecols=_COLUMNAS, nrows=limite).dropna()
-                datos.attrs["fuente"] = "Supabase PostgreSQL (transacciones_alicorp)"
-            except Exception:
-                pass
-
-    if datos is None:
-        # Fallback con datos determinísticos
+        # Fallback determinístico en memoria si no hay red
         np.random.seed(42)
         n = limite
         precios = np.random.choice([8.5, 4.2, 7.0, 15.0, 5.5], n)

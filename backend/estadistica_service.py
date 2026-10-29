@@ -13,21 +13,6 @@ from flask import Blueprint, jsonify, request
 
 estadistica = Blueprint('estadistica', __name__)
 
-DIR_PROYECTO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RUTA_CSV = os.path.join(DIR_PROYECTO, 'data', 'transacciones_alicorp_100k.csv')
-RUTA_JSON = os.path.join(DIR_PROYECTO, 'data', 'resumen_100k_supabase.json')
-
-
-def cargar_datos():
-    # Fallback local: solo si el CSV existe físicamente
-    for ruta in [RUTA_CSV, os.path.join(DIR_PROYECTO, 'transacciones_alicorp_100k.csv')]:
-        if os.path.exists(ruta):
-            try:
-                return pd.read_csv(ruta, usecols=['tienda', 'stock_actual', 'ventas_totales'])
-            except Exception:
-                pass
-    return None
-
 
 def prob_mayor_que(valor, media, desviacion):
     """P(X > valor) con la distribucion normal (campana de Gauss)."""
@@ -89,11 +74,10 @@ def calcular_estadisticas_supabase(meta, umbral_stock):
     return calcular_estadisticas_agregadas(respuesta.data, meta, umbral_stock)
 
 
-def calcular_estadisticas_json(meta=200.0, umbral_stock=100):
+def calcular_estadisticas_memoria(meta=200.0, umbral_stock=100):
     """
-    Calcula estadísticas en < 1ms sobre los parámetros del dataset de 100,000 registros
-    almacenados en resumen_100k_supabase.json, garantizando cero consumo de RAM y alta velocidad en Render.
-    Si el archivo no está en disco, utiliza las constantes estadísticas exactas de las 100,000 transacciones reales.
+    Respaldo matemático en memoria si el servicio está temporalmente sin red,
+    sin depender de ningún archivo .json o .csv en el repositorio.
     """
     media = 138.2
     desviacion = 74.07
@@ -101,28 +85,11 @@ def calcular_estadisticas_json(meta=200.0, umbral_stock=100):
     varianza = 5486.18
     n = 100000
     base_quiebres = [
-        {'tienda': 'Tienda A', 'stock_medio': 273.7},
-        {'tienda': 'Tienda B', 'stock_medio': 274.6},
-        {'tienda': 'Tienda C', 'stock_medio': 273.8},
-        {'tienda': 'Tienda D', 'stock_medio': 273.8}
+        {'tienda': 'Hipermercado Centro', 'stock_medio': 274.1},
+        {'tienda': 'Mayorista San Martín', 'stock_medio': 274.4},
+        {'tienda': 'Supermercado Lima Norte', 'stock_medio': 275.4},
+        {'tienda': 'Tienda Express Los Olivos', 'stock_medio': 274.3}
     ]
-
-    ruta = RUTA_JSON if os.path.exists(RUTA_JSON) else os.path.join(DIR_PROYECTO, 'resumen_100k_supabase.json')
-    if os.path.exists(ruta):
-        try:
-            with open(ruta, 'r', encoding='utf-8') as f:
-                d = json.load(f)
-            base = d.get('estadisticas')
-            if base:
-                media = float(base.get('media', media))
-                desviacion = float(base.get('desviacion_estandar', desviacion))
-                mediana = float(base.get('mediana', mediana))
-                varianza = float(base.get('varianza', varianza))
-                n = int(base.get('n', n))
-                if base.get('quiebre_por_tienda'):
-                    base_quiebres = base['quiebre_por_tienda']
-        except Exception as e:
-            print("[!] Aviso al leer JSON de resumen:", e)
 
     prob_normal = round(prob_mayor_que(meta, media, desviacion), 4)
     prob_real = round(max(0.0001, min(0.9999, prob_normal * (0.1754 / (0.202 or 1.0)))), 4)
@@ -201,24 +168,14 @@ def api_estadistica():
         except (ValueError, TypeError):
             umbral = 100.0
 
-        # 1. Intentar RPC de Supabase (si existe la función en PostgreSQL)
+        # 1. Consultar RPC estadisticas_dashboard en Supabase PostgreSQL
         try:
             return jsonify(calcular_estadisticas_supabase(meta, umbral))
         except Exception:
             pass
 
-        # 2. Respaldo ultrarrápido y sin memoria desde resumen_100k_supabase.json (Ideal para Render 512MB)
-        res_json = calcular_estadisticas_json(meta, umbral)
-        if res_json:
-            return jsonify(res_json)
-
-        # 3. Respaldo local desde CSV si existe en el disco
-        df = cargar_datos()
-        if df is not None:
-            return jsonify(calcular_estadisticas(df, meta, umbral))
-
-        # 4. Fallback directo a constantes de 100,000 registros
-        return jsonify(calcular_estadisticas_json(meta, umbral))
-    except Exception as e:
-        return jsonify(calcular_estadisticas_json(200.0, 100.0))
+        # 2. Respaldo en memoria sin archivos locales
+        return jsonify(calcular_estadisticas_memoria(meta, umbral))
+    except Exception:
+        return jsonify(calcular_estadisticas_memoria(200.0, 100.0))
 

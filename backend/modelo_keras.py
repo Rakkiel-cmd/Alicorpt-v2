@@ -24,11 +24,49 @@ modelo_keras = Blueprint("modelo_keras", __name__)
 
 DIR_PROYECTO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DIR_MODELOS = os.path.join(DIR_PROYECTO, "models")
-DIR_DATA = os.path.join(DIR_PROYECTO, "data")
 RUTA_MODELO_KERAS = os.path.join(DIR_MODELOS, "modelo_ventas_keras.keras")
-RUTA_METADATOS = os.path.join(DIR_MODELOS, "metadatos_keras.json")
 RUTA_PESOS = os.path.join(DIR_MODELOS, "pesos_keras.npz")
-RUTA_RESUMEN_100K = os.path.join(DIR_DATA, "resumen_100k_supabase.json")
+
+METADATOS_KERAS_BASE = {
+    "framework": "TensorFlow & Keras",
+    "keras_version": "3.15.1",
+    "total_registros_entrenamiento": 100000,
+    "n_train": 80000,
+    "n_test": 20000,
+    "input_dim": 14,
+    "feature_names": [
+        "precio_unitario", "stock_actual", "temperatura_zona", "mes", "dia_semana",
+        "producto_Aceite Primor 1L", "producto_Detergente Bolívar 2kg",
+        "producto_Fideos Don Vittorio 500g", "producto_Harina Blanca Flor 1kg",
+        "producto_Mayonesa Alacena 500g", "tienda_Hipermercado Centro",
+        "tienda_Mayorista San Martín", "tienda_Supermercado Lima Norte",
+        "tienda_Tienda Express Los Olivos"
+    ],
+    "scaler_mean": [
+        8.01729625, 274.9097125, 23.994598875, 6.49785, 3.001,
+        0.199975, 0.1988, 0.200225, 0.2006875, 0.2003125,
+        0.2493375, 0.2508625, 0.2499125, 0.2498875
+    ],
+    "scaler_scale": [
+        3.756832371125432, 129.71360187222982, 3.465944784484994,
+        3.441525152821057, 2.005074562204608, 0.3999812487792397,
+        0.39909718114764986, 0.40016865116473077, 0.4005147030306752,
+        0.40023418437678465, 0.43262953100054324, 0.4335095224948929,
+        0.4329621719547217, 0.4329477304984402
+    ],
+    "target_mean": 138.06716918945312,
+    "target_std": 74.0541000366211,
+    "metricas": {"r2": 0.7798, "mae": 25.07, "rmse": 34.79, "mse": 1210.02},
+    "productos": [
+        "Aceite Primor 1L", "Detergente Bolívar 2kg", "Fideos Don Vittorio 500g",
+        "Harina Blanca Flor 1kg", "Mayonesa Alacena 500g"
+    ],
+    "tiendas": [
+        "Hipermercado Centro", "Mayorista San Martín",
+        "Supermercado Lima Norte", "Tienda Express Los Olivos"
+    ],
+    "fecha_entrenamiento": "2026-10-18 13:46:28"
+}
 
 _metadatos = None
 _pesos = None
@@ -71,9 +109,8 @@ def _cargar_recursos():
     """Carga los metadatos y el modelo/pesos en memoria una sola vez (Lazy loading)."""
     global _metadatos, _pesos, _modelo_keras_obj
 
-    if _metadatos is None and os.path.exists(RUTA_METADATOS):
-        with open(RUTA_METADATOS, "r", encoding="utf-8") as f:
-            _metadatos = json.load(f)
+    if _metadatos is None:
+        _metadatos = dict(METADATOS_KERAS_BASE)
 
     if _pesos is None and os.path.exists(RUTA_PESOS):
         _pesos = np.load(RUTA_PESOS)
@@ -206,34 +243,7 @@ def _obtener_historico_alicorp_supabase():
         except Exception:
             pass
 
-    # 2. Respaldo desde resumen_100k_supabase.json si la vista aún no fue ejecutada
-    if not historico_por_producto and os.path.exists(RUTA_RESUMEN_100K):
-        try:
-            with open(RUTA_RESUMEN_100K, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            resumen = data.get("resumen") or {}
-            for p in (resumen.get("productos") or []):
-                nombre = p.get("nombre")
-                if nombre:
-                    ventas = float(p.get("ventas", 2850000.0))
-                    precio_prom = float(p.get("precio_promedio", 8.5))
-                    stock_prom = int(p.get("stock_promedio", 274))
-                    costo_est = round(precio_prom * 0.66, 2)
-                    ganancia_neta = round(ventas * 0.34, 2)
-                    historico_por_producto[nombre] = {
-                        "producto": nombre,
-                        "ventas_historicas_soles": round(ventas, 2),
-                        "unidades_historicas": int(p.get("unidades", 335000)),
-                        "precio_promedio": round(precio_prom, 2),
-                        "costo_unitario": costo_est,
-                        "stock_promedio": stock_prom,
-                        "ganancia_neta_historica": ganancia_neta,
-                        "participacion_interna_pct": float(p.get("participacion", 20.0))
-                    }
-        except Exception:
-            pass
-
-    # 3. Complementar si algún producto faltara
+    # 2. Complementar en memoria si algún producto faltara
     productos_base = [
         ("Aceite Primor 1L", 8.90, 275, 2945000.00),
         ("Detergente Bolívar 2kg", 9.60, 274, 2860000.00),
