@@ -1415,6 +1415,137 @@
                     </div>
                 </div>
 
+                <!-- ================= SIMULACIÓN COMPETITIVA DE MERCADO: ALICORP VS EMPRESA RANDOM (SUPABASE) ================= -->
+                <style>
+                    .kcomp-wrapper { margin-top: 28px; margin-bottom: 28px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow-sm); }
+                    .kcomp-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+                    .kcomp-title-box h3 { margin: 4px 0 6px; font-size: 20px; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
+                    .kcomp-title-box p { margin: 0; font-size: 13.5px; color: var(--text-muted); max-width: 760px; line-height: 1.5; }
+                    .kcomp-controls { display: grid; grid-template-columns: 1.3fr 1.2fr auto; gap: 16px; align-items: end; background: var(--surface-alt); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 22px; }
+                    @media (max-width: 960px) { .kcomp-controls { grid-template-columns: 1fr; } }
+                    .btn-kcomp-random { background: linear-gradient(135deg, #7c3aed, #ea580c); color: #fff; border: none; border-radius: 10px; padding: 11px 18px; font-size: 13.5px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px rgba(124, 58, 237, 0.3); transition: transform 0.15s ease, box-shadow 0.15s ease; white-space: nowrap; height: 42px; }
+                    .btn-kcomp-random:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(234, 88, 12, 0.4); }
+                    .kcomp-share-bar { width: 100%; height: 10px; background: rgba(234, 88, 12, 0.25); border-radius: 999px; overflow: hidden; margin-top: 8px; display: flex; }
+                    .kcomp-share-fill { height: 100%; background: linear-gradient(90deg, #0284c7, #10b981); transition: width 0.35s ease; }
+                    .kcomp-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 800; }
+                    .kcomp-badge.win { background: rgba(16, 185, 129, 0.15); color: #059669; border: 1px solid rgba(16, 185, 129, 0.35); }
+                    .kcomp-badge.loss { background: rgba(220, 38, 38, 0.15); color: #dc2626; border: 1px solid rgba(220, 38, 38, 0.35); }
+                    body.dark-mode .kcomp-badge.win { background: rgba(16, 185, 129, 0.22); color: #34d399; }
+                    body.dark-mode .kcomp-badge.loss { background: rgba(239, 68, 68, 0.22); color: #f87171; }
+                    .kcomp-loss-val { color: #dc2626; font-weight: 800; }
+                    body.dark-mode .kcomp-loss-val { color: #f87171; }
+                    .kcomp-gain-val { color: #059669; font-weight: 800; }
+                    body.dark-mode .kcomp-gain-val { color: #34d399; }
+                </style>
+
+                <div class="kcomp-wrapper" id="seccionKerasCompetencia">
+                    <div class="kcomp-header">
+                        <div class="kcomp-title-box">
+                            <span class="chip" style="margin-bottom:6px;">Simulación Competitiva en Supabase · Red Neuronal Keras</span>
+                            <h3>⚔️ Análisis de Ganancias, Pérdidas y Competencia: Alicorp vs. Empresa Competidora</h3>
+                            <p>Compara en tiempo real los registros históricos de <b>Corporación Alicorp S.A.A.</b> frente a empresas competidoras registradas en <b>Supabase PostgreSQL</b> (<code>empresas_competencia_simuladas</code>), estimando con la Red Neuronal Keras las ganancias netas, la fuga de ventas y las ganancias perdidas por producto.</p>
+                        </div>
+                        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+                            <span id="kcFuenteBadge" class="kcomp-badge win">🗄️ Conectado a Supabase PostgreSQL</span>
+                            <small id="kcSegmentoRival" style="color:var(--text-muted); font-size:12px;">Cargando perfil competitivo...</small>
+                        </div>
+                    </div>
+
+                    <div class="kcomp-controls">
+                        <div class="field" style="margin:0;">
+                            <label for="kCompEmpresa">🏢 Empresa Competidora (Registros en Supabase)</label>
+                            <select id="kCompEmpresa">
+                                <option value="ANDINO">Grupo Consumo Andino S.A.C. (Competidor Directo Masivo)</option>
+                                <option value="PACIFICO">Industrias del Pacífico Perú S.A. (Importador Mayorista)</option>
+                                <option value="SURFOODS">Alimentos & Marcas del Sur S.A.A. (Marcas Económicas)</option>
+                                <option value="NOVAFOODS">Consorcio Agroindustrial NovaFoods (Gourmet & Saludable)</option>
+                            </select>
+                        </div>
+                        <div class="field" style="margin:0;">
+                            <label for="kCompAgresividad">🔥 Estrategia de Precios del Rival: <b id="kvCompAgresividad">0% (Precio Histórico Supabase)</b></label>
+                            <input type="range" id="kCompAgresividad" min="-15" max="15" step="1" value="0">
+                        </div>
+                        <div>
+                            <button type="button" id="btnKerasCompRandom" class="btn-kcomp-random" title="Seleccionar una empresa competidora aleatoria desde Supabase y simular choque de mercado">
+                                🎲 Simular Empresa Random
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 4 KPI Cards de Competencia -->
+                    <div class="metrics-grid" style="margin-bottom: 22px;">
+                        <div class="metric-card" style="--accent: #0284c7;">
+                            <h4>Ganancia Neta Proyectada Alicorp</h4>
+                            <p id="kcGananciaAlicorp">S/. --</p>
+                            <small id="kcVentasAlicorp">Ventas proyectadas: S/. --</small>
+                            <small id="kcHistAlicorp" style="display:block; margin-top:4px; opacity:0.85;">Histórico Supabase: S/. --</small>
+                        </div>
+                        <div class="metric-card" style="--accent: #ea580c;">
+                            <h4 id="kcTituloRival">Ganancia Neta Competidor</h4>
+                            <p id="kcGananciaRival">S/. --</p>
+                            <small id="kcVentasRival">Ventas proyectadas: S/. --</small>
+                            <small id="kcHistRival" style="display:block; margin-top:4px; opacity:0.85;">Histórico Supabase: S/. --</small>
+                        </div>
+                        <div class="metric-card" style="--accent: #dc2626;">
+                            <h4>⚠️ Ganancias Perdidas (Alicorp)</h4>
+                            <p id="kcGananciaPerdida" class="kcomp-loss-val">S/. --</p>
+                            <small id="kcFugaVentas">Fuga de ventas hacia el rival: S/. --</small>
+                            <small id="kcUnidadesPerdidas" style="display:block; margin-top:4px; opacity:0.85;">Unidades desplazadas: --</small>
+                        </div>
+                        <div class="metric-card" style="--accent: #10b981;">
+                            <h4>Cuota de Mercado (Market Share)</h4>
+                            <p id="kcCuotaMercado" style="font-size:20px;">--% vs --%</p>
+                            <div class="kcomp-share-bar">
+                                <div id="kcBarraCuotaAlicorp" class="kcomp-share-fill" style="width: 50%;"></div>
+                            </div>
+                            <small id="kcLiderBadge" style="display:block; margin-top:6px; font-weight:700;">Analizando liderazgo...</small>
+                        </div>
+                    </div>
+
+                    <!-- 2 Gráficos Comparativos -->
+                    <div class="charts-grid" style="margin-bottom: 22px;">
+                        <div class="chart-card">
+                            <h4>📊 Ventas Proyectadas Keras vs. Ganancias Perdidas por Producto (S/.)</h4>
+                            <div class="chart-container" style="height: 290px;"><canvas id="chartKerasCompVentas"></canvas></div>
+                            <p class="hint">Comparación directa en soles generada por la Red Neuronal según los parámetros seleccionados arriba.</p>
+                        </div>
+                        <div class="chart-card">
+                            <h4>🗄️ Ventas Históricas Acumuladas en Supabase (Alicorp vs. Rival)</h4>
+                            <div class="chart-container" style="height: 290px;"><canvas id="chartKerasCompHistorico"></canvas></div>
+                            <p class="hint">Contraste real extraído de los registros históricos de <code>transacciones_alicorp</code> y <code>empresas_competencia_simuladas</code>.</p>
+                        </div>
+                    </div>
+
+                    <!-- Tabla Detallada de Competencia por Producto -->
+                    <div class="chart-card full" style="margin-bottom: 0;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+                            <h4 style="margin:0;">📋 Desglose Competitivo por Producto: Ganancias, Fuga de Ventas y Cuota de Mercado</h4>
+                            <span id="kcResumenFoco" class="kcomp-badge win">Producto en foco: --</span>
+                        </div>
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Producto Alicorp</th>
+                                        <th>Marca Competidora (Supabase)</th>
+                                        <th class="num">Precio (Alicorp / Rival)</th>
+                                        <th class="num">Venta Keras Alicorp</th>
+                                        <th class="num">Venta Keras Rival</th>
+                                        <th class="num">Ganancia Neta Alicorp</th>
+                                        <th class="num">Fuga de Ventas (S/.)</th>
+                                        <th class="num">Ganancia Perdida (S/.)</th>
+                                        <th class="num">Share Alicorp</th>
+                                        <th>Estado Competitivo</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaKerasCompetencia">
+                                    <tr><td colspan="10">Consultando registros de Alicorp y empresa competidora en Supabase...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="bloque">
                     <div class="keras-info-card">
                         <h3 class="keras-info-title">📐 Ficha Técnica de la Arquitectura Keras</h3>
@@ -2743,11 +2874,178 @@
         });
 
         /* ---------- Deep Learning con TensorFlow & Keras (Integrante 4) ---------- */
-        let kTimer = null, kSeq = 0;
+        let kTimer = null, kSeq = 0, kCompSeq = 0, kCompTimer = null;
         function etiquetasKeras() {
             $('kvPrecio').textContent = 'S/. ' + Number($('kPrecio').value).toFixed(1);
             $('kvStock').textContent = $('kStock').value + ' unid.';
             $('kvTemp').textContent = Number($('kTemp').value).toFixed(1) + ' °C';
+            if ($('kCompAgresividad') && $('kvCompAgresividad')) {
+                const ag = Number($('kCompAgresividad').value);
+                let desc = ' (Precio Histórico Supabase)';
+                if (ag < 0) desc = ' (Guerra de Precios · Rival más barato)';
+                else if (ag > 0) desc = ' (Estrategia Premium · Rival más caro)';
+                $('kvCompAgresividad').textContent = (ag > 0 ? '+' : '') + ag + '%' + desc;
+            }
+        }
+
+        async function cargarEmpresasCompetenciaKeras() {
+            if (!$('kCompEmpresa')) return;
+            try {
+                const r = await fetch('/api/keras/competencia/empresas');
+                if (!r.ok) return;
+                const d = await r.json();
+                if (d.success && Array.isArray(d.empresas) && d.empresas.length) {
+                    const actual = $('kCompEmpresa').value;
+                    $('kCompEmpresa').innerHTML = d.empresas.map(e =>
+                        `<option value="${esc(e.empresa_codigo)}">${esc(e.empresa_nombre)} (${esc(e.segmento)})</option>`
+                    ).join('');
+                    if (actual && d.empresas.some(e => e.empresa_codigo === actual)) {
+                        $('kCompEmpresa').value = actual;
+                    }
+                }
+            } catch (err) {
+                console.warn('No se pudieron listar empresas competidoras:', err);
+            }
+        }
+
+        async function ejecutarSimulacionCompetitivaKeras(modoRandom = false) {
+            if (!$('tablaKerasCompetencia')) return;
+            const miComp = ++kCompSeq;
+
+            if (modoRandom && $('kCompAgresividad')) {
+                // Elegir un ajuste competitivo aleatorio realista (-12% a +8%)
+                const niveles = [-12, -9, -6, -4, -2, 0, 3, 6];
+                const azarAg = niveles[Math.floor(Math.random() * niveles.length)];
+                $('kCompAgresividad').value = azarAg;
+                etiquetasKeras();
+            }
+
+            const payload = {
+                empresa_codigo: modoRandom ? 'RANDOM' : ($('kCompEmpresa') ? $('kCompEmpresa').value : 'ANDINO'),
+                agresividad_competidor: $('kCompAgresividad') ? Number($('kCompAgresividad').value) : 0,
+                producto_foco: $('kProducto') ? $('kProducto').value : 'Aceite Primor 1L',
+                tienda: $('kTienda') ? $('kTienda').value : 'Hipermercado Centro',
+                precio_unitario: $('kPrecio') ? Number($('kPrecio').value) : 8.5,
+                stock_actual: $('kStock') ? Number($('kStock').value) : 250,
+                temperatura_zona: $('kTemp') ? Number($('kTemp').value) : 24.0,
+                mes: $('kMes') ? Number($('kMes').value) : 6,
+                dia_semana: $('kDia') ? Number($('kDia').value) : 2
+            };
+
+            try {
+                const resp = await fetch('/api/keras/competencia/simular', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!resp.ok) throw new Error('Error HTTP ' + resp.status);
+                const d = await resp.json();
+                if (miComp !== kCompSeq || !d.success) return;
+
+                if (modoRandom && $('kCompEmpresa') && d.empresa_competidora) {
+                    $('kCompEmpresa').value = d.empresa_competidora.codigo;
+                }
+
+                const res = d.resumen;
+                const emp = d.empresa_competidora || {};
+                $('kcSegmentoRival').textContent = `Rival activo: ${emp.nombre || '--'} · ${emp.segmento || ''}`;
+                $('kcFuenteBadge').textContent = '🗄️ ' + (d.fuente_supabase || 'Supabase PostgreSQL');
+                $('kcTituloRival').textContent = 'Ganancia Neta · ' + (emp.nombre || 'Competidor');
+
+                $('kcGananciaAlicorp').textContent = 'S/. ' + fmt(res.ganancia_neta_alicorp);
+                $('kcVentasAlicorp').textContent = 'Ventas proyectadas Keras: S/. ' + fmt(res.ventas_proyectadas_alicorp);
+                $('kcHistAlicorp').textContent = 'Histórico acumulado Supabase: S/. ' + fmt(res.ventas_historicas_supabase_alicorp);
+
+                $('kcGananciaRival').textContent = 'S/. ' + fmt(res.ganancia_neta_rival);
+                $('kcVentasRival').textContent = 'Ventas proyectadas Keras: S/. ' + fmt(res.ventas_proyectadas_rival);
+                $('kcHistRival').textContent = 'Histórico acumulado Supabase: S/. ' + fmt(res.ventas_historicas_supabase_rival);
+
+                $('kcGananciaPerdida').textContent = '- S/. ' + fmt(res.ganancias_perdidas_alicorp);
+                $('kcFugaVentas').textContent = 'Fuga bruta de ventas al rival: S/. ' + fmt(res.fuga_ventas_soles);
+                $('kcUnidadesPerdidas').textContent = `Unidades capturadas por ${emp.codigo || 'el rival'}: ${fmt(res.unidades_perdidas_total)} unid.`;
+
+                $('kcCuotaMercado').textContent = `${res.cuota_alicorp_pct}% Alicorp vs. ${res.cuota_rival_pct}% Rival`;
+                if ($('kcBarraCuotaAlicorp')) {
+                    $('kcBarraCuotaAlicorp').style.width = Math.max(5, Math.min(95, res.cuota_alicorp_pct)) + '%';
+                }
+                const alicorpGana = res.cuota_alicorp_pct >= 50;
+                $('kcLiderBadge').innerHTML = alicorpGana
+                    ? `<span style="color:#10b981;">🟢 Liderazgo Corporativo: ${esc(res.lider_mercado)} (+S/. ${fmt(Math.abs(res.balance_neto_competitivo))} en margen neto)</span>`
+                    : `<span style="color:#ef4444;">🔴 Alerta Competitiva: ${esc(res.lider_mercado)} supera en cuota (-S/. ${fmt(Math.abs(res.balance_neto_competitivo))} de brecha)</span>`;
+
+                const focoItem = d.comparativa_productos.find(x => x.es_producto_foco) || d.comparativa_productos[0];
+                if (focoItem && $('kcResumenFoco')) {
+                    $('kcResumenFoco').className = 'kcomp-badge ' + (focoItem.cuota_alicorp_pct >= 50 ? 'win' : 'loss');
+                    $('kcResumenFoco').textContent = `Foco (${focoItem.producto_alicorp}): Share ${focoItem.cuota_alicorp_pct}% · Ganancia perdida S/. ${fmt(focoItem.ganancia_perdida_alicorp)}`;
+                }
+
+                // Tabla detallada por producto
+                $('tablaKerasCompetencia').innerHTML = d.comparativa_productos.map(item => {
+                    const lidera = item.cuota_alicorp_pct >= 50;
+                    const estiloFila = item.es_producto_foco ? 'style="background: rgba(124, 58, 237, 0.08);"' : '';
+                    return `
+                        <tr ${estiloFila}>
+                            <td><b>${iconoMini(item.producto_alicorp)} ${esc(item.producto_alicorp)}</b> ${item.es_producto_foco ? '<span class="kcomp-badge win" style="font-size:10px;padding:2px 7px;">EN FOCO</span>' : ''}</td>
+                            <td>${esc(item.marca_competidora)}<br><small style="color:var(--text-muted);">${esc(emp.nombre)}</small></td>
+                            <td class="num"><b>S/. ${fmt(item.precio_alicorp)}</b> / <span style="color:var(--text-muted);">S/. ${fmt(item.precio_rival)}</span></td>
+                            <td class="num"><b>S/. ${fmt(item.venta_proyectada_alicorp)}</b><br><small style="color:var(--text-muted);">${item.unidades_alicorp} unid.</small></td>
+                            <td class="num">S/. ${fmt(item.venta_proyectada_rival)}<br><small style="color:var(--text-muted);">${item.unidades_rival} unid.</small></td>
+                            <td class="num kcomp-gain-val">+ S/. ${fmt(item.ganancia_neta_alicorp)}</td>
+                            <td class="num kcomp-loss-val">- S/. ${fmt(item.fuga_ventas_soles)}</td>
+                            <td class="num kcomp-loss-val">- S/. ${fmt(item.ganancia_perdida_alicorp)}<br><small style="color:var(--text-muted);">-${item.unidades_perdidas} unid.</small></td>
+                            <td class="num"><b>${item.cuota_alicorp_pct}%</b> vs ${item.cuota_rival_pct}%</td>
+                            <td><span class="kcomp-badge ${lidera ? 'win' : 'loss'}">${lidera ? '🟢 Lidera Alicorp' : '🔴 Supera Rival'}</span></td>
+                        </tr>
+                    `;
+                }).join('');
+
+                // Gráfico 1: Ventas Proyectadas Keras Alicorp vs Rival vs Ganancia Perdida
+                const labelsProd = d.comparativa_productos.map(x => x.producto_alicorp);
+                const dataVentaAlicorp = d.comparativa_productos.map(x => x.venta_proyectada_alicorp);
+                const dataVentaRival = d.comparativa_productos.map(x => x.venta_proyectada_rival);
+                const dataGananciaPerdida = d.comparativa_productos.map(x => x.ganancia_perdida_alicorp);
+
+                dibujar('chartKerasCompVentas', {
+                    type: 'bar',
+                    data: {
+                        labels: labelsProd,
+                        datasets: [
+                            { label: 'Ventas Keras Alicorp (S/.)', data: dataVentaAlicorp, backgroundColor: '#0284c7', borderRadius: 5 },
+                            { label: `Ventas Keras ${emp.nombre || 'Competidor'} (S/.)`, data: dataVentaRival, backgroundColor: '#ea580c', borderRadius: 5 },
+                            { label: 'Ganancia Neta Perdida por Alicorp (S/.)', data: dataGananciaPerdida, backgroundColor: '#dc2626', borderRadius: 5 }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'top' } },
+                        scales: { y: { beginAtZero: true, title: { display: true, text: 'Soles (S/.)' } } }
+                    }
+                });
+
+                // Gráfico 2: Ventas Históricas Acumuladas en Supabase (Alicorp vs Competidor)
+                const dataHistAlicorp = d.comparativa_productos.map(x => x.ventas_historicas_alicorp);
+                const dataHistRival = d.comparativa_productos.map(x => x.ventas_historicas_rival);
+
+                dibujar('chartKerasCompHistorico', {
+                    type: 'bar',
+                    data: {
+                        labels: labelsProd,
+                        datasets: [
+                            { label: 'Histórico Supabase Alicorp (S/.)', data: dataHistAlicorp, backgroundColor: '#10b981', borderRadius: 5 },
+                            { label: `Histórico Supabase ${emp.nombre || 'Rival'} (S/.)`, data: dataHistRival, backgroundColor: '#7c3aed', borderRadius: 5 }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'top' } },
+                        scales: { y: { beginAtZero: true, title: { display: true, text: 'Ventas Acumuladas en BD (S/.)' } } }
+                    }
+                });
+            } catch (err) {
+                console.warn('Error en simulación competitiva Keras:', err);
+            }
         }
 
         async function inicializarKeras() {
@@ -2775,6 +3073,7 @@
             } catch (e) {
                 console.warn('No se pudo cargar info de Keras:', e);
             }
+            await cargarEmpresasCompetenciaKeras();
             etiquetasKeras();
             ejecutarInferenciaKeras();
             kerasListo = true;
@@ -2789,6 +3088,10 @@
             const mi = ++kSeq;
             $('kResultBox').classList.add('cargando');
             $('kUnidades').textContent = 'Consultando Red Neuronal Keras...';
+
+            // Actualizar también la simulación competitiva inferior en tiempo real
+            clearTimeout(kCompTimer);
+            kCompTimer = setTimeout(() => ejecutarSimulacionCompetitivaKeras(false), 120);
 
             const payload = {
                 producto: producto,
@@ -2880,6 +3183,20 @@
                 kTimer = setTimeout(ejecutarInferenciaKeras, 300);
             });
         });
+
+        if ($('kCompEmpresa')) {
+            $('kCompEmpresa').addEventListener('change', () => ejecutarSimulacionCompetitivaKeras(false));
+        }
+        if ($('kCompAgresividad')) {
+            $('kCompAgresividad').addEventListener('input', () => {
+                etiquetasKeras();
+                clearTimeout(kCompTimer);
+                kCompTimer = setTimeout(() => ejecutarSimulacionCompetitivaKeras(false), 200);
+            });
+        }
+        if ($('btnKerasCompRandom')) {
+            $('btnKerasCompRandom').addEventListener('click', () => ejecutarSimulacionCompetitivaKeras(true));
+        }
 
         /* ---------- Aprendizaje no supervisado: segmentación K-Means ---------- */
         async function inicializarSegmentacion() {

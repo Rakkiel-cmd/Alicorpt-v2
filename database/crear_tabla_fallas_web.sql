@@ -45,3 +45,4 @@ USING (true)
 WITH CHECK (true);
 
 SELECT 'Tabla fallas_web_sistema creada y configurada correctamente' AS resultado;
+
