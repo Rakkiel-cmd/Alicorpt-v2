@@ -39,29 +39,34 @@ CREATE INDEX IF NOT EXISTS idx_transacciones_producto ON public.transacciones_al
 CREATE INDEX IF NOT EXISTS idx_transacciones_tienda ON public.transacciones_alicorp(tienda);
 
 -- 4. Vistas agregadas para que el Dashboard consulte Supabase en < 50 ms con 0 RAM en Render
-CREATE OR REPLACE VIEW public.vista_resumen_dashboard AS
+DROP VIEW IF EXISTS public.vista_resumen_dashboard CASCADE;
+DROP VIEW IF EXISTS public.vista_totales_dashboard CASCADE;
+DROP VIEW IF EXISTS public.vista_stock_dashboard CASCADE;
+DROP VIEW IF EXISTS public.vista_historico_productos_alicorp CASCADE;
+
+CREATE VIEW public.vista_resumen_dashboard AS
 SELECT 
     producto,
     tienda,
     SUBSTRING(CAST(fecha AS TEXT) FROM 1 FOR 7) AS mes,
-    COUNT(*)::INT AS total_transacciones,
-    COALESCE(SUM(cantidad_vendida), 0)::BIGINT AS unidades_totales,
+    COUNT(*) AS total_transacciones,
+    COALESCE(SUM(cantidad_vendida), 0) AS unidades_totales,
     ROUND(COALESCE(SUM(ventas_totales), 0)::NUMERIC, 2) AS ventas_totales,
     ROUND(COALESCE(AVG(precio_unitario), 0)::NUMERIC, 2) AS precio_promedio,
     ROUND(COALESCE(AVG(stock_actual), 0)::NUMERIC, 1) AS stock_promedio
 FROM public.transacciones_alicorp
 GROUP BY producto, tienda, SUBSTRING(CAST(fecha AS TEXT) FROM 1 FOR 7);
 
-CREATE OR REPLACE VIEW public.vista_totales_dashboard AS
+CREATE VIEW public.vista_totales_dashboard AS
 SELECT 
-    COUNT(*)::INT AS total_registros,
+    COUNT(*) AS total_registros,
     ROUND(COALESCE(SUM(ventas_totales), 0)::NUMERIC, 2) AS ventas_totales,
     ROUND(COALESCE(AVG(ventas_totales), 0)::NUMERIC, 2) AS media_ventas,
     ROUND(COALESCE(stddev_samp(ventas_totales), 0)::NUMERIC, 2) AS desviacion_ventas,
     ROUND(COALESCE(var_samp(ventas_totales), 0)::NUMERIC, 2) AS varianza_ventas
 FROM public.transacciones_alicorp;
 
-CREATE OR REPLACE VIEW public.vista_stock_dashboard AS
+CREATE VIEW public.vista_stock_dashboard AS
 SELECT
     CASE
         WHEN stock_actual < 150 THEN '50-149'
@@ -76,11 +81,11 @@ FROM public.transacciones_alicorp
 GROUP BY 1
 ORDER BY 1;
 
-CREATE OR REPLACE VIEW public.vista_historico_productos_alicorp AS
+CREATE VIEW public.vista_historico_productos_alicorp AS
 SELECT
     producto,
-    COUNT(*)::INT AS transacciones,
-    COALESCE(SUM(cantidad_vendida), 0)::BIGINT AS unidades_historicas,
+    COUNT(*) AS transacciones,
+    COALESCE(SUM(cantidad_vendida), 0) AS unidades_historicas,
     ROUND(COALESCE(SUM(ventas_totales), 0)::NUMERIC, 2) AS ventas_historicas_soles,
     ROUND(COALESCE(AVG(precio_unitario), 0)::NUMERIC, 2) AS precio_promedio,
     ROUND(COALESCE(AVG(stock_actual), 0)::NUMERIC, 1) AS stock_promedio,
@@ -88,6 +93,8 @@ SELECT
 FROM public.transacciones_alicorp
 GROUP BY producto
 ORDER BY ventas_historicas_soles DESC;
+
+DROP FUNCTION IF EXISTS public.estadisticas_dashboard(NUMERIC, NUMERIC);
 
 CREATE OR REPLACE FUNCTION public.estadisticas_dashboard(
     meta_venta NUMERIC DEFAULT 200.0,
