@@ -62,9 +62,37 @@ def segundos_transcurridos_desde_medianoche():
     return max(0, min(86400, int((ahora - inicio_dia).total_seconds())))
 
 # Limpiar y forzar cabeceras de seguridad para evitar errores de Permissions-Policy ('join-ad-interest-group')
+# y capturar automáticamente fallas HTTP 404/500 en tiempo real para el monitor de Incidencias Cliente
 @app.after_request
 def add_security_headers(response):
     response.headers['Permissions-Policy'] = "camera=(self), microphone=(), geolocation=()"
+    try:
+        status = response.status_code
+        ruta = request.path or ""
+        if not ruta.startswith("/api/fallas_web") and (status >= 500 or status == 404):
+            import threading
+            from backend.incidencias import registrar_o_actualizar_falla
+            metodo = request.method
+            tipo = "Bug / Error Servidor 500" if status >= 500 else "Error Web Consola (404)"
+            grav = "Crítica" if status >= 500 else "Media"
+            titulo = f"Respuesta HTTP {status} en ruta {metodo} {ruta}"
+            detalle = f"Recurso o endpoint solicitado desde {request.remote_addr or 'cliente web'} devolvió estado {status}."
+            codigo = f"http-{status}-{metodo.lower()}-{ruta.strip('/').replace('/', '-') or 'root'}"
+            threading.Thread(
+                target=registrar_o_actualizar_falla,
+                kwargs={
+                    "titulo_error": titulo,
+                    "tipo_falla": tipo,
+                    "gravedad": grav,
+                    "detalle_tecnico": detalle,
+                    "origen": "Servidor Flask / HTTP",
+                    "codigo_unico": codigo,
+                    "incrementar_ocurrencia": True
+                },
+                daemon=True
+            ).start()
+    except Exception:
+        pass
     return response
 
 # Ruta para servir la página principal

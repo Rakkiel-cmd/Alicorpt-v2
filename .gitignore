@@ -23,6 +23,7 @@ data/*.csv
 data/*.parquet
 data/seguridad_clave.json
 data/incidencias_contacto.json
+data/fallas_web_sistema.json
 
 # Scripts de prueba y temporales
 scratch/

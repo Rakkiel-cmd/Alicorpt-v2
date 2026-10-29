@@ -27,7 +27,7 @@ from flask import Blueprint, jsonify, request
 
 from backend.catalogo_productos import generar_catalogo
 from backend.correo_pedido import correo_configurado, enviar_seguimiento
-from backend.incidencias import PATRON_CORREO, PATRON_SQL_INJECTION, sanitizar_cadena
+from backend.incidencias import PATRON_CORREO, PATRON_SQL_INJECTION, sanitizar_cadena, registrar_o_actualizar_falla
 
 carrito_bp = Blueprint("carrito", __name__)
 
@@ -326,6 +326,18 @@ def tienda_comprar():
         if cantidad < 1 or cantidad > MAX_UNIDADES_POR_LINEA:
             return jsonify({"ok": False, "error": f"La cantidad de {producto['nombre']} debe estar entre 1 y {MAX_UNIDADES_POR_LINEA}."}), 400
         if producto["stock"] < cantidad:
+            try:
+                registrar_o_actualizar_falla(
+                    titulo_error=f"Intento de compra rechazado por falta de stock: {producto['nombre']} ({sku})",
+                    tipo_falla="Falta de Productos",
+                    gravedad="Crítica" if producto["stock"] <= 0 else "Alta",
+                    detalle_tecnico=f"Cliente '{nombre}' solicitó {cantidad} und., pero solo quedan {producto['stock']} und. en almacén.",
+                    origen="Carrito de Compras / Tienda",
+                    codigo_unico=f"quiebre-compra-{sku}",
+                    incrementar_ocurrencia=True
+                )
+            except Exception:
+                pass
             return jsonify({"ok": False, "error": f"Stock insuficiente de {producto['nombre']} (disponible: {producto['stock']})."}), 400
         subtotal = round(producto["precio"] * cantidad, 2)      # el precio SIEMPRE se toma del servidor
         total += subtotal
@@ -347,7 +359,28 @@ def tienda_comprar():
             for d in detalle:
                 try:
                     por_sku[d["sku"]]["stock"] -= d["cantidad"]
-                    cliente.table("productos").update({"stock": por_sku[d["sku"]]["stock"]}).eq("sku", d["sku"]).execute()
+                    stock_restante = por_sku[d["sku"]]["stock"]
+                    cliente.table("productos").update({"stock": stock_restante}).eq("sku", d["sku"]).execute()
+                    if stock_restante <= 0:
+                        registrar_o_actualizar_falla(
+                            titulo_error=f"Producto agotado tras venta #{compra_id}: {d['producto']} ({d['sku']})",
+                            tipo_falla="Falta de Productos",
+                            gravedad="Crítica",
+                            detalle_tecnico=f"El stock llegó a 0 unidades tras despachar {d['cantidad']} und. al cliente {nombre}.",
+                            origen="Tienda en Línea / Inventario",
+                            codigo_unico=f"agotado-sku-{d['sku']}",
+                            incrementar_ocurrencia=True
+                        )
+                    elif stock_restante <= 15:
+                        registrar_o_actualizar_falla(
+                            titulo_error=f"Escasez de stock post-venta: {d['producto']} ({d['sku']}) con {stock_restante} und.",
+                            tipo_falla="Escasez de Inventario",
+                            gravedad="Alta",
+                            detalle_tecnico=f"Quedan únicamente {stock_restante} unidades disponibles tras el pedido #{compra_id}.",
+                            origen="Tienda en Línea / Inventario",
+                            codigo_unico=f"escasez-sku-{d['sku']}",
+                            incrementar_ocurrencia=True
+                        )
                 except Exception:
                     pass
             correo_enviado = enviar_seguimiento(correo, nombre, compra_id, total, direccion, detalle)

@@ -268,3 +268,56 @@ window.addEventListener("pageshow", (e) => {
         iniciarSistemaNavegacion();
     }
 });
+
+// ==============================================================================
+// MONITOR EN TIEMPO REAL DE ERRORES DE CONSOLA Y FALLAS EN EL PORTAL PÚBLICO
+// ==============================================================================
+(function iniciarMonitorFallasPortal() {
+    const reportadosEnSesion = new Set();
+
+    function enviarFallaWeb(titulo, detalle, tipo, gravedad) {
+        try {
+            const clave = `${tipo}|${titulo}`.slice(0, 140);
+            if (reportadosEnSesion.has(clave)) return;
+            reportadosEnSesion.add(clave);
+
+            fetch('/api/fallas_web/reportar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    titulo_error: titulo,
+                    detalle_tecnico: detalle,
+                    tipo_falla: tipo || 'Error Web Consola',
+                    gravedad: gravedad || 'Media',
+                    origen: `Portal Público (${window.location.pathname || '/index.html'})`
+                })
+            }).catch(() => {});
+        } catch (e) {}
+    }
+
+    window.addEventListener('error', (ev) => {
+        if (!ev) return;
+        if (ev.message) {
+            const archivo = ev.filename ? ev.filename.split('/').pop() : 'script';
+            const linea = ev.lineno ? `:${ev.lineno}` : '';
+            enviarFallaWeb(
+                `Error JS en consola: ${ev.message}`,
+                `Archivo: ${archivo}${linea} en ${window.location.pathname}`,
+                'Error Web Consola',
+                'Alta'
+            );
+        }
+    });
+
+    window.addEventListener('unhandledrejection', (ev) => {
+        const razon = ev && ev.reason ? (ev.reason.message || String(ev.reason)) : 'Promesa rechazada sin capturar';
+        if (razon && !razon.includes('fallas_web')) {
+            enviarFallaWeb(
+                `Excepción asíncrona en web: ${razon.slice(0, 160)}`,
+                `Detectado en ${window.location.pathname}`,
+                'Bug / Promesa JS',
+                'Media'
+            );
+        }
+    });
+})();
