@@ -416,6 +416,73 @@ def tienda_compras():
     return jsonify({"ok": True, "fuente": "archivo_local", "total": len(locales), "compras": locales})
 
 
+ESTADOS_COMPRA_VALIDOS = {"pendiente", "atendido", "devolucion", "cancelacion"}
+
+
+@carrito_bp.route("/api/tienda/compras/estado", methods=["POST", "PATCH"])
+def tienda_actualizar_estado_compra():
+    """
+    Actualiza el estado de una compra ('pendiente', 'atendido', 'devolucion', 'cancelacion')
+    directamente en la tabla 'compras' de Supabase (y en respaldo local si aplica).
+    """
+    datos = request.get_json(silent=True) or {}
+    compra_id = str(datos.get("compra_id", "")).strip()
+    nuevo_estado = str(datos.get("estado", "")).strip().lower()
+    # Normalizar tildes por seguridad
+    mapa_normalizado = {
+        "pendiente": "pendiente",
+        "atendido": "atendido",
+        "devolucion": "devolucion",
+        "devolución": "devolucion",
+        "cancelacion": "cancelacion",
+        "cancelación": "cancelacion",
+    }
+    estado_limpio = mapa_normalizado.get(nuevo_estado)
+    if not compra_id or not estado_limpio or estado_limpio not in ESTADOS_COMPRA_VALIDOS:
+        return jsonify({
+            "ok": False,
+            "error": "Parámetros inválidos. Estados permitidos: pendiente, atendido, devolucion, cancelacion."
+        }), 400
+
+    cliente = _cliente_supabase()
+    actualizado_sb = False
+    if cliente is not None and compra_id.isdigit():
+        try:
+            res = (
+                cliente.table("compras")
+                .update({"estado": estado_limpio})
+                .eq("id", int(compra_id))
+                .execute()
+            )
+            if res.data is not None:
+                actualizado_sb = True
+        except Exception as e:
+            print("[TIENDA] Error al actualizar estado de compra en Supabase:", e)
+            return jsonify({"ok": False, "error": f"No se pudo actualizar en Supabase: {str(e)[:120]}"}), 500
+
+    # Actualizar también en respaldo local si existiera
+    if not actualizado_sb:
+        with _candado_archivo:
+            if os.path.exists(RUTA_COMPRAS_JSON):
+                try:
+                    with open(RUTA_COMPRAS_JSON, "r", encoding="utf-8") as f:
+                        compras_loc = json.load(f)
+                    for c in compras_loc:
+                        if str(c.get("id")) == compra_id:
+                            c["estado"] = estado_limpio
+                    with open(RUTA_COMPRAS_JSON, "w", encoding="utf-8") as f:
+                        json.dump(compras_loc, f, ensure_ascii=False, indent=2)
+                except Exception:
+                    pass
+
+    return jsonify({
+        "ok": True,
+        "compra_id": int(compra_id) if compra_id.isdigit() else compra_id,
+        "estado": estado_limpio,
+        "fuente": "supabase" if actualizado_sb else "archivo_local"
+    })
+
+
 @carrito_bp.route("/api/tienda/pedido", methods=["POST"])
 def tienda_pedido():
     """El cliente consulta el estado de su compra. Exige el N.º de compra Y el correo con el que compró."""

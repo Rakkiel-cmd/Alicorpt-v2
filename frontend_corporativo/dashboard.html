@@ -1217,18 +1217,34 @@
             <div class="page-hero">
                 <div class="crumbs">Inicio / <b>Compras de clientes</b></div>
                 <h1>Compras de clientes</h1>
-                <p>Consulta en formato tabla las compras realizadas desde la tienda en línea, incluyendo cliente, productos, cantidades y totales.</p>
+                <p>Consulta en formato tabla las compras realizadas desde la tienda en línea, incluyendo cliente, productos, cantidades y totales sincronizados con Supabase PostgreSQL.</p>
             </div>
             <div class="contenido">
+                <style>
+                    .compra-estado-group { display: inline-flex; gap: 5px; flex-wrap: wrap; align-items: center; }
+                    .btn-compra-estado { padding: 5px 10px; border-radius: 7px; font-size: 11.5px; font-weight: 700; border: 1px solid var(--border); background: var(--surface-alt); color: var(--text-muted); cursor: pointer; transition: all 0.18s ease; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+                    .btn-compra-estado:hover { border-color: var(--primary); color: var(--text-main); transform: translateY(-1px); }
+                    .btn-compra-estado.active-pendiente { background: rgba(245, 158, 11, 0.18); color: #d97706; border-color: rgba(245, 158, 11, 0.5); box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2); }
+                    .btn-compra-estado.active-atendido { background: rgba(16, 185, 129, 0.18); color: #059669; border-color: rgba(16, 185, 129, 0.5); box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2); }
+                    .btn-compra-estado.active-devolucion { background: rgba(124, 58, 237, 0.18); color: #7c3aed; border-color: rgba(124, 58, 237, 0.5); box-shadow: 0 2px 8px rgba(124, 58, 237, 0.2); }
+                    .btn-compra-estado.active-cancelacion { background: rgba(239, 68, 68, 0.18); color: #dc2626; border-color: rgba(239, 68, 68, 0.5); box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2); }
+                    body.dark-mode .btn-compra-estado.active-pendiente { background: rgba(245, 158, 11, 0.24); color: #fbbf24; border-color: rgba(251, 191, 36, 0.55); }
+                    body.dark-mode .btn-compra-estado.active-atendido { background: rgba(16, 185, 129, 0.24); color: #34d399; border-color: rgba(52, 211, 153, 0.55); }
+                    body.dark-mode .btn-compra-estado.active-devolucion { background: rgba(139, 92, 246, 0.26); color: #c4b5fd; border-color: rgba(167, 139, 250, 0.55); }
+                    body.dark-mode .btn-compra-estado.active-cancelacion { background: rgba(239, 68, 68, 0.24); color: #f87171; border-color: rgba(248, 113, 113, 0.55); }
+                </style>
                 <div class="metrics-grid">
-                    <div class="metric-card" style="--accent:#0284c7;"><h4>Compras mostradas</h4><p id="comprasCantidad">--</p><small>Últimas compras registradas</small></div>
+                    <div class="metric-card" style="--accent:#0284c7;"><h4>Compras mostradas</h4><p id="comprasCantidad">--</p><small>Últimas compras registradas en BD</small></div>
                     <div class="metric-card" style="--accent:#10b981;"><h4>Monto total</h4><p id="comprasMonto">S/. --</p><small>Suma de las compras mostradas</small></div>
                 </div>
                 <div class="chart-card full">
-                    <h4>🧾 Detalle de compras</h4>
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+                        <h4 style="margin:0;">🧾 Detalle de compras (Tablas <code>compras</code> y <code>detalle_compra</code> en Supabase)</h4>
+                        <button type="button" class="btn-run" style="padding:7px 14px; font-size:12.5px;" onclick="cargarComprasClientes()">🔄 Actualizar desde Supabase</button>
+                    </div>
                     <div class="table-wrap">
                         <table>
-                            <thead><tr><th>Cliente</th><th>Fecha</th><th>Producto</th><th class="num">Cantidad</th><th class="num">Precio unitario</th><th class="num">Subtotal</th><th class="num">Total compra</th><th>Estado</th></tr></thead>
+                            <thead><tr><th>Cliente</th><th>Fecha</th><th>Producto</th><th class="num">Cantidad</th><th class="num">Precio unitario</th><th class="num">Subtotal</th><th class="num">Total compra</th><th>Estado / Gestión Interactiva (Supabase)</th></tr></thead>
                             <tbody id="tablaCompras"><tr><td colspan="8">Cargando compras...</td></tr></tbody>
                         </table>
                     </div>
@@ -2661,6 +2677,43 @@
             inicioListo = true;
         }
 
+        function renderizarBotonesEstadoCompra(compraId, estadoActual) {
+            const est = String(estadoActual || 'pendiente').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            const idSafe = esc(String(compraId));
+            return `
+                <div class="compra-estado-group" data-compra-grupo="${idSafe}">
+                    <button type="button" class="btn-compra-estado ${est === 'pendiente' ? 'active-pendiente' : ''}" onclick="cambiarEstadoCompraCliente('${idSafe}', 'pendiente')">⏳ Pendiente</button>
+                    <button type="button" class="btn-compra-estado ${est === 'atendido' ? 'active-atendido' : ''}" onclick="cambiarEstadoCompraCliente('${idSafe}', 'atendido')">✅ Atendido</button>
+                    <button type="button" class="btn-compra-estado ${est === 'devolucion' ? 'active-devolucion' : ''}" onclick="cambiarEstadoCompraCliente('${idSafe}', 'devolucion')">↩️ Devolución</button>
+                    <button type="button" class="btn-compra-estado ${est === 'cancelacion' ? 'active-cancelacion' : ''}" onclick="cambiarEstadoCompraCliente('${idSafe}', 'cancelacion')">🚫 Cancelación</button>
+                </div>
+            `;
+        }
+
+        async function cambiarEstadoCompraCliente(compraId, nuevoEstado) {
+            if (!compraId) return;
+            // Actualizar visualmente de inmediato todas las filas que pertenezcan a la misma compra_id
+            const grupos = document.querySelectorAll(`[data-compra-grupo="${CSS.escape(String(compraId))}"]`);
+            grupos.forEach(g => {
+                g.outerHTML = renderizarBotonesEstadoCompra(compraId, nuevoEstado);
+            });
+
+            try {
+                const resp = await fetch('/api/tienda/compras/estado', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ compra_id: compraId, estado: nuevoEstado })
+                });
+                const d = await resp.json();
+                if (!resp.ok || !d.ok) {
+                    throw new Error(d.error || 'No se pudo actualizar el estado en Supabase.');
+                }
+            } catch (err) {
+                console.error('Error actualizando estado de compra:', err);
+                cargarComprasClientes();
+            }
+        }
+
         async function cargarComprasClientes() {
             try {
                 const respuesta = await fetch('/api/tienda/compras?limite=500');
@@ -2678,14 +2731,14 @@
                     }];
                     return items.map(item => `
                         <tr>
-                            <td>${esc(compra.cliente_nombre || 'Sin nombre')}<small style="display:block;color:var(--text-muted);">${esc(compra.cliente_correo || '')}</small></td>
+                            <td><b>${esc(compra.cliente_nombre || 'Sin nombre')}</b><small style="display:block;color:var(--text-muted);">${esc(compra.cliente_correo || '')}</small></td>
                             <td>${esc(compra.fecha_compra ? new Date(compra.fecha_compra).toLocaleString('es-PE') : '--')}</td>
                             <td>${esc(item.producto || item.nombre || 'Sin producto')}</td>
                             <td class="num">${Number(item.cantidad || 0).toLocaleString('es-PE')}</td>
                             <td class="num">S/. ${fmt(item.precio_unitario || 0)}</td>
                             <td class="num">S/. ${fmt(item.subtotal || 0)}</td>
-                            <td class="num">S/. ${fmt(compra.total || 0)}</td>
-                            <td>${esc(compra.estado || 'pendiente')}</td>
+                            <td class="num"><b>S/. ${fmt(compra.total || 0)}</b></td>
+                            <td>${renderizarBotonesEstadoCompra(compra.id, compra.estado || 'pendiente')}</td>
                         </tr>
                     `);
                 }).join('');
@@ -2693,7 +2746,7 @@
                 $('tablaCompras').innerHTML = filas || '<tr><td colspan="8">No hay compras registradas.</td></tr>';
                 $('comprasCantidad').textContent = compras.length.toLocaleString('es-PE');
                 $('comprasMonto').textContent = 'S/. ' + compras.reduce((total, compra) => total + Number(compra.total || 0), 0).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                $('comprasFuente').textContent = `Fuente: ${datos.fuente === 'supabase' ? 'Supabase' : 'archivo local'} · Se muestran hasta 500 compras recientes.`;
+                $('comprasFuente').textContent = `Fuente: ${datos.fuente === 'supabase' ? 'Supabase PostgreSQL (tablas compras y detalle_compra)' : 'archivo local'} · Se muestran hasta 500 compras recientes.`;
                 comprasLista = true;
             } catch (error) {
                 $('tablaCompras').innerHTML = `<tr><td colspan="8">${esc(error.message)}</td></tr>`;
