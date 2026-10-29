@@ -24,6 +24,7 @@ RUTA_CSV = os.path.join(
 )
 
 _COLUMNAS = [
+    "fecha",
     "precio_unitario",
     "stock_actual",
     "temperatura_zona",
@@ -112,6 +113,7 @@ def _cargar_datos():
         cantidades = np.random.poisson(lam=15, size=n) + (stocks * 0.01).astype(int)
         ventas = cantidades * precios
         datos = pd.DataFrame({
+            "fecha": pd.date_range("2024-01-01", periods=n, freq="D"),
             "precio_unitario": precios,
             "stock_actual": stocks,
             "temperatura_zona": temps,
@@ -295,6 +297,18 @@ def segmentacion_no_supervisada():
         resumen = []
         for posicion, segmento in enumerate(orden):
             grupo = datos[datos["segmento"] == segmento]
+            modas_ventas = grupo["ventas_totales"].mode()
+            moda_ventas = float(modas_ventas.iloc[0]) if not modas_ventas.empty else None
+            fechas = pd.to_datetime(grupo["fecha"], errors="coerce")
+            precios = pd.to_numeric(grupo["precio_unitario"], errors="coerce")
+            fechas_validas = fechas.notna() & precios.notna()
+            fechas_precio = fechas[fechas_validas]
+            valores_precio = precios[fechas_validas]
+            precio_predictivo = float(valores_precio.mean())
+            if len(valores_precio) >= 2 and fechas_precio.nunique() >= 2:
+                dias = (fechas_precio - fechas_precio.min()).dt.days.to_numpy().reshape(-1, 1)
+                modelo_precio = LinearRegression().fit(dias, valores_precio.to_numpy())
+                precio_predictivo = float(modelo_precio.predict([[int(dias.max()) + 1]])[0])
             if posicion == 0:
                 significado = "Baja demanda: ventas promedio más bajas"
                 recomendacion = "Revisar promociones, precio y nivel de stock."
@@ -310,9 +324,12 @@ def segmentacion_no_supervisada():
                 "recomendacion": recomendacion,
                 "registros": int(len(grupo)),
                 "ventas_promedio": round(float(grupo["ventas_totales"].mean()), 2),
+                "ventas_mediana": round(float(grupo["ventas_totales"].median()), 2),
+                "ventas_moda": round(moda_ventas, 2) if moda_ventas is not None else None,
                 "stock_promedio": round(float(grupo["stock_actual"].mean()), 2),
                 "cantidad_promedio": round(float(grupo["cantidad_vendida"].mean()), 2),
                 "precio_promedio": round(float(grupo["precio_unitario"].mean()), 2),
+                "precio_predictivo": round(max(0.01, precio_predictivo), 2),
             })
 
         puntos = datos[["ventas_totales", "stock_actual", "segmento_nombre"]].head(1000)

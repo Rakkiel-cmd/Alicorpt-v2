@@ -863,6 +863,7 @@
         <nav class="sb-menu">
             <button class="active" data-go="inicio"><span class="ico">🏠</span> Inicio</button>
             <button data-go="productos"><span class="ico">🛒</span> Productos</button>
+            <button data-go="compras"><span class="ico">🧾</span> Compras de clientes</button>
             <button data-go="prediccion"><span class="ico">📈</span> Predicción de ventas</button>
             <button data-go="keras"><span class="ico">🧠</span> Deep Learning (Keras)</button>
             <button data-go="segmentacion"><span class="ico">🧩</span> Segmentación no supervisada</button>
@@ -1035,6 +1036,31 @@
                         <div class="chart-container" style="height: 340px;"><canvas id="chartTiendaCategorias"></canvas></div>
                         <p class="hint" id="tdCatHint">Cada barra es una categoría del catálogo que ve el cliente en la tienda.</p>
                     </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= VISTA: COMPRAS DE CLIENTES ================= -->
+        <section id="vista-compras" class="vista">
+            <div class="page-hero">
+                <div class="crumbs">Inicio / <b>Compras de clientes</b></div>
+                <h1>Compras de clientes</h1>
+                <p>Consulta en formato tabla las compras realizadas desde la tienda en línea, incluyendo cliente, productos, cantidades y totales.</p>
+            </div>
+            <div class="contenido">
+                <div class="metrics-grid">
+                    <div class="metric-card" style="--accent:#0284c7;"><h4>Compras mostradas</h4><p id="comprasCantidad">--</p><small>Últimas compras registradas</small></div>
+                    <div class="metric-card" style="--accent:#10b981;"><h4>Monto total</h4><p id="comprasMonto">S/. --</p><small>Suma de las compras mostradas</small></div>
+                </div>
+                <div class="chart-card full">
+                    <h4>🧾 Detalle de compras</h4>
+                    <div class="table-wrap">
+                        <table>
+                            <thead><tr><th>Cliente</th><th>Fecha</th><th>Producto</th><th class="num">Cantidad</th><th class="num">Precio unitario</th><th class="num">Subtotal</th><th class="num">Total compra</th><th>Estado</th></tr></thead>
+                            <tbody id="tablaCompras"><tr><td colspan="8">Cargando compras...</td></tr></tbody>
+                        </table>
+                    </div>
+                    <p class="hint" id="comprasFuente">Fuente: consultando...</p>
                 </div>
             </div>
         </section>
@@ -1270,8 +1296,8 @@
                                 <h4>📋 Perfil y significado de cada segmento</h4>
                                 <div class="table-wrap">
                                     <table>
-                                        <thead><tr><th>Segmento</th><th>Significado en el negocio</th><th class="num">Registros</th><th class="num">Ventas promedio</th><th class="num">Stock promedio</th><th class="num">Cantidad promedio</th><th class="num">Precio promedio</th><th>Recomendación</th></tr></thead>
-                                        <tbody id="tablaSegmentacion"><tr><td colspan="8">Cargando segmentación...</td></tr></tbody>
+                                        <thead><tr><th>Segmento</th><th>Significado en el negocio</th><th class="num">Registros</th><th class="num">Ventas media</th><th class="num">Ventas mediana</th><th class="num">Ventas moda</th><th class="num">Stock promedio</th><th class="num">Cantidad promedio</th><th class="num">Precio promedio</th><th class="num">Precio predictivo</th><th>Recomendación</th></tr></thead>
+                                        <tbody id="tablaSegmentacion"><tr><td colspan="11">Cargando segmentación...</td></tr></tbody>
                                     </table>
                                 </div>
                             </div>
@@ -1732,7 +1758,7 @@
         <footer class="footer">
             <div class="footer-grid">
                 <div><h5>Alicorp Intelligence</h5><p>Plataforma de Inteligencia de Negocios · Redes Neuronales y Machine Learning conectadas a base de datos Supabase.</p></div>
-                <div><h5>Secciones</h5><button data-go="inicio">Inicio</button><button data-go="productos">Productos</button><button data-go="prediccion">Predicción de ventas</button><button data-go="keras">Deep Learning (Keras)</button><button data-go="segmentacion">Segmentación no supervisada</button><button data-go="estadistica">Estadística</button><button data-go="reporte">Reporte mensual</button><button data-go="incidencias">Incidencias cliente</button></div>
+                <div><h5>Secciones</h5><button data-go="inicio">Inicio</button><button data-go="productos">Productos</button><button data-go="compras">Compras de clientes</button><button data-go="prediccion">Predicción de ventas</button><button data-go="keras">Deep Learning (Keras)</button><button data-go="segmentacion">Segmentación no supervisada</button><button data-go="estadistica">Estadística</button><button data-go="reporte">Reporte mensual</button><button data-go="incidencias">Incidencias cliente</button></div>
                 <div><h5>Tecnología</h5><p>Python · Flask<br>TensorFlow & Keras<br>scikit-learn · Chart.js</p></div>
             </div>
             <div class="copy">© 2026 Corporación Alicorp S.A.A. · Todos los derechos reservados · Business Intelligence & Machine Learning</div>
@@ -1823,6 +1849,7 @@
         const VISTAS = [
             'inicio',
             'productos',
+            'compras',
             'prediccion',
             'keras',
             'segmentacion',
@@ -1959,6 +1986,7 @@
         let resumenPromise = null;
         let inicioListo = false;
         let productosListo = false;
+        let comprasLista = false;
         let prediccionChartsListos = false;
         let explicacionLista = false;
         let kerasListo = false;
@@ -2020,6 +2048,12 @@
                             const d = await obtenerResumen();
                             renderizarProductos(d);
                         } catch (e) {}
+                    }
+                    break;
+
+                case 'compras':
+                    if (!comprasLista) {
+                        cargarComprasClientes();
                     }
                     break;
 
@@ -2241,6 +2275,46 @@
             $('marcasGrid').innerHTML = d.productos.map(p =>
                 `<button class="tile" data-go="productos"><em>${icono(p.nombre)}</em>${esc(p.nombre)}</button>`).join('');
             inicioListo = true;
+        }
+
+        async function cargarComprasClientes() {
+            try {
+                const respuesta = await fetch('/api/tienda/compras?limite=500');
+                if (!respuesta.ok) throw new Error('Servidor retornó ' + respuesta.status);
+                const datos = await respuesta.json();
+                if (!datos.ok) throw new Error(datos.error || 'No se pudieron cargar las compras.');
+
+                const compras = datos.compras || [];
+                const filas = compras.flatMap(compra => {
+                    const items = compra.items && compra.items.length ? compra.items : [{
+                        producto: 'Sin detalle',
+                        cantidad: 0,
+                        precio_unitario: 0,
+                        subtotal: 0
+                    }];
+                    return items.map(item => `
+                        <tr>
+                            <td>${esc(compra.cliente_nombre || 'Sin nombre')}<small style="display:block;color:var(--text-muted);">${esc(compra.cliente_correo || '')}</small></td>
+                            <td>${esc(compra.fecha_compra ? new Date(compra.fecha_compra).toLocaleString('es-PE') : '--')}</td>
+                            <td>${esc(item.producto || item.nombre || 'Sin producto')}</td>
+                            <td class="num">${Number(item.cantidad || 0).toLocaleString('es-PE')}</td>
+                            <td class="num">S/. ${fmt(item.precio_unitario || 0)}</td>
+                            <td class="num">S/. ${fmt(item.subtotal || 0)}</td>
+                            <td class="num">S/. ${fmt(compra.total || 0)}</td>
+                            <td>${esc(compra.estado || 'pendiente')}</td>
+                        </tr>
+                    `);
+                }).join('');
+
+                $('tablaCompras').innerHTML = filas || '<tr><td colspan="8">No hay compras registradas.</td></tr>';
+                $('comprasCantidad').textContent = compras.length.toLocaleString('es-PE');
+                $('comprasMonto').textContent = 'S/. ' + compras.reduce((total, compra) => total + Number(compra.total || 0), 0).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                $('comprasFuente').textContent = `Fuente: ${datos.fuente === 'supabase' ? 'Supabase' : 'archivo local'} · Se muestran hasta 500 compras recientes.`;
+                comprasLista = true;
+            } catch (error) {
+                $('tablaCompras').innerHTML = `<tr><td colspan="8">${esc(error.message)}</td></tr>`;
+                $('comprasFuente').textContent = 'No se pudo consultar el historial de compras.';
+            }
         }
 
         function renderizarProductos(d) {
@@ -2573,9 +2647,12 @@
                         <td>${esc(segmento.significado)}</td>
                         <td class="num">${segmento.registros.toLocaleString('es-PE')}</td>
                         <td class="num">S/. ${fmt(segmento.ventas_promedio)}</td>
+                        <td class="num">S/. ${fmt(segmento.ventas_mediana)}</td>
+                        <td class="num">${segmento.ventas_moda === null ? 'Sin moda' : 'S/. ' + fmt(segmento.ventas_moda)}</td>
                         <td class="num">${fmt(segmento.stock_promedio)}</td>
                         <td class="num">${fmt(segmento.cantidad_promedio)}</td>
                         <td class="num">S/. ${fmt(segmento.precio_promedio)}</td>
+                        <td class="num">S/. ${fmt(segmento.precio_predictivo)}</td>
                         <td>${esc(segmento.recomendacion)}</td>
                     </tr>
                 `).join('');
@@ -2602,7 +2679,7 @@
                     }
                 });
             } catch (error) {
-                $('tablaSegmentacion').innerHTML = `<tr><td colspan="8">${esc(error.message)}</td></tr>`;
+                $('tablaSegmentacion').innerHTML = `<tr><td colspan="11">${esc(error.message)}</td></tr>`;
             }
         }
 
