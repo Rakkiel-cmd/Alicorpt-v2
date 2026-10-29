@@ -38,22 +38,27 @@ CREATE INDEX IF NOT EXISTS idx_transacciones_fecha ON public.transacciones_alico
 CREATE INDEX IF NOT EXISTS idx_transacciones_producto ON public.transacciones_alicorp(producto);
 CREATE INDEX IF NOT EXISTS idx_transacciones_tienda ON public.transacciones_alicorp(tienda);
 
--- 4. (Opcional pero recomendado): Vista agregada para que el Dashboard no consuma memoria
+-- 4. Vistas agregadas para que el Dashboard consulte Supabase en < 50 ms con 0 RAM en Render
 CREATE OR REPLACE VIEW public.vista_resumen_dashboard AS
 SELECT 
     producto,
     tienda,
-    TO_CHAR(fecha, 'YYYY-MM') AS mes,
-    COUNT(*) AS total_transacciones,
-    SUM(cantidad_vendida) AS unidades_totales,
-    SUM(ventas_totales) AS ventas_totales,
-    ROUND(AVG(precio_unitario), 2) AS precio_promedio,
-    ROUND(AVG(stock_actual), 1) AS stock_promedio
+    SUBSTRING(CAST(fecha AS TEXT) FROM 1 FOR 7) AS mes,
+    COUNT(*)::INT AS total_transacciones,
+    COALESCE(SUM(cantidad_vendida), 0)::BIGINT AS unidades_totales,
+    ROUND(COALESCE(SUM(ventas_totales), 0)::NUMERIC, 2) AS ventas_totales,
+    ROUND(COALESCE(AVG(precio_unitario), 0)::NUMERIC, 2) AS precio_promedio,
+    ROUND(COALESCE(AVG(stock_actual), 0)::NUMERIC, 1) AS stock_promedio
 FROM public.transacciones_alicorp
-GROUP BY producto, tienda, TO_CHAR(fecha, 'YYYY-MM');
+GROUP BY producto, tienda, SUBSTRING(CAST(fecha AS TEXT) FROM 1 FOR 7);
 
 CREATE OR REPLACE VIEW public.vista_totales_dashboard AS
-SELECT COUNT(*) AS total_registros, SUM(ventas_totales) AS ventas_totales
+SELECT 
+    COUNT(*)::INT AS total_registros,
+    ROUND(COALESCE(SUM(ventas_totales), 0)::NUMERIC, 2) AS ventas_totales,
+    ROUND(COALESCE(AVG(ventas_totales), 0)::NUMERIC, 2) AS media_ventas,
+    ROUND(COALESCE(stddev_samp(ventas_totales), 0)::NUMERIC, 2) AS desviacion_ventas,
+    ROUND(COALESCE(var_samp(ventas_totales), 0)::NUMERIC, 2) AS varianza_ventas
 FROM public.transacciones_alicorp;
 
 CREATE OR REPLACE VIEW public.vista_stock_dashboard AS
@@ -65,15 +70,28 @@ SELECT
         WHEN stock_actual < 450 THEN '350-449'
         ELSE '450-500'
     END AS nivel_stock,
-    AVG(cantidad_vendida) AS unidades_promedio,
-    AVG(ventas_totales) AS ventas_promedio
+    ROUND(COALESCE(AVG(cantidad_vendida), 0)::NUMERIC, 2) AS unidades_promedio,
+    ROUND(COALESCE(AVG(ventas_totales), 0)::NUMERIC, 2) AS ventas_promedio
 FROM public.transacciones_alicorp
 GROUP BY 1
 ORDER BY 1;
 
+CREATE OR REPLACE VIEW public.vista_historico_productos_alicorp AS
+SELECT
+    producto,
+    COUNT(*)::INT AS transacciones,
+    COALESCE(SUM(cantidad_vendida), 0)::BIGINT AS unidades_historicas,
+    ROUND(COALESCE(SUM(ventas_totales), 0)::NUMERIC, 2) AS ventas_historicas_soles,
+    ROUND(COALESCE(AVG(precio_unitario), 0)::NUMERIC, 2) AS precio_promedio,
+    ROUND(COALESCE(AVG(stock_actual), 0)::NUMERIC, 1) AS stock_promedio,
+    ROUND((COALESCE(AVG(precio_unitario), 0) * 0.64)::NUMERIC, 2) AS costo_unitario
+FROM public.transacciones_alicorp
+GROUP BY producto
+ORDER BY ventas_historicas_soles DESC;
+
 CREATE OR REPLACE FUNCTION public.estadisticas_dashboard(
-    meta_venta NUMERIC,
-    umbral_inventario NUMERIC
+    meta_venta NUMERIC DEFAULT 200.0,
+    umbral_inventario NUMERIC DEFAULT 100.0
 )
 RETURNS JSONB
 LANGUAGE SQL
@@ -83,10 +101,10 @@ SELECT jsonb_build_object(
     'general', (
         SELECT jsonb_build_object(
             'n', COUNT(*)::INT,
-            'media', AVG(ventas_totales),
-            'mediana', percentile_cont(0.5) WITHIN GROUP (ORDER BY ventas_totales),
-            'varianza', var_samp(ventas_totales),
-            'desviacion', stddev_samp(ventas_totales),
+            'media', COALESCE(AVG(ventas_totales), 0),
+            'mediana', COALESCE(percentile_cont(0.5) WITHIN GROUP (ORDER BY ventas_totales), 0),
+            'varianza', COALESCE(var_samp(ventas_totales), 0),
+            'desviacion', COALESCE(stddev_samp(ventas_totales), 0),
             'mayores_meta', COUNT(*) FILTER (WHERE ventas_totales > meta_venta)::INT
         )
         FROM public.transacciones_alicorp
@@ -102,8 +120,8 @@ SELECT jsonb_build_object(
         FROM (
             SELECT tienda,
                    COUNT(*) AS cantidad,
-                   AVG(stock_actual) AS stock_medio,
-                   stddev_samp(stock_actual) AS stock_desviacion,
+                   COALESCE(AVG(stock_actual), 0) AS stock_medio,
+                   COALESCE(stddev_samp(stock_actual), 1) AS stock_desviacion,
                    COUNT(*) FILTER (WHERE stock_actual < umbral_inventario) AS debajo_umbral
             FROM public.transacciones_alicorp
             GROUP BY tienda
@@ -111,3 +129,11 @@ SELECT jsonb_build_object(
     ), '[]'::jsonb)
 );
 $$;
+
+GRANT SELECT ON public.vista_resumen_dashboard TO anon, authenticated, service_role;
+GRANT SELECT ON public.vista_totales_dashboard TO anon, authenticated, service_role;
+GRANT SELECT ON public.vista_stock_dashboard TO anon, authenticated, service_role;
+GRANT SELECT ON public.vista_historico_productos_alicorp TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.estadisticas_dashboard(NUMERIC, NUMERIC) TO anon, authenticated, service_role;
+
+NOTIFY pgrst, 'reload schema';

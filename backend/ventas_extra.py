@@ -197,31 +197,31 @@ def _obtener_modelo():
         from sklearn.pipeline import make_pipeline
         from sklearn.preprocessing import StandardScaler
 
-        # Optimizado a 5,000 filas para respuesta ultrarrápida y mínimo consumo de RAM en Render
+        # 1. Consultar primero en la nube: bloque de 5,000 registros directamente desde Supabase
         df = None
-        ruta_real = RUTA_CSV if os.path.exists(RUTA_CSV) else os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'transacciones_alicorp_100k.csv')
-        if os.path.exists(ruta_real):
+        supabase = _cliente_supabase()
+        if supabase:
             try:
-                df = pd.read_csv(ruta_real, nrows=5000)
-            except Exception:
-                df = None
+                res = supabase.table("transacciones_alicorp").select(
+                    "fecha,producto,tienda,precio_unitario,stock_actual,temperatura_zona,ventas_totales"
+                ).limit(5000).execute()
+                if res.data:
+                    df = pd.DataFrame(res.data)
+                    df['precio_unitario'] = df['precio_unitario'].astype(float)
+                    df['stock_actual'] = df['stock_actual'].astype(int)
+                    df['temperatura_zona'] = df['temperatura_zona'].astype(float)
+                    df['ventas_totales'] = df['ventas_totales'].astype(float)
+            except Exception as e:
+                print("[!] Error consultando Supabase para modelo:", e)
 
+        # 2. Respaldo local si Supabase no respondió
         if df is None:
-            # Fallback seguro en la nube: bloque de 5,000 registros directamente desde Supabase
-            supabase = _cliente_supabase()
-            if supabase:
+            ruta_real = RUTA_CSV if os.path.exists(RUTA_CSV) else os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'transacciones_alicorp_100k.csv')
+            if os.path.exists(ruta_real):
                 try:
-                    res = supabase.table("transacciones_alicorp").select(
-                        "fecha,producto,tienda,precio_unitario,stock_actual,temperatura_zona,ventas_totales"
-                    ).limit(5000).execute()
-                    if res.data:
-                        df = pd.DataFrame(res.data)
-                        df['precio_unitario'] = df['precio_unitario'].astype(float)
-                        df['stock_actual'] = df['stock_actual'].astype(int)
-                        df['temperatura_zona'] = df['temperatura_zona'].astype(float)
-                        df['ventas_totales'] = df['ventas_totales'].astype(float)
-                except Exception as e:
-                    print("[!] Error consultando Supabase para modelo:", e)
+                    df = pd.read_csv(ruta_real, nrows=5000)
+                except Exception:
+                    df = None
 
         if df is None or df.empty:
             raise RuntimeError("No se pudieron cargar datos para entrenar el modelo de ventas.")

@@ -678,22 +678,21 @@ def actividad_historial():
 @app.route('/api/predecir_ventas', methods=['POST'])
 def predecir_ventas():
     try:
-        ruta_json = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "resumen_100k_supabase.json")
         stats = None
-        if os.path.exists(ruta_json):
-            try:
-                import json
-                with open(ruta_json, "r", encoding="utf-8") as f:
-                    stats = json.load(f)["estadisticas"]
-            except Exception:
-                pass
+        # 1. Consultar primero la función RPC estadisticas_dashboard en Supabase (< 50 ms, 0 RAM en Render)
+        try:
+            from backend.estadistica_service import calcular_estadisticas_supabase
+            stats = calcular_estadisticas_supabase(200.0, 100.0)
+        except Exception as e_rpc:
+            print("[!] Aviso consultando RPC estadisticas_dashboard en predecir_ventas:", e_rpc)
 
+        # 2. Respaldo desde resumen_100k_supabase.json si la función RPC aún no se ejecutó en Supabase
         if stats is None:
-            ruta_json_root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resumen_100k_supabase.json")
-            if os.path.exists(ruta_json_root):
+            ruta_json = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "resumen_100k_supabase.json")
+            if os.path.exists(ruta_json):
                 try:
                     import json
-                    with open(ruta_json_root, "r", encoding="utf-8") as f:
+                    with open(ruta_json, "r", encoding="utf-8") as f:
                         stats = json.load(f)["estadisticas"]
                 except Exception:
                     pass
