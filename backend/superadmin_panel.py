@@ -64,8 +64,12 @@ def listar_usuarios_con_estado():
         supabase = obtener_cliente_supabase()
         hoy = datetime.now(ZONA_HORARIA_PERU).date().isoformat()
 
-        res_admins = supabase.table('administradores') \
-            .select('usuario, nombre_completo, face_encoding').execute()
+        try:
+            res_admins = supabase.table('administradores') \
+                .select('usuario, nombre_completo, face_encoding, rol, estado').execute()
+        except Exception:
+            res_admins = supabase.table('administradores') \
+                .select('usuario, nombre_completo, face_encoding').execute()
         administradores = res_admins.data or []
 
         res_actividad = supabase.table('actividad_usuarios') \
@@ -87,12 +91,14 @@ def listar_usuarios_con_estado():
             # el booleano 'tiene_biometria'; el vector completo se pide aparte
             # en /api/superadmin/vector, uno a la vez.
 
+            estado_cuenta = (admin.get('estado') or 'activo').strip().lower()
             es_super = es_superadmin(nombre_usuario)
 
             lista.append({
                 'usuario': nombre_usuario,
                 'nombre_completo': admin.get('nombre_completo') or nombre_usuario,
                 'conectado': conectado,
+                'estado': estado_cuenta,
                 'tiempo_segundos_hoy': int(fila_actividad['tiempo_segundos']) if fila_actividad else 0,
                 'primer_ingreso_hoy': fila_actividad.get('primer_ingreso') if fila_actividad else None,
                 'ultimo_latido': fila_actividad.get('ultimo_latido') if fila_actividad else None,

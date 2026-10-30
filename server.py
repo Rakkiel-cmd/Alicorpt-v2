@@ -35,9 +35,11 @@ from backend.carrito_service import carrito_bp
 app.register_blueprint(carrito_bp)
 from backend.superadmin_panel import superadmin_panel
 app.register_blueprint(superadmin_panel)
+from backend.administracion_usuarios import administracion_usuarios
+app.register_blueprint(administracion_usuarios)
 from backend.reporte_predictivo_service import reporte_predictivo_bp
 app.register_blueprint(reporte_predictivo_bp)
-from backend.seguridad_acceso import es_superadmin
+from backend.seguridad_acceso import es_superadmin, esta_suspendido
 from datetime import datetime, timezone, timedelta
 
 # Zona horaria oficial Corporación Alicorp Perú (UTC-5, ciclo diario estricto de 00:00 a 24:00)
@@ -137,6 +139,8 @@ def login_password():
             fila = response.data[0]
             password_real = fila.get('password')
             if password_input == password_real:
+                if esta_suspendido(fila.get('usuario')):
+                    return jsonify({"success": False, "message": "🚫 Tu cuenta ha sido suspendida por un Super Administrador."}), 403
                 nombre_completo = fila.get('nombre_completo') or fila.get('usuario')
                 face_encoding = fila.get('face_encoding')
                 
@@ -210,6 +214,8 @@ def login_facial():
                 distancia = detalle["distancia"]
                 porcentaje = round(max(0, min(100, 100 - (distancia * 20))), 2)
                 usuario_reconocido = detalle.get("coincide_con")
+                if esta_suspendido(usuario_reconocido):
+                    return jsonify({"success": False, "message": "🚫 Tu cuenta ha sido suspendida por un Super Administrador."}), 403
 
                 # Obtener perfil del usuario desde Supabase
                 nombre_completo = usuario_reconocido

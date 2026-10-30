@@ -105,20 +105,66 @@ def validar_clave_acceso(clave_candidata):
     candidata_limpia = str(clave_candidata).strip()
     return candidata_limpia == clave_real
 
+def obtener_perfil_usuario(usuario):
+    """
+    Devuelve {'rol': 'analista'|'superadmin', 'estado': 'activo'|'suspendido'}
+    leyendo la tabla 'administradores'. Si las columnas aún no existen o el
+    usuario no está en la tabla, devuelve None para permitir el respaldo legado.
+    """
+    if not usuario:
+        return None
+    client = _obtener_supabase_client()
+    if not client:
+        return None
+    try:
+        res = (
+            client.table('administradores')
+            .select('rol, estado')
+            .ilike('usuario', str(usuario).strip())
+            .limit(1)
+            .execute()
+        )
+        if res.data and len(res.data) > 0:
+            fila = res.data[0]
+            rol = (fila.get('rol') or 'analista').strip().lower()
+            estado = (fila.get('estado') or 'activo').strip().lower()
+            return {'rol': rol, 'estado': estado}
+    except Exception:
+        # Columnas 'rol'/'estado' aún no creadas o error temporal de red
+        pass
+    return None
+
+
+def esta_suspendido(usuario):
+    """Indica si el usuario tiene estado 'suspendido' en la tabla administradores."""
+    perfil = obtener_perfil_usuario(usuario)
+    if perfil is not None:
+        return perfil['estado'] == 'suspendido'
+    return False
+
+
 def es_superadmin(usuario):
-    """Verifica si un usuario posee el rol de Super Administrador."""
+    """Verifica si un usuario posee el rol de Super Administrador y está activo."""
     if not usuario:
         return False
     usuario_str = str(usuario).strip().lower()
-    
-    # 1. Chequeo de variables de entorno opcional
+
+    # 1. Fuente principal: columnas 'rol' y 'estado' en la tabla 'administradores'
+    perfil = obtener_perfil_usuario(usuario)
+    if perfil is not None:
+        if perfil['estado'] != 'activo':
+            return False
+        if perfil['rol'] == 'superadmin':
+            return True
+
+    # 2. Chequeo de variables de entorno opcional
     env_superadmins = os.environ.get("SUPERADMIN_USUARIOS", "")
     if env_superadmins:
         lista_env = [u.strip().lower() for u in env_superadmins.split(',') if u.strip()]
         if usuario_str in lista_env:
             return True
-            
-    # 2. Chequeo de Supabase (Fuente oficial y autoritativa en la nube)
+
+    # 3. Chequeo de Supabase en configuracion_seguridad
     client = _obtener_supabase_client()
     if client:
         try:
@@ -127,12 +173,11 @@ def es_superadmin(usuario):
                 raw_val = res.data[0].get('valor')
                 lista_super = json.loads(raw_val) if isinstance(raw_val, str) else raw_val
                 if isinstance(lista_super, list):
-                    # Si Supabase responde exitosamente, esta es la fuente definitiva de verdad:
                     return usuario_str in [str(x).strip().lower() for x in lista_super]
         except Exception as e:
             print(f"[Seguridad] Error consultando superadmins en Supabase: {e}")
 
-    # 3. Respaldo local privado únicamente si Supabase no estuvo disponible
+    # 4. Respaldo local privado / lista por defecto
     local_data = _asegurar_archivo_local()
     lista_local = local_data.get("superadmin_usuarios", SUPERADMINS_POR_DEFECTO)
     return usuario_str in [str(x).strip().lower() for x in lista_local]
