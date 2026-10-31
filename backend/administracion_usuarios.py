@@ -1,245 +1,231 @@
-# ==============================================================================
-# ADMINISTRACIÓN DE USUARIOS (Solo Super Admin)
-# ==============================================================================
-# Permite a un Super Administrador:
-#   - Ascender un Analista a Super Admin (no reversible desde el panel).
-#   - Suspender un colaborador con motivo obligatorio.
-#   - Reactivar un colaborador suspendido.
-#   - Consultar el historial de auditoría de estas acciones.
-# Reglas de protección:
-#   - Nadie puede modificarse a sí mismo.
-#   - Siempre debe quedar al menos 1 Super Admin activo en el sistema.
-# ==============================================================================
-
-import json
-from flask import Blueprint, jsonify, request
+"""Administración de colaboradores, auditoría y cambio de llave con doble aprobación."""
+import re
+from functools import wraps
+from threading import RLock
+from datetime import datetime, timedelta, timezone
+from flask import Blueprint, jsonify, request, session
 from backend.datos_supabase import obtener_cliente_supabase
-from backend.seguridad_acceso import es_superadmin, SUPERADMINS_POR_DEFECTO
+from backend.seguridad_acceso import es_superadmin, verificar_password, guardar_nueva_clave_aprobada
 
 administracion_usuarios = Blueprint('administracion_usuarios', __name__)
+_MUTACIONES_LOCK = RLock()
+
+def _serializar_mutacion(func):
+    """Serializa cambios sensibles en el proceso Flask (Procfile actual: un worker)."""
+    @wraps(func)
+    def _envolver(*args, **kwargs):
+        with _MUTACIONES_LOCK:
+            return func(*args, **kwargs)
+    return _envolver
 
 
-def _contar_superadmins_activos(supabase):
-    """Cuenta cuántos usuarios activos tienen rol 'superadmin'."""
+def _admin_requerido(_nombre_cliente=None):
+    # La identidad autorizada procede de la sesión firmada por Flask. Nunca del JSON/query.
+    nombre = str(session.get('usuario') or '').strip()
+    if not nombre or not es_superadmin(nombre):
+        return None, (jsonify({'success': False, 'message': 'Acceso restringido a Super Administradores activos.'}), 403)
+    return nombre, None
+
+
+def _auditar(db, afectado, accion, actor, motivo=None):
+    db.table('auditoria_usuarios').insert({'usuario_afectado': afectado, 'accion': accion,
+        'realizado_por': actor, 'motivo': motivo}).execute()
+
+
+def _buscar_usuario(db, usuario):
+    res = db.table('administradores').select('usuario, rol, estado, email').ilike('usuario', usuario).limit(1).execute()
+    return res.data[0] if res.data else None
+
+
+def _contar_superadmins_activos(db):
+    res = db.table('administradores').select('usuario, rol, estado').execute()
+    return sum(1 for r in (res.data or []) if str(r.get('rol') or 'analista').lower() == 'superadmin' and str(r.get('estado') or 'activo').lower() == 'activo')
+
+
+def _solicitudes_pendientes(db):
+    limite = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+    # Las solicitudes vencidas dejan de estar pendientes y no pueden aprobarse.
+    vencidas = db.table('solicitudes_cambio_clave').select('id, solicitado_por').eq('estado', 'pendiente').lt('creado_en', limite).execute().data or []
+    for solicitud in vencidas:
+        actualizado = db.table('solicitudes_cambio_clave').update({'estado': 'rechazado', 'resuelto_en': datetime.now(timezone.utc).isoformat()}).eq('id', solicitud['id']).eq('estado', 'pendiente').select('id').execute()
+        if actualizado.data:
+            _auditar(db, 'clave_acceso_personal', 'cambio_clave', 'sistema', f"Solicitud {solicitud['id']} vencida; solicitada por {solicitud.get('solicitado_por', '')}")
+    return db.table('solicitudes_cambio_clave').select('id, clave_propuesta, solicitado_por, aprobado_por, estado, creado_en, resuelto_en').eq('estado', 'pendiente').order('creado_en', desc=True).execute().data or []
+
+
+@administracion_usuarios.post('/api/superadmin/ascender_rol')
+@_serializar_mutacion
+def ascender():
+    d = request.get_json(silent=True) or {}; actor, error = _admin_requerido((d.get('usuario') or '').strip())
+    if error: return error
+    objetivo = (d.get('objetivo') or '').strip()
+    if not objetivo: return jsonify({'success': False, 'message': 'Indica el colaborador.'}), 400
+    if actor.lower() == objetivo.lower(): return jsonify({'success': False, 'message': 'No puedes cambiar tu propio rol.'}), 400
+    db = obtener_cliente_supabase()
     try:
-        res = (
-            supabase.table('administradores')
-            .select('usuario, rol, estado')
-            .execute()
-        )
-        activos = set()
-        for r in (res.data or []):
-            usr = (r.get('usuario') or '').strip().lower()
-            est = (r.get('estado') or 'activo').strip().lower()
-            rol = (r.get('rol') or 'analista').strip().lower()
-            if est == 'activo' and (rol == 'superadmin' or es_superadmin(usr)):
-                activos.add(usr)
-        return max(len(activos), 1)
-    except Exception:
-        return len(SUPERADMINS_POR_DEFECTO)
+        fila = _buscar_usuario(db, objetivo) if db else None
+        if not fila: return jsonify({'success': False, 'message': 'Colaborador no encontrado.'}), 404
+        if fila.get('rol') == 'superadmin': return jsonify({'success': False, 'message': 'Nunca se baja ni se vuelve a ascender un Super Admin.'}), 400
+        if fila.get('estado') == 'suspendido': return jsonify({'success': False, 'message': 'Reactiva la cuenta antes de ascenderla.'}), 400
+        db.table('administradores').update({'rol': 'superadmin'}).eq('usuario', fila['usuario']).execute()
+        _auditar(db, fila['usuario'], 'ascenso_rol', actor, 'Ascenso a superadmin')
+        return jsonify({'success': True, 'message': f"@{fila['usuario']} ahora es Super Admin."})
+    except Exception as exc: return jsonify({'success': False, 'message': 'No se pudo ascender.'}), 500
 
 
-def _registrar_auditoria(supabase, usuario_afectado, accion, realizado_por, motivo=None):
-    """Guarda un registro en 'auditoria_usuarios' sin romper la operación si la tabla no existe aún."""
+@administracion_usuarios.post('/api/superadmin/suspender')
+@_serializar_mutacion
+def suspender():
+    d = request.get_json(silent=True) or {}; actor, error = _admin_requerido((d.get('usuario') or '').strip())
+    if error: return error
+    objetivo, motivo = (d.get('objetivo') or '').strip(), (d.get('motivo') or '').strip()
+    if not objetivo: return jsonify({'success': False, 'message': 'Indica el colaborador.'}), 400
+    if actor.lower() == objetivo.lower(): return jsonify({'success': False, 'message': 'No puedes suspender tu propia cuenta.'}), 400
+    db = obtener_cliente_supabase()
     try:
-        supabase.table('auditoria_usuarios').insert({
-            'usuario_afectado': usuario_afectado,
-            'accion': accion,
-            'realizado_por': realizado_por,
-            'motivo': motivo,
-        }).execute()
-    except Exception as e:
-        print(f"[AdministracionUsuarios] No se pudo registrar auditoría: {e}")
+        fila = _buscar_usuario(db, objetivo) if db else None
+        if not fila: return jsonify({'success': False, 'message': 'Colaborador no encontrado.'}), 404
+        if fila.get('estado') == 'suspendido': return jsonify({'success': False, 'message': 'La cuenta ya está suspendida.'}), 400
+        if fila.get('rol') == 'superadmin' and _contar_superadmins_activos(db) <= 1:
+            return jsonify({'success': False, 'message': 'No puede quedar el sistema sin un Super Admin activo.'}), 400
+        db.table('administradores').update({'estado': 'suspendido'}).eq('usuario', fila['usuario']).execute()
+        _auditar(db, fila['usuario'], 'suspension', actor, motivo or None)
+        return jsonify({'success': True, 'message': f"@{fila['usuario']} fue suspendido."})
+    except Exception as exc: return jsonify({'success': False, 'message': 'No se pudo suspender.'}), 500
 
 
-def _sincronizar_superadmin_config(supabase, objetivo):
-    """Sincroniza el nuevo superadmin también en configuracion_seguridad para compatibilidad total."""
+@administracion_usuarios.post('/api/superadmin/reactivar')
+@_serializar_mutacion
+def reactivar():
+    d = request.get_json(silent=True) or {}; actor, error = _admin_requerido((d.get('usuario') or '').strip())
+    if error: return error
+    objetivo = (d.get('objetivo') or '').strip(); db = obtener_cliente_supabase()
     try:
-        res = supabase.table('configuracion_seguridad').select('valor').eq('clave', 'superadmin_usuarios').execute()
-        lista = list(SUPERADMINS_POR_DEFECTO)
-        if res.data and len(res.data) > 0:
-            raw_val = res.data[0].get('valor')
-            parsed = json.loads(raw_val) if isinstance(raw_val, str) else raw_val
-            if isinstance(parsed, list):
-                lista = parsed
-        if objetivo.lower() not in [str(x).strip().lower() for x in lista]:
-            lista.append(objetivo)
-            supabase.table('configuracion_seguridad').upsert({
-                'clave': 'superadmin_usuarios',
-                'valor': json.dumps(lista),
-                'actualizado_por': 'sistema_ascenso'
-            }, on_conflict='clave').execute()
-    except Exception:
-        pass
+        fila = _buscar_usuario(db, objetivo) if db and objetivo else None
+        if not fila: return jsonify({'success': False, 'message': 'Colaborador no encontrado.'}), 404
+        db.table('administradores').update({'estado': 'activo'}).eq('usuario', fila['usuario']).execute()
+        _auditar(db, fila['usuario'], 'reactivacion', actor, 'Reactivación desde Administración')
+        return jsonify({'success': True, 'message': f"@{fila['usuario']} fue reactivado."})
+    except Exception as exc: return jsonify({'success': False, 'message': 'No se pudo reactivar.'}), 500
 
 
-@administracion_usuarios.route('/api/superadmin/ascender_rol', methods=['POST'])
-def ascender_rol():
-    """
-    POST /api/superadmin/ascender_rol
-    Body JSON: { "usuario": "<quien_ejecuta>", "objetivo": "<usuario_a_ascender>" }
-    Pasa a un usuario de 'analista' a 'superadmin'.
-    """
-    datos = request.get_json(silent=True) or {}
-    solicitante = (datos.get('usuario') or '').strip()
-    objetivo = (datos.get('objetivo') or '').strip()
-
-    if not es_superadmin(solicitante):
-        return jsonify({'success': False, 'message': 'Acceso restringido a Super Administradores.'}), 403
-    if not objetivo:
-        return jsonify({'success': False, 'message': 'Falta indicar el usuario objetivo.'}), 400
-    if solicitante.lower() == objetivo.lower():
-        return jsonify({'success': False, 'message': 'No puedes cambiar tu propio rol.'}), 400
-
-    supabase = obtener_cliente_supabase()
-    if not supabase:
-        return jsonify({'success': False, 'message': 'Sin conexión a Supabase.'}), 500
-
+@administracion_usuarios.post('/api/superadmin/actualizar_email')
+@_serializar_mutacion
+def actualizar_email():
+    d = request.get_json(silent=True) or {}; actor, error = _admin_requerido((d.get('usuario') or '').strip())
+    if error: return error
+    objetivo, email = (d.get('objetivo') or '').strip(), (d.get('email') or '').strip()
+    if email and (len(email) > 200 or not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", email)):
+        return jsonify({'success': False, 'message': 'El correo no tiene un formato válido.'}), 400
+    db = obtener_cliente_supabase()
     try:
-        actual = (
-            supabase.table('administradores')
-            .select('*')
-            .ilike('usuario', objetivo)
-            .limit(1)
-            .execute()
-        )
-        if not actual.data:
-            return jsonify({'success': False, 'message': 'El usuario objetivo no existe.'}), 404
+        fila = _buscar_usuario(db, objetivo) if db and objetivo else None
+        if not fila: return jsonify({'success': False, 'message': 'Colaborador no encontrado.'}), 404
+        db.table('administradores').update({'email': email or None}).eq('usuario', fila['usuario']).execute()
+        _auditar(db, fila['usuario'], 'actualizacion_email', actor, 'Correo actualizado' if email else 'Correo eliminado')
+        return jsonify({'success': True, 'message': 'Correo actualizado.'})
+    except Exception as exc: return jsonify({'success': False, 'message': 'No se pudo actualizar el correo.'}), 500
 
-        fila = actual.data[0]
-        nombre_real = fila.get('usuario', objetivo)
-        if (fila.get('estado') or 'activo').lower() == 'suspendido':
-            return jsonify({'success': False, 'message': 'No se puede ascender a un usuario suspendido.'}), 400
-        if (fila.get('rol') or 'analista').lower() == 'superadmin' or es_superadmin(nombre_real):
-            return jsonify({'success': False, 'message': 'El usuario ya es Super Administrador.'}), 400
 
+@administracion_usuarios.get('/api/superadmin/auditoria')
+def auditoria():
+    actor, error = _admin_requerido(request.args.get('usuario', '').strip())
+    if error: return error
+    db = obtener_cliente_supabase()
+    try:
+        res = db.table('auditoria_usuarios').select('id, usuario_afectado, accion, realizado_por, motivo, fecha').order('fecha', desc=True).limit(100).execute()
+        return jsonify({'success': True, 'registros': res.data or []})
+    except Exception as exc: return jsonify({'success': False, 'message': 'No se pudo consultar auditoría.'}), 500
+
+
+@administracion_usuarios.post('/api/superadmin/clave/solicitar')
+@_serializar_mutacion
+def solicitar_clave():
+    d = request.get_json(silent=True) or {}; actor, error = _admin_requerido((d.get('usuario') or '').strip())
+    if error: return error
+    clave, password = str(d.get('clave_propuesta') or d.get('nueva_clave') or '').strip(), d.get('password')
+    if not re.fullmatch(r'\d{4,12}', clave): return jsonify({'success': False, 'message': 'La llave debe tener entre 4 y 12 dígitos.'}), 400
+    if not verificar_password(actor, password): return jsonify({'success': False, 'message': 'No se pudo verificar la contraseña.'}), 401
+    db = obtener_cliente_supabase()
+    try:
+        if _contar_superadmins_activos(db) < 2: return jsonify({'success': False, 'message': 'Se necesitan al menos dos Super Admin activos.'}), 400
+        if _solicitudes_pendientes(db): return jsonify({'success': False, 'message': 'Ya existe una solicitud pendiente.'}), 409
+        db.table('solicitudes_cambio_clave').insert({'clave_propuesta': clave, 'solicitado_por': actor, 'estado': 'pendiente'}).execute()
+        return jsonify({'success': True, 'message': 'Solicitud creada. Debe aprobarla otro Super Admin.'})
+    except Exception as exc:
         try:
-            supabase.table('administradores').update({'rol': 'superadmin'}).eq('usuario', nombre_real).execute()
+            pendientes = db.table('solicitudes_cambio_clave').select('id').eq('estado', 'pendiente').limit(1).execute() if db else None
+            if pendientes and pendientes.data:
+                return jsonify({'success': False, 'message': 'Ya existe una solicitud pendiente.'}), 409
         except Exception:
             pass
-        _sincronizar_superadmin_config(supabase, nombre_real)
-        _registrar_auditoria(supabase, nombre_real, 'ascenso_rol', solicitante, 'Ascenso a Super Administrador')
-        return jsonify({'success': True, 'message': f'@{nombre_real} ahora es Super Administrador.'})
-    except Exception as e:
-        return jsonify({'success': False, 'message': f'Error al ascender rol: {e}'}), 500
+        return jsonify({'success': False, 'message': 'No se pudo crear la solicitud.'}), 500
 
 
-@administracion_usuarios.route('/api/superadmin/suspender', methods=['POST'])
-def suspender_usuario():
-    """
-    POST /api/superadmin/suspender
-    Body JSON: { "usuario": "<quien_ejecuta>", "objetivo": "<usuario_a_suspender>", "motivo": "<texto>" }
-    """
-    datos = request.get_json(silent=True) or {}
-    solicitante = (datos.get('usuario') or '').strip()
-    objetivo = (datos.get('objetivo') or '').strip()
-    motivo = (datos.get('motivo') or '').strip()
+@administracion_usuarios.get('/api/superadmin/clave/solicitudes')
+def listar_solicitudes():
+    actor, error = _admin_requerido(request.args.get('usuario', '').strip())
+    if error: return error
+    db = obtener_cliente_supabase()
+    if not db: return jsonify({'success': False, 'message': 'Sin conexión a Supabase.'}), 500
+    try: return jsonify({'success': True, 'solicitudes': _solicitudes_pendientes(db)})
+    except Exception as exc: return jsonify({'success': False, 'message': 'No se pudieron consultar solicitudes.'}), 500
 
-    if not es_superadmin(solicitante):
-        return jsonify({'success': False, 'message': 'Acceso restringido a Super Administradores.'}), 403
-    if not objetivo:
-        return jsonify({'success': False, 'message': 'Falta indicar el usuario objetivo.'}), 400
-    if not motivo or len(motivo) < 4:
-        return jsonify({'success': False, 'message': 'Debes indicar un motivo claro (mínimo 4 caracteres).'}), 400
-    if solicitante.lower() == objetivo.lower():
-        return jsonify({'success': False, 'message': 'No puedes suspender tu propia cuenta.'}), 400
 
-    supabase = obtener_cliente_supabase()
-    if not supabase:
-        return jsonify({'success': False, 'message': 'Sin conexión a Supabase.'}), 500
-
+@administracion_usuarios.post('/api/superadmin/clave/aprobar')
+@_serializar_mutacion
+def aprobar_clave():
+    d = request.get_json(silent=True) or {}; actor, error = _admin_requerido((d.get('usuario') or '').strip())
+    if error: return error
+    password, sid = d.get('password'), d.get('id')
+    if not verificar_password(actor, password): return jsonify({'success': False, 'message': 'No se pudo verificar la contraseña.'}), 401
+    db = obtener_cliente_supabase()
     try:
-        actual = (
-            supabase.table('administradores')
-            .select('*')
-            .ilike('usuario', objetivo)
-            .limit(1)
-            .execute()
-        )
-        if not actual.data:
-            return jsonify({'success': False, 'message': 'El usuario objetivo no existe.'}), 404
+        res = db.table('solicitudes_cambio_clave').select('*').eq('id', sid).eq('estado', 'pendiente').limit(1).execute()
+        if not res.data: return jsonify({'success': False, 'message': 'Solicitud inexistente o ya resuelta.'}), 404
+        s = res.data[0]
+        creado = datetime.fromisoformat(str(s['creado_en']).replace('Z', '+00:00'))
+        if creado.tzinfo is None: creado = creado.replace(tzinfo=timezone.utc)
+        if datetime.now(timezone.utc) - creado > timedelta(hours=24):
+            exp = db.table('solicitudes_cambio_clave').update({'estado': 'rechazado', 'resuelto_en': datetime.now(timezone.utc).isoformat()}).eq('id', sid).eq('estado', 'pendiente').select('id').execute()
+            if exp.data:
+                _auditar(db, 'clave_acceso_personal', 'cambio_clave', actor, f'Solicitud {sid} vencida al intentar aprobarse')
+            return jsonify({'success': False, 'message': 'La solicitud venció a las 24 horas.'}), 400
+        if str(s.get('solicitado_por', '')).lower() == actor.lower(): return jsonify({'success': False, 'message': 'Debe aprobarla otro Super Admin distinto.'}), 400
+        # Reclamar la solicitud con UPDATE condicional: solo una petición concurrente puede ganar.
+        ahora = datetime.now(timezone.utc).isoformat()
+        limite_aprobacion = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+        reclamo = db.table('solicitudes_cambio_clave').update({
+            'estado': 'aprobado', 'aprobado_por': actor, 'resuelto_en': ahora
+        }).eq('id', sid).eq('estado', 'pendiente').gte('creado_en', limite_aprobacion).select('id').execute()
+        if not reclamo.data:
+            return jsonify({'success': False, 'message': 'La solicitud ya fue resuelta por otra operación.'}), 409
+        resultado = guardar_nueva_clave_aprobada(s['clave_propuesta'], actor)
+        if not resultado.get('success'):
+            # La llave no cambió; liberar la solicitud solo si este aprobador conserva la reclamación.
+            db.table('solicitudes_cambio_clave').update({
+                'estado': 'pendiente', 'aprobado_por': None, 'resuelto_en': None
+            }).eq('id', sid).eq('estado', 'aprobado').eq('aprobado_por', actor).execute()
+            return jsonify(resultado), 500
+        _auditar(db, 'clave_acceso_personal', 'cambio_clave', actor, f"Solicitud {sid} de {s.get('solicitado_por')} aprobada")
+        return jsonify({'success': True, 'message': 'Solicitud aprobada y llave cambiada.'})
+    except Exception as exc: return jsonify({'success': False, 'message': 'No se pudo aprobar la solicitud.'}), 500
 
-        fila = actual.data[0]
-        nombre_real = fila.get('usuario', objetivo)
-        if (fila.get('estado') or 'activo').lower() == 'suspendido':
-            return jsonify({'success': False, 'message': 'El usuario ya está suspendido.'}), 400
 
-        # Regla: siempre debe quedar al menos 1 Super Admin activo
-        if (fila.get('rol') or 'analista').lower() == 'superadmin' or es_superadmin(nombre_real):
-            if _contar_superadmins_activos(supabase) <= 1:
-                return jsonify({
-                    'success': False,
-                    'message': 'No se puede suspender al único Super Administrador activo.'
-                }), 400
-
-        supabase.table('administradores').update({'estado': 'suspendido'}).eq('usuario', nombre_real).execute()
-        _registrar_auditoria(supabase, nombre_real, 'suspension', solicitante, motivo)
-        return jsonify({'success': True, 'message': f'Usuario @{nombre_real} suspendido correctamente.'})
-    except Exception as e:
-        return jsonify({'success': False, 'message': f'Error al suspender usuario (ejecuta database/ampliar_administracion.sql en Supabase si falta la columna estado): {e}'}), 500
-
-
-@administracion_usuarios.route('/api/superadmin/reactivar', methods=['POST'])
-def reactivar_usuario():
-    """
-    POST /api/superadmin/reactivar
-    Body JSON: { "usuario": "<quien_ejecuta>", "objetivo": "<usuario_a_reactivar>" }
-    """
-    datos = request.get_json(silent=True) or {}
-    solicitante = (datos.get('usuario') or '').strip()
-    objetivo = (datos.get('objetivo') or '').strip()
-
-    if not es_superadmin(solicitante):
-        return jsonify({'success': False, 'message': 'Acceso restringido a Super Administradores.'}), 403
-    if not objetivo:
-        return jsonify({'success': False, 'message': 'Falta indicar el usuario objetivo.'}), 400
-
-    supabase = obtener_cliente_supabase()
-    if not supabase:
-        return jsonify({'success': False, 'message': 'Sin conexión a Supabase.'}), 500
-
+@administracion_usuarios.post('/api/superadmin/clave/rechazar')
+@_serializar_mutacion
+def rechazar_clave():
+    d = request.get_json(silent=True) or {}; actor, error = _admin_requerido((d.get('usuario') or '').strip())
+    if error: return error
+    db = obtener_cliente_supabase()
     try:
-        actual = (
-            supabase.table('administradores')
-            .select('*')
-            .ilike('usuario', objetivo)
-            .limit(1)
-            .execute()
-        )
-        if not actual.data:
-            return jsonify({'success': False, 'message': 'El usuario objetivo no existe.'}), 404
-
-        fila = actual.data[0]
-        nombre_real = fila.get('usuario', objetivo)
-        supabase.table('administradores').update({'estado': 'activo'}).eq('usuario', nombre_real).execute()
-        _registrar_auditoria(supabase, nombre_real, 'reactivacion', solicitante, 'Reactivación desde panel Super Admin')
-        return jsonify({'success': True, 'message': f'Usuario @{nombre_real} reactivado.'})
-    except Exception as e:
-        return jsonify({'success': False, 'message': f'Error al reactivar usuario: {e}'}), 500
-
-
-@administracion_usuarios.route('/api/superadmin/auditoria', methods=['GET'])
-def listar_auditoria():
-    """
-    GET /api/superadmin/auditoria?usuario=<quien_pregunta>
-    Devuelve los últimos 50 movimientos de suspensión, reactivación y ascenso.
-    """
-    solicitante = (request.args.get('usuario') or '').strip()
-    if not es_superadmin(solicitante):
-        return jsonify({'success': False, 'message': 'Acceso restringido a Super Administradores.'}), 403
-
-    supabase = obtener_cliente_supabase()
-    if not supabase:
-        return jsonify({'success': False, 'message': 'Sin conexión a Supabase.'}), 500
-
-    try:
-        res = (
-            supabase.table('auditoria_usuarios')
-            .select('id, usuario_afectado, accion, realizado_por, motivo, fecha')
-            .order('fecha', desc=True)
-            .limit(50)
-            .execute()
-        )
-        return jsonify({'success': True, 'registros': res.data or []})
-    except Exception:
-        return jsonify({'success': True, 'registros': []})
+        res = db.table('solicitudes_cambio_clave').select('id, solicitado_por').eq('id', d.get('id')).eq('estado', 'pendiente').limit(1).execute()
+        if not res.data: return jsonify({'success': False, 'message': 'Solicitud inexistente o ya resuelta.'}), 404
+        s = res.data[0]
+        if str(s.get('solicitado_por', '')).lower() == actor.lower(): return jsonify({'success': False, 'message': 'No puedes resolver tu propia solicitud.'}), 400
+        actualizada = db.table('solicitudes_cambio_clave').update({'estado': 'rechazado', 'aprobado_por': actor, 'resuelto_en': datetime.now(timezone.utc).isoformat()}).eq('id', d.get('id')).eq('estado', 'pendiente').select('id').execute()
+        if not actualizada.data:
+            return jsonify({'success': False, 'message': 'La solicitud ya fue resuelta por otra operación.'}), 409
+        _auditar(db, 'clave_acceso_personal', 'cambio_clave', actor, f"Solicitud {d.get('id')} rechazada; solicitada por {s.get('solicitado_por')}")
+        return jsonify({'success': True, 'message': 'Solicitud rechazada.'})
+    except Exception as exc: return jsonify({'success': False, 'message': 'No se pudo rechazar la solicitud.'}), 500

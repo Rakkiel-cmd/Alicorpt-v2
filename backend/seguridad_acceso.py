@@ -1,22 +1,19 @@
-# ==============================================================================
-# MÓDULO DE SEGURIDAD Y CONTROL DE ACCESO MEDIANTE LLAVE URL (ALICORP BI)
-# ==============================================================================
+"""Funciones compartidas de autorización y llave de acceso."""
 import os
 import json
 import random
 import re
+import hmac
 from datetime import datetime
 
 RUTA_BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(RUTA_BASE, 'data')
 ARCHIVO_CLAVE_LOCAL = os.path.join(DATA_DIR, 'seguridad_clave.json')
-
-# Valores por defecto de alta disponibilidad (sincronizados con tabla configuracion_seguridad)
 CLAVE_POR_DEFECTO = "784920"
 SUPERADMINS_POR_DEFECTO = ["LPerez", "manuelito"]
 
+
 def _obtener_supabase_client():
-    """Retorna un cliente Supabase (usando singleton para optimizar recursos)."""
     try:
         from backend.datos_supabase import obtener_cliente_supabase
         client = obtener_cliente_supabase()
@@ -24,220 +21,141 @@ def _obtener_supabase_client():
             return client
     except Exception:
         pass
-    supabase_url = os.environ.get("SUPABASE_URL")
-    supabase_key = os.environ.get("SUPABASE_KEY")
-    if not supabase_url or not supabase_key:
+    url, key = os.environ.get('SUPABASE_URL'), os.environ.get('SUPABASE_KEY')
+    if not url or not key:
         return None
     try:
         from supabase import create_client
-        return create_client(supabase_url, supabase_key)
-    except Exception as e:
-        print(f"[Seguridad] Error al instanciar Supabase: {e}")
+        return create_client(url, key)
+    except Exception:
         return None
 
+
 def _asegurar_archivo_local():
-    """Garantiza la existencia del archivo local de respaldo de seguridad."""
     os.makedirs(DATA_DIR, exist_ok=True)
     if not os.path.exists(ARCHIVO_CLAVE_LOCAL):
-        datos_iniciales = {
-            "clave_acceso_personal": CLAVE_POR_DEFECTO,
-            "superadmin_usuarios": SUPERADMINS_POR_DEFECTO,
-            "updated_at": datetime.utcnow().isoformat(),
-            "actualizado_por": "sistema_inicial"
-        }
+        datos = {'clave_acceso_personal': CLAVE_POR_DEFECTO, 'superadmin_usuarios': [],
+                 'updated_at': datetime.utcnow().isoformat(), 'actualizado_por': 'sistema_inicial'}
         with open(ARCHIVO_CLAVE_LOCAL, 'w', encoding='utf-8') as f:
-            json.dump(datos_iniciales, f, indent=4)
-        return datos_iniciales
+            json.dump(datos, f, indent=2)
+        return datos
     try:
         with open(ARCHIVO_CLAVE_LOCAL, 'r', encoding='utf-8') as f:
             return json.load(f)
     except Exception:
-        return {
-            "clave_acceso_personal": CLAVE_POR_DEFECTO,
-            "superadmin_usuarios": SUPERADMINS_POR_DEFECTO
-        }
+        return {'clave_acceso_personal': CLAVE_POR_DEFECTO, 'superadmin_usuarios': []}
 
-def _guardar_archivo_local(clave, actualizado_por="superadmin"):
-    """Guarda en el archivo local de respaldo."""
+
+def _guardar_archivo_local(clave, actualizado_por='superadmin'):
     os.makedirs(DATA_DIR, exist_ok=True)
-    datos = {
-        "clave_acceso_personal": str(clave).strip(),
-        "superadmin_usuarios": SUPERADMINS_POR_DEFECTO,
-        "updated_at": datetime.utcnow().isoformat(),
-        "actualizado_por": actualizado_por
-    }
+    datos = {'clave_acceso_personal': str(clave).strip(), 'superadmin_usuarios': [],
+             'updated_at': datetime.utcnow().isoformat(), 'actualizado_por': actualizado_por}
     with open(ARCHIVO_CLAVE_LOCAL, 'w', encoding='utf-8') as f:
-        json.dump(datos, f, indent=4)
+        json.dump(datos, f, indent=2)
+
 
 def obtener_clave_acceso():
-    """
-    Obtiene la llave secreta activa de acceso para empleados.
-    Prioridad: Variable de Entorno (.env/Render) -> Supabase -> Archivo Local protegido.
-    """
-    # 1. Variable de entorno segura (.env / Render)
-    env_key = os.environ.get("LLAVE_ACCESO_PERSONAL")
-    if env_key and str(env_key).strip():
-        return str(env_key).strip()
-
-    # 2. Base de datos segura Supabase
+    """La llave persistida en Supabase es la fuente principal para permitir su cambio aprobado."""
     client = _obtener_supabase_client()
     if client:
         try:
-            res = client.table('configuracion_seguridad').select('valor').eq('clave', 'clave_acceso_personal').execute()
-            if res.data and len(res.data) > 0 and res.data[0].get('valor'):
-                clave_db = str(res.data[0]['valor']).strip()
-                _guardar_archivo_local(clave_db, actualizado_por="sincronizacion_db")
-                return clave_db
+            res = client.table('configuracion_seguridad').select('valor').eq('clave', 'clave_acceso_personal').limit(1).execute()
+            if res.data and res.data[0].get('valor') is not None:
+                clave = str(res.data[0]['valor']).strip()
+                _guardar_archivo_local(clave, 'sincronizacion_db')
+                return clave
         except Exception:
+            # Si la consulta falla, no se usa un dato local antiguo por encima de una variable explícita.
             pass
+    env_key = os.environ.get('LLAVE_ACCESO_PERSONAL')
+    if env_key and env_key.strip():
+        return env_key.strip()
+    return str(_asegurar_archivo_local().get('clave_acceso_personal', CLAVE_POR_DEFECTO)).strip()
 
-    # 3. Respaldo local privado (excluido de git por .gitignore)
-    local_data = _asegurar_archivo_local()
-    return str(local_data.get("clave_acceso_personal", CLAVE_POR_DEFECTO)).strip()
 
 def validar_clave_acceso(clave_candidata):
-    """
-    Valida si una clave provista por URL coincide con la clave secreta.
-    """
-    if not clave_candidata:
+    if clave_candidata is None:
         return False
-    clave_real = obtener_clave_acceso()
-    candidata_limpia = str(clave_candidata).strip()
-    return candidata_limpia == clave_real
+    return hmac.compare_digest(str(clave_candidata).strip(), obtener_clave_acceso())
+
 
 def obtener_perfil_usuario(usuario):
-    """
-    Devuelve {'rol': 'analista'|'superadmin', 'estado': 'activo'|'suspendido'}
-    leyendo la tabla 'administradores'. Si las columnas aún no existen o el
-    usuario no está en la tabla, devuelve None para permitir el respaldo legado.
-    """
     if not usuario:
         return None
     client = _obtener_supabase_client()
     if not client:
         return None
     try:
-        res = (
-            client.table('administradores')
-            .select('rol, estado')
-            .ilike('usuario', str(usuario).strip())
-            .limit(1)
-            .execute()
-        )
-        if res.data and len(res.data) > 0:
+        res = client.table('administradores').select('usuario, rol, estado').ilike('usuario', str(usuario).strip()).limit(1).execute()
+        if res.data:
             fila = res.data[0]
-            rol = (fila.get('rol') or 'analista').strip().lower()
-            estado = (fila.get('estado') or 'activo').strip().lower()
-            return {'rol': rol, 'estado': estado}
+            return {'usuario': fila.get('usuario'), 'rol': str(fila.get('rol') or 'analista').lower(),
+                    'estado': str(fila.get('estado') or 'activo').lower()}
     except Exception:
-        # Columnas 'rol'/'estado' aún no creadas o error temporal de red
-        pass
+        return None
     return None
 
 
 def esta_suspendido(usuario):
-    """Indica si el usuario tiene estado 'suspendido' en la tabla administradores."""
+    """Falla de forma segura: cuenta inexistente o estado no verificable no autentica."""
     perfil = obtener_perfil_usuario(usuario)
-    if perfil is not None:
-        return perfil['estado'] == 'suspendido'
-    return False
+    return not perfil or perfil.get('estado') != 'activo'
 
 
 def es_superadmin(usuario):
-    """Verifica si un usuario posee el rol de Super Administrador y está activo."""
-    if not usuario:
-        return False
-    usuario_str = str(usuario).strip().lower()
-
-    # 1. Fuente principal: columnas 'rol' y 'estado' en la tabla 'administradores'
+    """Solo la columna rol de un registro activo concede privilegios."""
     perfil = obtener_perfil_usuario(usuario)
-    if perfil is not None:
-        if perfil['estado'] != 'activo':
-            return False
-        if perfil['rol'] == 'superadmin':
-            return True
+    return bool(perfil and perfil['estado'] == 'activo' and perfil['rol'] == 'superadmin')
 
-    # 2. Chequeo de variables de entorno opcional
-    env_superadmins = os.environ.get("SUPERADMIN_USUARIOS", "")
-    if env_superadmins:
-        lista_env = [u.strip().lower() for u in env_superadmins.split(',') if u.strip()]
-        if usuario_str in lista_env:
-            return True
 
-    # 3. Chequeo de Supabase en configuracion_seguridad
+def verificar_password(usuario, password_candidata):
+    """Verifica la contraseña existente en administradores con comparación constante.
+    En este proyecto se conserva el formato actual de almacenamiento, sin introducir nuevas librerías.
+    Si la consulta o el dato no se pueden verificar, devuelve False.
+    """
+    if not usuario or password_candidata is None:
+        return False
     client = _obtener_supabase_client()
-    if client:
-        try:
-            res = client.table('configuracion_seguridad').select('valor').eq('clave', 'superadmin_usuarios').execute()
-            if res.data and len(res.data) > 0:
-                raw_val = res.data[0].get('valor')
-                lista_super = json.loads(raw_val) if isinstance(raw_val, str) else raw_val
-                if isinstance(lista_super, list):
-                    return usuario_str in [str(x).strip().lower() for x in lista_super]
-        except Exception as e:
-            print(f"[Seguridad] Error consultando superadmins en Supabase: {e}")
+    if not client:
+        return False
+    try:
+        res = client.table('administradores').select('password').ilike('usuario', str(usuario).strip()).limit(1).execute()
+        if not res.data:
+            return False
+        real = res.data[0].get('password')
+        if not isinstance(real, str) or not isinstance(password_candidata, str):
+            return False
+        return hmac.compare_digest(real, password_candidata)
+    except Exception:
+        return False
 
-    # 4. Respaldo local privado / lista por defecto
-    local_data = _asegurar_archivo_local()
-    lista_local = local_data.get("superadmin_usuarios", SUPERADMINS_POR_DEFECTO)
-    return usuario_str in [str(x).strip().lower() for x in lista_local]
 
 def modificar_clave_acceso(usuario_solicitante, password_confirmacion, nueva_clave):
-    """
-    Permite modificar la llave secreta exclusivamente a un Super Administrador,
-    previa validación de su contraseña en la tabla administradores.
-    """
-    if not es_superadmin(usuario_solicitante):
-        return {
-            "success": False,
-            "message": "Permiso denegado. Solo un Super Administrador puede modificar la llave de acceso."
-        }
+    """Compatibilidad: la llave ya no se modifica aquí; la ruta antigua crea una solicitud."""
+    return {'success': False, 'message': 'El cambio de llave requiere una solicitud y la aprobación de otro Super Admin.'}
 
-    # Validar formato de la nueva clave (solo dígitos, de 4 a 12 caracteres)
-    nueva_clave_str = str(nueva_clave).strip()
-    if not re.match(r'^\d{4,12}$', nueva_clave_str):
-        return {
-            "success": False,
-            "message": "Formato inválido. La llave debe estar compuesta únicamente por entre 4 y 12 dígitos numéricos."
-        }
 
-    # Validar credenciales de confirmación del Super Admin en Supabase
+def guardar_nueva_clave_aprobada(nueva_clave, aprobado_por):
+    if not re.fullmatch(r'\d{4,12}', str(nueva_clave or '')):
+        return {'success': False, 'message': 'La llave debe contener entre 4 y 12 dígitos.'}
     client = _obtener_supabase_client()
-    if client:
+    if not client:
+        return {'success': False, 'message': 'No se pudo verificar Supabase; la llave no fue modificada.'}
+    try:
+        client.table('configuracion_seguridad').upsert({
+            'clave': 'clave_acceso_personal', 'valor': str(nueva_clave),
+            'actualizado_por': aprobado_por, 'updated_at': datetime.utcnow().isoformat()
+        }, on_conflict='clave').execute()
         try:
-            res = client.table('administradores').select('password').eq('usuario', usuario_solicitante).execute()
-            if not res.data or len(res.data) == 0:
-                return {"success": False, "message": "Usuario administrador no encontrado."}
-            password_real = res.data[0].get('password')
-            if str(password_confirmacion) != str(password_real):
-                return {"success": False, "message": "Contraseña de confirmación incorrecta."}
-        except Exception as e:
-            print(f"[Seguridad] Error verificando contraseña en DB: {e}")
+            _guardar_archivo_local(str(nueva_clave), aprobado_por)
+        except OSError:
+            # Supabase es la fuente persistente; un fallo de caché local no revierte la escritura confirmada.
+            pass
+        return {'success': True, 'message': 'Llave actualizada tras doble aprobación.'}
+    except Exception as exc:
+        return {'success': False, 'message': f'No se pudo guardar la llave: {exc}'}
 
-    # Guardar en Supabase
-    guardado_db = False
-    if client:
-        try:
-            now_iso = datetime.utcnow().isoformat()
-            res_upsert = client.table('configuracion_seguridad').upsert({
-                'clave': 'clave_acceso_personal',
-                'valor': nueva_clave_str,
-                'actualizado_por': usuario_solicitante,
-                'updated_at': now_iso
-            }, on_conflict='clave').execute()
-            guardado_db = True
-        except Exception as e:
-            print(f"[Seguridad] No se pudo escribir en Supabase (usando archivo local): {e}")
-
-    # Guardar en archivo local
-    _guardar_archivo_local(nueva_clave_str, actualizado_por=usuario_solicitante)
-
-    return {
-        "success": True,
-        "message": "Llave secreta de acceso de personal actualizada correctamente.",
-        "en_base_de_datos": guardado_db
-    }
 
 def generar_clave_aleatoria(longitud=6):
-    """Genera una serie de dígitos aleatoria segura."""
-    return ''.join([str(random.randint(0, 9)) for _ in range(longitud)])
+    import secrets
+    return ''.join(str(secrets.randbelow(10)) for _ in range(longitud))

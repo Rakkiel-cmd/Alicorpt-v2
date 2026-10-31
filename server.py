@@ -1,8 +1,10 @@
-from flask import Flask, send_from_directory, request, jsonify
+from flask import Flask, send_from_directory, request, jsonify, session
 import cv2
 import numpy as np
 import base64
 import os
+import hmac
+from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
 
 # Cargar variables de entorno desde el archivo .env si existe
@@ -17,6 +19,9 @@ except ImportError:
     validar_rostro = None
 
 app = Flask(__name__, static_folder='frontend_corporativo')
+# Cookie de sesión firmado por Flask. Configurar FLASK_SECRET_KEY en el entorno de despliegue.
+app.secret_key = (os.environ.get('FLASK_SECRET_KEY') or os.environ.get('SECRET_KEY') or os.urandom(32).hex())
+app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE='Lax', SESSION_COOKIE_SECURE=os.environ.get('COOKIE_SECURE', 'false').lower() in ('1', 'true', 'yes'), PERMANENT_SESSION_LIFETIME=timedelta(hours=8))
 
 # Subproyecto 2: endpoints extra del dashboard de ventas (productos y simulador)
 from backend.ventas_extra import ventas_extra
@@ -40,8 +45,6 @@ app.register_blueprint(administracion_usuarios)
 from backend.reporte_predictivo_service import reporte_predictivo_bp
 app.register_blueprint(reporte_predictivo_bp)
 from backend.seguridad_acceso import es_superadmin, esta_suspendido
-from datetime import datetime, timezone, timedelta
-
 # Zona horaria oficial Corporación Alicorp Perú (UTC-5, ciclo diario estricto de 00:00 a 24:00)
 ZONA_HORARIA_PERU = timezone(timedelta(hours=-5))
 
@@ -138,9 +141,13 @@ def login_password():
         if len(response.data) > 0:
             fila = response.data[0]
             password_real = fila.get('password')
-            if password_input == password_real:
+            if isinstance(password_input, str) and isinstance(password_real, str) and hmac.compare_digest(password_input, password_real):
                 if esta_suspendido(fila.get('usuario')):
-                    return jsonify({"success": False, "message": "🚫 Tu cuenta ha sido suspendida por un Super Administrador."}), 403
+                    session.clear()
+                    return jsonify({"success": False, "message": "No se pudo validar el estado activo de la cuenta."}), 403
+                session.clear()
+                session['usuario'] = fila.get('usuario')
+                session.permanent = True
                 nombre_completo = fila.get('nombre_completo') or fila.get('usuario')
                 face_encoding = fila.get('face_encoding')
                 
@@ -215,7 +222,11 @@ def login_facial():
                 porcentaje = round(max(0, min(100, 100 - (distancia * 20))), 2)
                 usuario_reconocido = detalle.get("coincide_con")
                 if esta_suspendido(usuario_reconocido):
-                    return jsonify({"success": False, "message": "🚫 Tu cuenta ha sido suspendida por un Super Administrador."}), 403
+                    session.clear()
+                    return jsonify({"success": False, "message": "No se pudo validar el estado activo de la cuenta."}), 403
+                session.clear()
+                session['usuario'] = usuario_reconocido
+                session.permanent = True
 
                 # Obtener perfil del usuario desde Supabase
                 nombre_completo = usuario_reconocido
@@ -375,9 +386,14 @@ def registrar_admin_web():
 # Endpoint: Perfil de Usuario (Nombre, Usuario y Vector)
 @app.route('/api/usuario_perfil', methods=['GET'])
 def usuario_perfil():
-    usuario = request.args.get('usuario')
+    usuario = request.args.get('usuario', '').strip()
+    autenticado = str(session.get('usuario') or '').strip()
+    if not autenticado:
+        return jsonify({"success": False, "message": "Sesión no válida."}), 401
     if not usuario:
         return jsonify({"success": False, "message": "Falta parámetro usuario."}), 400
+    if usuario.casefold() != autenticado.casefold() and not es_superadmin(autenticado):
+        return jsonify({"success": False, "message": "No tienes permiso para consultar este perfil."}), 403
 
     SUPABASE_URL = os.environ.get("SUPABASE_URL")
     SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
@@ -484,7 +500,16 @@ def actividad_hoy():
 def actividad_latido():
     try:
         data = request.get_json(silent=True) or {}
-        usuario = (data.get('usuario') or 'admin').strip()
+        usuario = str(session.get('usuario') or '').strip()
+        usuario_enviado = str(data.get('usuario') or '').strip()
+        if not usuario or (usuario_enviado and usuario_enviado.casefold() != usuario.casefold()):
+            session.clear()
+            return jsonify({'success': False, 'message': 'Sesión no válida.'}), 401
+        # La identidad procede de la cookie firmada, no del JSON del navegador.
+        from backend.seguridad_acceso import esta_suspendido
+        if esta_suspendido(usuario):
+            session.clear()
+            return jsonify({'success': False, 'message': 'Cuenta suspendida o estado no verificable. La sesión se cerrará.'}), 403
         fecha_cliente = (data.get('fecha') or '').strip()
         cierre_dia = bool(data.get('cierre_dia', False))
         tiempo_total_hoy = data.get('tiempo_total_hoy')
@@ -764,8 +789,8 @@ def api_validar_key():
 
 @app.route('/api/seguridad/info_clave', methods=['GET'])
 def api_info_clave():
-    usuario = request.args.get('usuario', '').strip()
-    if not es_superadmin(usuario):
+    usuario = str(session.get('usuario') or '').strip()
+    if not usuario or not es_superadmin(usuario):
         return jsonify({
             "success": False,
             "message": "Acceso restringido. Solo el Super Administrador puede visualizar la llave secreta.",
@@ -783,24 +808,49 @@ def api_info_clave():
 
 @app.route('/api/seguridad/modificar_clave', methods=['POST'])
 def api_modificar_clave():
-    data = request.json or {}
-    usuario = data.get('usuario', '').strip()
-    password = data.get('password', '')
-    nueva_clave = data.get('nueva_clave', '').strip()
-
-    resultado = modificar_clave_acceso(usuario, password, nueva_clave)
-    status_code = 200 if resultado.get('success') else 400
-    return jsonify(resultado), status_code
+    # Compatibilidad con la interfaz antigua: esta ruta solo solicita el cambio,
+    # nunca modifica directamente la llave. La aprobación la realiza otro Super Admin.
+    data = request.get_json(silent=True) or {}
+    usuario = str(session.get('usuario') or '').strip()
+    password = data.get('password')
+    nueva_clave = str(data.get('nueva_clave') or '').strip()
+    if not es_superadmin(usuario):
+        return jsonify({'success': False, 'message': 'Acceso restringido a Super Administradores activos.'}), 403
+    from backend.seguridad_acceso import verificar_password
+    import re
+    if not re.fullmatch(r'\d{4,12}', nueva_clave):
+        return jsonify({'success': False, 'message': 'La llave debe contener entre 4 y 12 dígitos.'}), 400
+    if not verificar_password(usuario, password):
+        return jsonify({'success': False, 'message': 'No se pudo verificar la contraseña.'}), 401
+    from backend.datos_supabase import obtener_cliente_supabase
+    try:
+        db = obtener_cliente_supabase()
+        admins = db.table('administradores').select('usuario, rol, estado').execute()
+        total = sum(1 for r in (admins.data or []) if str(r.get('rol') or 'analista').lower() == 'superadmin' and str(r.get('estado') or 'activo').lower() == 'activo')
+        if total < 2:
+            return jsonify({'success': False, 'message': 'Se necesitan al menos dos Super Admin activos.'}), 400
+        pendientes = db.table('solicitudes_cambio_clave').select('id').eq('estado', 'pendiente').execute()
+        if pendientes.data:
+            return jsonify({'success': False, 'message': 'Ya existe una solicitud pendiente.'}), 409
+        db.table('solicitudes_cambio_clave').insert({'clave_propuesta': nueva_clave, 'solicitado_por': usuario, 'estado': 'pendiente'}).execute()
+        return jsonify({'success': True, 'message': 'Solicitud creada. Otro Super Admin debe aprobarla.'})
+    except Exception as exc:
+        return jsonify({'success': False, 'message': 'No se pudo crear la solicitud.'}), 500
 
 @app.route('/api/seguridad/generar_clave_random', methods=['GET'])
 def api_generar_clave_random():
-    usuario = request.args.get('usuario', '').strip()
-    if not es_superadmin(usuario):
+    usuario = str(session.get('usuario') or '').strip()
+    if not usuario or not es_superadmin(usuario):
         return jsonify({"success": False, "message": "No autorizado."}), 403
     return jsonify({
         "success": True,
         "clave_sugerida": generar_clave_aleatoria(6)
     })
+
+@app.route('/api/logout', methods=['POST'])
+def api_logout():
+    session.clear()
+    return jsonify({'success': True})
 
 if __name__ == '__main__':
     print("Iniciando servidor unificado (Web + IA)...")

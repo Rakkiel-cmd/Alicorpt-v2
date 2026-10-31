@@ -19,7 +19,7 @@ reutilizando la misma validacion que ya usa el resto del sistema de seguridad
 """
 from datetime import date, datetime, timezone, timedelta
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, session
 
 from backend.datos_supabase import obtener_cliente_supabase
 from backend.seguridad_acceso import es_superadmin
@@ -45,8 +45,8 @@ def _segundos_desde(iso_timestamp):
 
 def _validar_superadmin():
     """Verifica que 'usuario' sea Super Admin. Devuelve (ok, usuario) o (False, respuesta_error)."""
-    usuario = request.args.get('usuario')
-    if not es_superadmin(usuario):
+    usuario = str(session.get('usuario') or '').strip()
+    if not usuario or not es_superadmin(usuario):
         return False, (jsonify({
             'success': False,
             'message': 'Permiso denegado. Este panel es exclusivo de Super Administradores.',
@@ -64,12 +64,9 @@ def listar_usuarios_con_estado():
         supabase = obtener_cliente_supabase()
         hoy = datetime.now(ZONA_HORARIA_PERU).date().isoformat()
 
-        try:
-            res_admins = supabase.table('administradores') \
-                .select('usuario, nombre_completo, face_encoding, rol, estado').execute()
-        except Exception:
-            res_admins = supabase.table('administradores') \
-                .select('usuario, nombre_completo, face_encoding').execute()
+        # Una única consulta para colaboradores; requiere ejecutar la migración SQL primero.
+        res_admins = supabase.table('administradores') \
+            .select('usuario, nombre_completo, face_encoding, rol, estado, email').execute()
         administradores = res_admins.data or []
 
         res_actividad = supabase.table('actividad_usuarios') \
@@ -92,19 +89,21 @@ def listar_usuarios_con_estado():
             # en /api/superadmin/vector, uno a la vez.
 
             estado_cuenta = (admin.get('estado') or 'activo').strip().lower()
-            es_super = es_superadmin(nombre_usuario)
+            rol_cuenta = (admin.get('rol') or 'analista').strip().lower()
+            es_super = rol_cuenta == 'superadmin' and estado_cuenta == 'activo'
 
             lista.append({
                 'usuario': nombre_usuario,
                 'nombre_completo': admin.get('nombre_completo') or nombre_usuario,
                 'conectado': conectado,
                 'estado': estado_cuenta,
+                'email': admin.get('email') or '',
                 'tiempo_segundos_hoy': int(fila_actividad['tiempo_segundos']) if fila_actividad else 0,
                 'primer_ingreso_hoy': fila_actividad.get('primer_ingreso') if fila_actividad else None,
                 'ultimo_latido': fila_actividad.get('ultimo_latido') if fila_actividad else None,
                 'tiene_biometria': tiene_biometria,
                 'es_superadmin': es_super,
-                'rol': 'SuperAdmin' if es_super else 'Analista',
+                'rol': rol_cuenta,
             })
 
         # Conectados primero, y dentro de cada grupo, orden alfabetico por nombre.
@@ -119,7 +118,7 @@ def listar_usuarios_con_estado():
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': 'No se pudo consultar el panel de Super Admin.'}), 500
 
 
 @superadmin_panel.route('/api/superadmin/vector', methods=['GET'])
@@ -155,4 +154,4 @@ def obtener_vector_usuario():
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': 'No se pudo consultar el panel de Super Admin.'}), 500
