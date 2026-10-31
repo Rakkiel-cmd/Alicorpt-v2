@@ -1041,7 +1041,8 @@
             <button data-go="segmentacion"><span class="ico">🧩</span> Segmentación no supervisada</button>
             <button data-go="estadistica"><span class="ico">📊</span> Estadística</button>
             <button data-go="reporte"><span class="ico">📅</span> Reporte mensual</button>
-            <button data-go="incidencias"><span class="ico">📬</span> Incidencias cliente</button>
+            <button data-go="incidencias"><span class="ico">📬</span> Incidencias</button>
+            <button data-go="administracion" id="btnMenuAdministracion" style="display:none;"><span class="ico">👥</span> Administración</button>
             <button data-go="seguridad" id="btnMenuSeguridad" style="display:none;"><span class="ico">🔐</span> Seguridad Super Admin</button>
         </nav>
         <div class="sb-foot">
@@ -1884,7 +1885,8 @@
             <div class="page-hero">
                 <div class="crumbs">Inicio / <b>Incidencias cliente</b></div>
                 <span class="chip" style="margin-bottom:8px;">Atención al Cliente · Registro de Formulario Web Supabase</span>
-                <h1>Incidencias cliente</h1>
+                <h1>Incidencias</h1>
+                <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;"><button type="button" class="btn-timer-historial" id="btnIncClientes">Clientes</button><button type="button" class="btn-timer-historial" id="btnIncColaboradores" style="display:none;">Colaboradores</button></div>
                 <p>Gestión y seguimiento en tiempo real de quejas, consultas y mensajes enviados por los clientes a través del portal de contacto oficial.</p>
             </div>
             <div class="contenido">
@@ -2026,6 +2028,19 @@
                     </div>
                 </div>
             </div>
+            <div id="panelAuditoriaColaboradoresInc" class="contenido" style="display:none;"><div class="panel"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;"><h3>Auditoría de colaboradores</h3><button type="button" class="btn-secundario" id="btnActualizarAuditoriaInc">Actualizar</button></div><div class="tabla-historial-wrap"><table class="tabla-historial"><thead><tr><th>Fecha</th><th>Colaborador</th><th>Acción</th><th>Realizado por</th><th>Motivo</th></tr></thead><tbody id="tablaAuditoriaIncBody"><tr><td colspan="5">Cargando...</td></tr></tbody></table></div></div></div>
+        </section>
+
+        <!-- ================= VISTA: ADMINISTRACIÓN DE COLABORADORES ================= -->
+        <div class="modal-overlay" id="modalAccionColaborador"><div class="panel" style="width:min(440px,95vw);"><h3 id="tituloModalColaborador">Acción de colaborador</h3><p id="textoModalColaborador">Completa los datos requeridos.</p><div id="campoMotivoColaborador" style="display:none;margin:12px 0;"><label for="inputMotivoColaborador">Motivo (opcional)</label><textarea id="inputMotivoColaborador" rows="3" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text-main);"></textarea></div><div id="campoEmailColaborador" style="display:none;margin:12px 0;"><label for="inputEmailColaborador">Correo electrónico</label><input id="inputEmailColaborador" type="email" maxlength="200" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text-main);"></div><div style="display:flex;gap:8px;justify-content:flex-end;"><button type="button" class="btn-secundario" id="btnCancelarAccionColaborador">Cancelar</button><button type="button" class="btn-run" id="btnConfirmarAccionColaborador">Confirmar</button></div><div id="statusModalColaborador" style="margin-top:10px;"></div></div></div>
+
+        <section id="vista-administracion" class="vista">
+            <div class="page-hero"><span class="chip">Módulo restringido</span><h1>Administración</h1><p>Gestión de colaboradores, roles, estado de acceso y correo corporativo.</p></div>
+            <div class="contenido"><div class="panel">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><h3>Colaboradores</h3><button type="button" class="btn-secundario" id="btnRecargarAdministracion">Actualizar</button></div>
+                <div id="statusAdministracion" style="margin:10px 0;display:none;"></div>
+                <div class="tabla-historial-wrap"><table class="tabla-historial"><thead><tr><th>Colaborador</th><th>Rol</th><th>Estado</th><th>Correo</th><th>Acciones</th></tr></thead><tbody id="tablaAdministracionBody"><tr><td colspan="5">Cargando...</td></tr></tbody></table></div>
+            </div></div>
         </section>
 
         <!-- ================= VISTA: SEGURIDAD SUPER ADMIN ================= -->
@@ -2075,10 +2090,10 @@
                     <!-- Tarjeta: Modificar Llave -->
                     <div class="panel" style="border-top: 4px solid #ef4444;">
                         <h3 style="margin: 0 0 15px; font-size: 1.15rem; display: flex; align-items: center; gap: 8px;">
-                            <span>⚙️</span> Modificar Llave de Acceso
+                            <span>⚙️</span> Solicitar cambio de llave
                         </h3>
                         <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 18px;">
-                            Ingresa una nueva serie de 4 a 12 dígitos o genera una aleatoria. Requiere tu contraseña de administrador para autorizar.
+                            Propón una llave de 4 a 12 dígitos. Tu contraseña valida la solicitud; otro Super Admin activo deberá aprobarla antes de aplicar el cambio.
                         </p>
 
                         <div style="margin-bottom: 12px;">
@@ -2097,11 +2112,14 @@
                         </div>
 
                         <button type="button" class="btn-run" id="btnGuardarNuevaClave" style="width: 100%; justify-content: center; background: #dc2626; border-color: #b91c1c;">
-                            💾 Guardar y Actualizar Llave
+                            📨 Solicitar cambio de llave
                         </button>
                         <div id="statusModificarClave" style="margin-top: 12px; font-size: 13px; text-align: center;"></div>
                     </div>
                 </div>
+
+                <div class="panel" style="margin-bottom:25px;"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><h3>Solicitudes de cambio de llave</h3><button type="button" class="btn-secundario" id="btnRecargarSolicitudesClave">Actualizar</button></div><p style="font-size:13px;color:var(--text-muted);">Las solicitudes vencen a las 24 horas. Quien solicita no puede aprobar su propia solicitud.</p><div class="tabla-historial-wrap"><table class="tabla-historial"><thead><tr><th>Solicitante</th><th>Fecha</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="tablaSolicitudesClave"><tr><td colspan="4">Cargando solicitudes...</td></tr></tbody></table></div><div id="statusSolicitudesClave" style="margin-top:10px;"></div></div>
+                <div class="modal-overlay" id="modalAprobarClave"><div class="panel" style="width:min(420px,95vw);"><h3>Aprobar cambio de llave</h3><p>Confirma tu identidad con tu contraseña de Super Admin.</p><input type="password" id="passwordAprobarClave" placeholder="Tu contraseña" style="width:100%;padding:10px;margin:10px 0;border:1px solid var(--border);border-radius:8px;"><div style="display:flex;gap:8px;justify-content:flex-end;"><button type="button" class="btn-secundario" id="btnCancelarAprobarClave">Cancelar</button><button type="button" class="btn-run" id="btnConfirmarAprobarClave">Aprobar</button></div><div id="statusModalAprobarClave"></div></div></div>
 
                 <!-- Tarjeta: Usuarios en vivo (estado, tiempo, biometria, historial, administración) -->
                 <div class="panel" style="margin-bottom: 25px;">
@@ -2282,6 +2300,7 @@
             'reporte',
             'estadistica',
             'incidencias',
+            'administracion',
             'seguridad'
         ];
         const $ = id => document.getElementById(id);
@@ -2438,8 +2457,8 @@
         async function mostrarVista(nombre) {
             if (!VISTAS.includes(nombre)) return;
             // Guardia de acceso: Solo Super Administradores pueden entrar a la vista 'seguridad'
-            if (nombre === 'seguridad' && !esSuperAdminActivo) {
-                console.warn("Acceso denegado: Vista exclusiva para Super Administradores.");
+            if ((nombre === 'seguridad' || nombre === 'administracion') && !esSuperAdminActivo) {
+                console.warn('Acceso denegado: vista exclusiva para Super Administradores.');
                 mostrarVista('inicio');
                 return;
             }
@@ -2527,9 +2546,13 @@
                     if (typeof iniciarRefrescoFallasWeb === 'function') iniciarRefrescoFallasWeb();
                     break;
 
+                case 'administracion':
+                    cargarAdministracion();
+                    break;
                 case 'seguridad':
                     // Control de refresco en vivo para el panel de usuarios de SuperAdmin
                     if (typeof iniciarRefrescoPanelSuperAdmin === 'function') iniciarRefrescoPanelSuperAdmin();
+                    cargarSolicitudesClave();
                     break;
             }
             if (nombre !== 'seguridad' && typeof detenerRefrescoPanelSuperAdmin === 'function') {
@@ -4297,12 +4320,15 @@ function rfComparar() {
             // Inicializar rol por defecto como Analista
             const badgeRol = $('badgeRolUsuario') || document.querySelector('.sb-user-card .badge-role');
             const btnSec = $('btnMenuSeguridad');
+            const btnAdminMenu = $('btnMenuAdministracion');
             if (badgeRol) {
                 badgeRol.textContent = 'Analista';
                 badgeRol.className = 'badge-role badge-analista';
                 badgeRol.title = 'Rol de usuario: Analista BI Alicorp';
             }
             if (btnSec) btnSec.style.display = 'none';
+            if (btnAdminMenu) btnAdminMenu.style.display = 'none';
+            if ($('btnIncColaboradores')) $('btnIncColaboradores').style.display = 'none';
             esSuperAdminActivo = false;
 
             // Validar privilegios de Super Administrador para control de llave secreta y panel
@@ -4314,6 +4340,8 @@ function rfComparar() {
                         esSuperAdminActivo = true;
                         claveAccesoActual = dataSec.clave_actual;
                         if (btnSec) btnSec.style.display = 'flex';
+                        if (btnAdminMenu) btnAdminMenu.style.display = 'flex';
+                        if ($('btnIncColaboradores')) $('btnIncColaboradores').style.display = 'inline-flex';
                         if (badgeRol) {
                             badgeRol.textContent = 'Super Admin';
                             badgeRol.className = 'badge-role badge-superadmin';
@@ -4458,6 +4486,12 @@ function rfComparar() {
                         $('timerSyncStatus').textContent = '🟢 En vivo (Supabase)';
                         $('timerSyncStatus').style.color = '#10b981';
                     }
+                } else if (res.status === 401 || res.status === 403) {
+                    try { sessionStorage.clear(); localStorage.removeItem('usuario_activo'); } catch (e) {}
+                    try { await fetch('/api/logout', { method: 'POST' }); } catch (e) {}
+                    alert(res.status === 403 ? 'Tu cuenta está suspendida o no se pudo verificar. La sesión se cerrará.' : 'La sesión ya no es válida. Inicia sesión nuevamente.');
+                    location.href = 'admin_login.html';
+                    return;
                 } else {
                     if (!esCierreDia) segundosPendientesSincronizar += deltaEnviar;
                     $('timerSyncStatus').textContent = '🟡 En espera de sincronización';
@@ -4784,6 +4818,87 @@ function rfComparar() {
             }
         }
 
+        // Administración básica de colaboradores
+        async function cargarAdministracion() {
+            const tbody = $('tablaAdministracionBody'); if (!tbody || !esSuperAdminActivo) return;
+            try {
+                const r = await fetch(`/api/superadmin/usuarios?usuario=${encodeURIComponent(sesionUsuario.usuario)}`);
+                const d = await r.json();
+                if (!r.ok || !d.success) { tbody.innerHTML = `<tr><td colspan="5">${esc(d.message || 'No se pudo cargar la lista.')}</td></tr>`; return; }
+                tbody.innerHTML = (d.usuarios || []).map(u => {
+                    const propio = String(u.usuario).toLowerCase() === String(sesionUsuario.usuario).toLowerCase();
+                    const superadmin = u.rol === 'superadmin'; const suspendido = u.estado === 'suspendido';
+                    return `<tr><td><strong>${esc(u.nombre_completo || u.usuario)}</strong><br><small>@${esc(u.usuario)}</small></td><td><span class="badge-role ${superadmin ? 'badge-superadmin' : 'badge-analista'}">${superadmin ? 'Super Admin' : 'Analista'}</span></td><td><span class="badge-role">${esc(suspendido ? 'Suspendido' : 'Activo')}</span></td><td>${esc(u.email || '—')}</td><td style="display:flex;gap:6px;flex-wrap:wrap;">${superadmin ? '<button disabled class="btn-timer-historial">Ascender</button>' : `<button class="btn-timer-historial" data-admin-action="ascender" data-usuario="${esc(u.usuario)}">Ascender</button>`}${propio && !suspendido ? '<button disabled class="btn-timer-historial">Suspender</button>' : suspendido ? `<button class="btn-timer-historial" data-admin-action="reactivar" data-usuario="${esc(u.usuario)}">Reactivar</button>` : `<button class="btn-timer-historial" data-admin-action="suspender" data-usuario="${esc(u.usuario)}">Suspender</button>`}<button class="btn-timer-historial" data-admin-action="email" data-usuario="${esc(u.usuario)}" data-email="${esc(u.email || '')}">Correo</button></td></tr>`;
+                }).join('');
+            } catch (e) { tbody.innerHTML = '<tr><td colspan="5">Error de conexión.</td></tr>'; }
+        }
+        async function cargarSolicitudesClave() {
+            const tbody = $('tablaSolicitudesClave'); if (!tbody || !esSuperAdminActivo) return;
+            try {
+                const r = await fetch(`/api/superadmin/clave/solicitudes?usuario=${encodeURIComponent(sesionUsuario.usuario)}`); const d = await r.json();
+                if (!r.ok || !d.success) { tbody.innerHTML = `<tr><td colspan="4">${esc(d.message || 'No se pudo consultar.')}</td></tr>`; return; }
+                const solicitudes = d.solicitudes || [];
+                tbody.innerHTML = solicitudes.length ? solicitudes.map(x => {
+                    const propia = String(x.solicitado_por).toLowerCase() === String(sesionUsuario.usuario).toLowerCase();
+                    const fecha = x.creado_en ? new Date(x.creado_en).toLocaleString('es-PE') : '—';
+                    return `<tr><td>@${esc(x.solicitado_por)}</td><td>${esc(fecha)}</td><td>${esc(x.estado)}</td><td>${propia ? '<span>Esperando a otro Super Admin</span>' : `<button class="btn-timer-historial" data-clave-action="aprobar" data-id="${esc(x.id)}">Aprobar</button> <button class="btn-timer-historial" data-clave-action="rechazar" data-id="${esc(x.id)}">Rechazar</button>`}</td></tr>`;
+                }).join('') : '<tr><td colspan="4">No hay solicitudes pendientes.</td></tr>';
+            } catch (e) { tbody.innerHTML = '<tr><td colspan="4">Error de conexión.</td></tr>'; }
+        }
+        $('btnCancelarAccionColaborador')?.addEventListener('click', () => $('modalAccionColaborador').classList.remove('open'));
+        $('btnConfirmarAccionColaborador')?.addEventListener('click', async () => {
+            const pendiente = window.accionColaboradorPendiente; if (!pendiente) return;
+            const esSuspension = pendiente.accion === 'suspender';
+            const url = esSuspension ? '/api/superadmin/suspender' : '/api/superadmin/actualizar_email';
+            const payload = {usuario: sesionUsuario.usuario, objetivo: pendiente.objetivo};
+            if (esSuspension) payload.motivo = $('inputMotivoColaborador').value.trim(); else payload.email = $('inputEmailColaborador').value.trim();
+            const status = $('statusModalColaborador'); status.textContent = 'Procesando...';
+            try { const r = await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const d=await r.json(); status.textContent=d.message || ''; if(r.ok && d.success){ $('modalAccionColaborador').classList.remove('open'); const msg=$('statusAdministracion'); msg.style.display='block'; msg.textContent=d.message || 'Operación completada.'; await cargarAdministracion(); cargarPanelSuperAdminUsuarios(); cargarAuditoriaSuperadmin(); } } catch(e) { status.textContent='Error de conexión.'; }
+        });
+        const btnRecargarAdmin = $('btnRecargarAdministracion'); if (btnRecargarAdmin) btnRecargarAdmin.addEventListener('click', cargarAdministracion);
+        const btnRecargarSolicitudes = $('btnRecargarSolicitudesClave'); if (btnRecargarSolicitudes) btnRecargarSolicitudes.addEventListener('click', cargarSolicitudesClave);
+        document.addEventListener('click', async e => {
+            const b = e.target.closest('[data-admin-action]');
+            if (b) {
+                const objetivo = b.dataset.usuario, accion = b.dataset.adminAction; let url = '', payload = {usuario: sesionUsuario.usuario, objetivo};
+                if (accion === 'ascender') { if (!confirm(`¿Ascender a @${objetivo}?`)) return; url = '/api/superadmin/ascender_rol'; }
+                if (accion === 'suspender' || accion === 'email') {
+                    window.accionColaboradorPendiente = {accion, objetivo};
+                    $('tituloModalColaborador').textContent = accion === 'suspender' ? 'Suspender colaborador' : 'Actualizar correo';
+                    $('textoModalColaborador').textContent = accion === 'suspender' ? `Motivo opcional para suspender a @${objetivo}.` : `Actualiza el correo de @${objetivo}. Déjalo vacío para eliminarlo.`;
+                    $('campoMotivoColaborador').style.display = accion === 'suspender' ? 'block' : 'none';
+                    $('campoEmailColaborador').style.display = accion === 'email' ? 'block' : 'none';
+                    $('inputMotivoColaborador').value = '';
+                    $('inputEmailColaborador').value = b.dataset.email || '';
+                    $('statusModalColaborador').textContent = '';
+                    $('modalAccionColaborador').classList.add('open'); return;
+                }
+                if (accion === 'reactivar') { if (!confirm(`¿Reactivar a @${objetivo}?`)) return; url = '/api/superadmin/reactivar'; }
+                try { const r = await fetch(url, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const d = await r.json(); const status = $('statusAdministracion'); status.style.display='block'; status.textContent = d.message || (d.success ? 'Operación completada.' : 'Error.'); await cargarAdministracion(); cargarPanelSuperAdminUsuarios(); cargarAuditoriaSuperadmin(); } catch (err) { alert('Error de conexión.'); }
+            }
+            const c = e.target.closest('[data-clave-action]');
+            if (c) {
+                const id = c.dataset.id;
+                if (c.dataset.claveAction === 'aprobar') { window.solicitudClavePendiente = id; $('passwordAprobarClave').value=''; $('modalAprobarClave').classList.add('open'); }
+                if (c.dataset.claveAction === 'rechazar') { if (!confirm('¿Rechazar esta solicitud?')) return; try { const r=await fetch('/api/superadmin/clave/rechazar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({usuario:sesionUsuario.usuario,id})}); const d=await r.json(); $('statusSolicitudesClave').textContent=d.message || ''; cargarSolicitudesClave(); } catch(err) { $('statusSolicitudesClave').textContent='Error de conexión.'; } }
+            }
+        });
+        $('btnCancelarAprobarClave')?.addEventListener('click', () => $('modalAprobarClave').classList.remove('open'));
+        $('btnConfirmarAprobarClave')?.addEventListener('click', async () => {
+            const status = $('statusModalAprobarClave'); status.textContent='Verificando...';
+            try { const r=await fetch('/api/superadmin/clave/aprobar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({usuario:sesionUsuario.usuario,id:window.solicitudClavePendiente,password:$('passwordAprobarClave').value})}); const d=await r.json(); status.textContent=d.message || ''; if(r.ok && d.success){ $('modalAprobarClave').classList.remove('open'); cargarSolicitudesClave(); const info=await fetch(`/api/seguridad/info_clave?usuario=${encodeURIComponent(sesionUsuario.usuario)}`); if(info.ok){const k=await info.json(); if(k.success && $('txtClaveActual')) $('txtClaveActual').value=k.clave_actual;} } } catch(err) { status.textContent='Error de conexión.'; }
+        });
+        async function cargarAuditoriaIncidencias() {
+            const tbody = $('tablaAuditoriaIncBody'); if (!tbody || !esSuperAdminActivo) return;
+            try { const r = await fetch(`/api/superadmin/auditoria?usuario=${encodeURIComponent(sesionUsuario.usuario)}`); const d = await r.json();
+                if (!r.ok || !d.success) { tbody.innerHTML = `<tr><td colspan="5">${esc(d.message || 'No se pudo consultar auditoría.')}</td></tr>`; return; }
+                tbody.innerHTML = (d.registros || []).map(x => `<tr><td>${esc(x.fecha ? new Date(x.fecha).toLocaleString('es-PE') : '—')}</td><td>${esc(x.usuario_afectado || '—')}</td><td>${esc(x.accion || '—')}</td><td>${esc(x.realizado_por || '—')}</td><td>${esc(x.motivo || '—')}</td></tr>`).join('') || '<tr><td colspan="5">Sin movimientos registrados.</td></tr>';
+            } catch (e) { tbody.innerHTML = '<tr><td colspan="5">Error de conexión.</td></tr>'; }
+        }
+        $('btnActualizarAuditoriaInc')?.addEventListener('click', cargarAuditoriaIncidencias);
+        $('btnIncColaboradores')?.addEventListener('click', () => { if (!esSuperAdminActivo) return; const cont = document.querySelector('#vista-incidencias .contenido'); if (cont) cont.style.display = 'none'; if ($('panelAuditoriaColaboradoresInc')) $('panelAuditoriaColaboradoresInc').style.display = 'block'; cargarAuditoriaIncidencias(); });
+        $('btnIncClientes')?.addEventListener('click', () => { const cont = document.querySelector('#vista-incidencias .contenido'); if (cont) cont.style.display = 'block'; if ($('panelAuditoriaColaboradoresInc')) $('panelAuditoriaColaboradoresInc').style.display = 'none'; });
+
         // Listener delegado para acciones dinámicas en la tabla de Super Admin
         document.addEventListener('click', async (e) => {
             const btn = e.target.closest('[data-accion]');
@@ -4992,30 +5107,29 @@ function rfComparar() {
                 statusDiv.innerHTML = '';
 
                 try {
-                    const res = await fetch('/api/seguridad/modificar_clave', {
+                    const res = await fetch('/api/superadmin/clave/solicitar', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             usuario: sesionUsuario.usuario,
                             password: passConfirm,
-                            nueva_clave: nuevaClave
+                            clave_propuesta: nuevaClave
                         })
                     });
                     const data = await res.json();
                     if (res.ok && data.success) {
-                        claveAccesoActual = data.nueva_clave;
-                        if ($('txtClaveActual')) $('txtClaveActual').value = data.nueva_clave;
                         $('txtNuevaClave').value = '';
                         $('txtPassConfirmacion').value = '';
-                        statusDiv.innerHTML = `<span style="color:#10b981; font-weight:700;">✅ ${data.message} (Nueva clave: ${data.nueva_clave})</span>`;
+                        statusDiv.innerHTML = `<span style="color:#10b981; font-weight:700;">✅ ${esc(data.message || 'Solicitud creada.')}</span>`;
+                        cargarSolicitudesClave();
                     } else {
-                        statusDiv.innerHTML = `<span style="color:#ef4444; font-weight:700;">❌ ${data.message || 'Error al actualizar.'}</span>`;
+                        statusDiv.innerHTML = `<span style="color:#ef4444; font-weight:700;">❌ ${esc(data.message || 'Error al solicitar el cambio.')}</span>`;
                     }
                 } catch (err) {
                     statusDiv.innerHTML = `<span style="color:#ef4444; font-weight:700;">❌ Error de red con el servidor.</span>`;
                 } finally {
                     btnGuardarClave.disabled = false;
-                    btnGuardarClave.textContent = '💾 Guardar y Actualizar Llave';
+                    btnGuardarClave.textContent = '📨 Solicitar cambio de llave';
                 }
             });
         }
