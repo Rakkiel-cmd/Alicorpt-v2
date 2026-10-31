@@ -2547,16 +2547,19 @@
                     break;
 
                 case 'administracion':
-                    cargarAdministracion();
+                    if (typeof iniciarRefrescoAdministracion === 'function') iniciarRefrescoAdministracion();
+                    else cargarAdministracion();
                     break;
                 case 'seguridad':
-                    // Control de refresco en vivo para el panel de usuarios de SuperAdmin
+                    // Control de refresco en vivo para el panel de usuarios de SuperAdmin y solicitudes de llave
                     if (typeof iniciarRefrescoPanelSuperAdmin === 'function') iniciarRefrescoPanelSuperAdmin();
-                    cargarSolicitudesClave();
                     break;
             }
             if (nombre !== 'seguridad' && typeof detenerRefrescoPanelSuperAdmin === 'function') {
                 detenerRefrescoPanelSuperAdmin();
+            }
+            if (nombre !== 'administracion' && typeof detenerRefrescoAdministracion === 'function') {
+                detenerRefrescoAdministracion();
             }
             if (nombre !== 'incidencias' && typeof detenerRefrescoFallasWeb === 'function') {
                 detenerRefrescoFallasWeb();
@@ -4697,6 +4700,8 @@ function rfComparar() {
         // generar tráfico de más en segundo plano - Carga Perezosa).
         // ---------------------------------------------------------------
         let intervaloPanelSuperAdmin = null;
+        let intervaloRapidoClave = null;
+        let intervaloAdministracion = null;
 
         function mostrarAvisoAdminUsuarios(mensaje, exito = true) {
             const box = $('statusAdminUsuarios');
@@ -4841,9 +4846,49 @@ function rfComparar() {
                 tbody.innerHTML = solicitudes.length ? solicitudes.map(x => {
                     const propia = String(x.solicitado_por).toLowerCase() === String(sesionUsuario.usuario).toLowerCase();
                     const fecha = x.creado_en ? new Date(x.creado_en).toLocaleString('es-PE') : '—';
-                    return `<tr><td>@${esc(x.solicitado_por)}</td><td>${esc(fecha)}</td><td>${esc(x.estado)}</td><td>${propia ? '<span>Esperando a otro Super Admin</span>' : `<button class="btn-timer-historial" data-clave-action="aprobar" data-id="${esc(x.id)}">Aprobar</button> <button class="btn-timer-historial" data-clave-action="rechazar" data-id="${esc(x.id)}">Rechazar</button>`}</td></tr>`;
+                    let estadoBadge = `<span class="badge-role">${esc(x.estado)}</span>`;
+                    if (x.estado === 'aprobado') estadoBadge = '<span style="color:#10b981;font-weight:700;">✅ Aprobado</span>';
+                    else if (x.estado === 'rechazado') estadoBadge = '<span style="color:#ef4444;font-weight:700;">❌ Rechazado</span>';
+                    else if (x.estado === 'pendiente') estadoBadge = '<span style="color:#f59e0b;font-weight:700;">⏳ Pendiente</span>';
+
+                    let accion = '';
+                    if (x.estado === 'pendiente') {
+                        accion = propia ? '<span style="color:#f59e0b;font-size:12.5px;font-weight:600;">⏳ Esperando a otro Super Admin</span>' : `<button class="btn-timer-historial" data-clave-action="aprobar" data-id="${esc(x.id)}" style="color:#10b981;border-color:rgba(16,185,129,0.4);">Aprobar</button> <button class="btn-timer-historial" data-clave-action="rechazar" data-id="${esc(x.id)}" style="color:#ef4444;border-color:rgba(239,68,68,0.4);">Rechazar</button>`;
+                    } else if (x.estado === 'aprobado') {
+                        accion = `<span style="color:#10b981;font-size:12px;">Aprobada por @${esc(x.aprobado_por || 'otro SuperAdmin')}</span>`;
+                    } else {
+                        accion = `<span style="color:#ef4444;font-size:12px;">Rechazada${x.aprobado_por ? ' por @' + esc(x.aprobado_por) : ''}</span>`;
+                    }
+                    return `<tr><td>@${esc(x.solicitado_por)}</td><td>${esc(fecha)}</td><td>${estadoBadge}</td><td>${accion}</td></tr>`;
                 }).join('') : '<tr><td colspan="4">No hay solicitudes pendientes.</td></tr>';
             } catch (e) { tbody.innerHTML = '<tr><td colspan="4">Error de conexión.</td></tr>'; }
+        }
+
+        async function refrescarClaveSilencioso() {
+            if (!esSuperAdminActivo) return;
+            try {
+                const r = await fetch(`/api/seguridad/info_clave?usuario=${encodeURIComponent(sesionUsuario.usuario)}`);
+                if (r.ok) {
+                    const d = await r.json();
+                    if (d.success && d.clave_actual) {
+                        const anterior = claveAccesoActual;
+                        claveAccesoActual = d.clave_actual;
+                        if ($('txtClaveActual') && $('txtClaveActual').value !== d.clave_actual) {
+                            $('txtClaveActual').value = d.clave_actual;
+                        }
+                        if (anterior && anterior !== '------' && anterior !== d.clave_actual) {
+                            const msg = $('msgCopiadoKey');
+                            if (msg) {
+                                msg.style.display = 'block';
+                                msg.style.color = '#10b981';
+                                msg.style.fontWeight = '700';
+                                msg.textContent = `🔑 ¡Nueva llave de acceso aprobada y activa: ${d.clave_actual}!`;
+                                setTimeout(() => { msg.style.display = 'none'; }, 7000);
+                            }
+                        }
+                    }
+                }
+            } catch (e) {}
         }
         $('btnCancelarAccionColaborador')?.addEventListener('click', () => $('modalAccionColaborador').classList.remove('open'));
         $('btnConfirmarAccionColaborador')?.addEventListener('click', async () => {
@@ -4970,12 +5015,40 @@ function rfComparar() {
             detenerRefrescoPanelSuperAdmin();
             cargarPanelSuperAdminUsuarios();
             cargarAuditoriaSuperadmin();
-            intervaloPanelSuperAdmin = setInterval(cargarPanelSuperAdminUsuarios, 15000);
+            cargarSolicitudesClave();
+            refrescarClaveSilencioso();
+
+            // Auto-refresco rápido en tiempo real (cada 3 segundos) de solicitudes y llave actual
+            intervaloRapidoClave = setInterval(() => {
+                cargarSolicitudesClave();
+                refrescarClaveSilencioso();
+            }, 3000);
+
+            // Refresco de usuarios y auditoría cada 12 segundos
+            intervaloPanelSuperAdmin = setInterval(() => {
+                cargarPanelSuperAdminUsuarios();
+                cargarAuditoriaSuperadmin();
+            }, 12000);
         }
         function detenerRefrescoPanelSuperAdmin() {
+            if (intervaloRapidoClave) {
+                clearInterval(intervaloRapidoClave);
+                intervaloRapidoClave = null;
+            }
             if (intervaloPanelSuperAdmin) {
                 clearInterval(intervaloPanelSuperAdmin);
                 intervaloPanelSuperAdmin = null;
+            }
+        }
+        function iniciarRefrescoAdministracion() {
+            detenerRefrescoAdministracion();
+            cargarAdministracion();
+            intervaloAdministracion = setInterval(cargarAdministracion, 5000);
+        }
+        function detenerRefrescoAdministracion() {
+            if (intervaloAdministracion) {
+                clearInterval(intervaloAdministracion);
+                intervaloAdministracion = null;
             }
         }
 

@@ -247,8 +247,16 @@ def listar_solicitudes():
     if error: return error
     db = obtener_cliente_supabase()
     if not db: return jsonify({'success': False, 'message': 'Sin conexión a Supabase.'}), 500
-    try: return jsonify({'success': True, 'solicitudes': _solicitudes_pendientes(db)})
-    except Exception as exc: return jsonify({'success': False, 'message': 'No se pudieron consultar solicitudes.'}), 500
+    try:
+        _solicitudes_pendientes(db)
+        res = db.table('solicitudes_cambio_clave')\
+            .select('id, clave_propuesta, solicitado_por, aprobado_por, estado, creado_en, resuelto_en')\
+            .order('creado_en', desc=True)\
+            .limit(10)\
+            .execute()
+        return jsonify({'success': True, 'solicitudes': res.data or []})
+    except Exception as exc:
+        return jsonify({'success': False, 'message': 'No se pudieron consultar solicitudes.'}), 500
 
 
 @administracion_usuarios.post('/api/superadmin/clave/aprobar')
