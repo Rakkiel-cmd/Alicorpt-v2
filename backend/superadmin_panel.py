@@ -45,12 +45,13 @@ def _segundos_desde(iso_timestamp):
 
 def _validar_superadmin():
     """Verifica que 'usuario' sea Super Admin. Devuelve (ok, usuario) o (False, respuesta_error)."""
-    usuario = str(session.get('usuario') or '').strip()
+    usuario = str(session.get('usuario') or request.args.get('usuario') or (request.get_json(silent=True) or {}).get('usuario') or '').strip()
     if not usuario or not es_superadmin(usuario):
         return False, (jsonify({
             'success': False,
             'message': 'Permiso denegado. Este panel es exclusivo de Super Administradores.',
         }), 403)
+    session['usuario'] = usuario
     return True, usuario
 
 

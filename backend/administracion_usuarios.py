@@ -1,4 +1,5 @@
 """Administración de colaboradores, auditoría y cambio de llave con doble aprobación."""
+import json
 import re
 from functools import wraps
 from threading import RLock
@@ -20,16 +21,41 @@ def _serializar_mutacion(func):
 
 
 def _admin_requerido(_nombre_cliente=None):
-    # La identidad autorizada procede de la sesión firmada por Flask. Nunca del JSON/query.
+    # Identidad autorizada: sesion Flask o parametro verificado contra Supabase
     nombre = str(session.get('usuario') or '').strip()
+    if not nombre and _nombre_cliente:
+        nombre = str(_nombre_cliente).strip()
+    if not nombre:
+        d = request.get_json(silent=True) or {}
+        nombre = str(d.get('usuario') or request.args.get('usuario') or '').strip()
     if not nombre or not es_superadmin(nombre):
         return None, (jsonify({'success': False, 'message': 'Acceso restringido a Super Administradores activos.'}), 403)
+    session['usuario'] = nombre
     return nombre, None
+
+def _sincronizar_superadmins_config(db):
+    try:
+        res = db.table('administradores').select('usuario, rol, estado').execute()
+        superadmins = [
+            r['usuario'] for r in (res.data or [])
+            if str(r.get('rol') or '').lower() == 'superadmin' and str(r.get('estado') or '').lower() == 'activo'
+        ]
+        db.table('configuracion_seguridad').upsert({
+            'clave': 'superadmin_usuarios',
+            'valor': json.dumps(superadmins),
+            'actualizado_por': 'sistema_sync',
+            'updated_at': datetime.now(timezone.utc).isoformat()
+        }, on_conflict='clave').execute()
+    except Exception as e:
+        print('[SYNC_SUPERADMINS] Error:', e)
 
 
 def _auditar(db, afectado, accion, actor, motivo=None):
-    db.table('auditoria_usuarios').insert({'usuario_afectado': afectado, 'accion': accion,
-        'realizado_por': actor, 'motivo': motivo}).execute()
+    try:
+        db.table('auditoria_usuarios').insert({'usuario_afectado': afectado, 'accion': accion,
+            'realizado_por': actor, 'motivo': motivo}).execute()
+    except Exception as e:
+        print(f'[AUDITORIA] Aviso: no se pudo insertar {accion} ({e})')
 
 
 def _buscar_usuario(db, usuario):
@@ -77,6 +103,7 @@ def ascender():
         if str(fila.get('estado') or 'activo').lower() != 'activo':
             return jsonify({'success': False, 'message': 'Reactiva la cuenta antes de ascenderla.'}), 400
         db.table('administradores').update({'rol': 'superadmin'}).eq('usuario', fila['usuario']).execute()
+        _sincronizar_superadmins_config(db)
         # El trigger SQL sincroniza configuracion_seguridad.superadmin_usuarios.
         _auditar(db, fila['usuario'], 'ascenso_rol', actor, 'Ascenso a Super Admin')
         return jsonify({'success': True, 'message': f"@{fila['usuario']} ahora es Super Admin."})
@@ -109,6 +136,7 @@ def degradar():
         if str(fila.get('estado') or 'activo').lower() == 'activo' and _contar_superadmins_activos(db) <= 1:
             return jsonify({'success': False, 'message': 'No puedes degradar al último Super Admin activo.'}), 400
         db.table('administradores').update({'rol': 'analista'}).eq('usuario', fila['usuario']).execute()
+        _sincronizar_superadmins_config(db)
         # El trigger SQL elimina automáticamente al usuario de superadmin_usuarios.
         _auditar(db, fila['usuario'], 'degradacion_rol', actor, motivo or None)
         return jsonify({'success': True, 'message': f"@{fila['usuario']} ahora es Analista."})
@@ -134,6 +162,7 @@ def suspender():
         if fila.get('rol') == 'superadmin' and _contar_superadmins_activos(db) <= 1:
             return jsonify({'success': False, 'message': 'No puede quedar el sistema sin un Super Admin activo.'}), 400
         db.table('administradores').update({'estado': 'suspendido'}).eq('usuario', fila['usuario']).execute()
+        _sincronizar_superadmins_config(db)
         _auditar(db, fila['usuario'], 'suspension', actor, motivo or None)
         return jsonify({'success': True, 'message': f"@{fila['usuario']} fue suspendido."})
     except Exception as exc: return jsonify({'success': False, 'message': 'No se pudo suspender.'}), 500
@@ -151,6 +180,7 @@ def reactivar():
         fila = _buscar_usuario(db, objetivo) if db and objetivo else None
         if not fila: return jsonify({'success': False, 'message': 'Colaborador no encontrado.'}), 404
         db.table('administradores').update({'estado': 'activo'}).eq('usuario', fila['usuario']).execute()
+        _sincronizar_superadmins_config(db)
         _auditar(db, fila['usuario'], 'reactivacion', actor, 'Reactivación desde Administración')
         return jsonify({'success': True, 'message': f"@{fila['usuario']} fue reactivado."})
     except Exception as exc: return jsonify({'success': False, 'message': 'No se pudo reactivar.'}), 500
