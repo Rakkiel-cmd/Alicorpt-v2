@@ -33,7 +33,7 @@ def _auditar(db, afectado, accion, actor, motivo=None):
 
 
 def _buscar_usuario(db, usuario):
-    res = db.table('administradores').select('usuario, rol, estado, email').ilike('usuario', usuario).limit(1).execute()
+    res = db.table('administradores').select('usuario, rol, estado, email').eq('usuario', usuario).limit(1).execute()
     return res.data[0] if res.data else None
 
 
@@ -56,21 +56,64 @@ def _solicitudes_pendientes(db):
 @administracion_usuarios.post('/api/superadmin/ascender_rol')
 @_serializar_mutacion
 def ascender():
-    d = request.get_json(silent=True) or {}; actor, error = _admin_requerido((d.get('usuario') or '').strip())
-    if error: return error
-    objetivo = (d.get('objetivo') or '').strip()
-    if not objetivo: return jsonify({'success': False, 'message': 'Indica el colaborador.'}), 400
-    if actor.lower() == objetivo.lower(): return jsonify({'success': False, 'message': 'No puedes cambiar tu propio rol.'}), 400
+    d = request.get_json(silent=True) or {}
+    actor, error = _admin_requerido()
+    if error:
+        return error
+    objetivo = str(d.get('objetivo') or '').strip()
+    if not objetivo:
+        return jsonify({'success': False, 'message': 'Indica el colaborador.'}), 400
+    if actor.casefold() == objetivo.casefold():
+        return jsonify({'success': False, 'message': 'No puedes cambiar tu propio rol.'}), 400
     db = obtener_cliente_supabase()
+    if not db:
+        return jsonify({'success': False, 'message': 'Sin conexión a Supabase.'}), 503
     try:
-        fila = _buscar_usuario(db, objetivo) if db else None
-        if not fila: return jsonify({'success': False, 'message': 'Colaborador no encontrado.'}), 404
-        if fila.get('rol') == 'superadmin': return jsonify({'success': False, 'message': 'Nunca se baja ni se vuelve a ascender un Super Admin.'}), 400
-        if fila.get('estado') == 'suspendido': return jsonify({'success': False, 'message': 'Reactiva la cuenta antes de ascenderla.'}), 400
+        fila = _buscar_usuario(db, objetivo)
+        if not fila:
+            return jsonify({'success': False, 'message': 'Colaborador no encontrado.'}), 404
+        if str(fila.get('rol') or 'analista').lower() == 'superadmin':
+            return jsonify({'success': False, 'message': 'El colaborador ya es Super Admin.'}), 409
+        if str(fila.get('estado') or 'activo').lower() != 'activo':
+            return jsonify({'success': False, 'message': 'Reactiva la cuenta antes de ascenderla.'}), 400
         db.table('administradores').update({'rol': 'superadmin'}).eq('usuario', fila['usuario']).execute()
-        _auditar(db, fila['usuario'], 'ascenso_rol', actor, 'Ascenso a superadmin')
+        # El trigger SQL sincroniza configuracion_seguridad.superadmin_usuarios.
+        _auditar(db, fila['usuario'], 'ascenso_rol', actor, 'Ascenso a Super Admin')
         return jsonify({'success': True, 'message': f"@{fila['usuario']} ahora es Super Admin."})
-    except Exception as exc: return jsonify({'success': False, 'message': 'No se pudo ascender.'}), 500
+    except Exception:
+        return jsonify({'success': False, 'message': 'No se pudo ascender. Verifica que la migración SQL esté aplicada.'}), 500
+
+
+@administracion_usuarios.post('/api/superadmin/degradar_rol')
+@_serializar_mutacion
+def degradar():
+    d = request.get_json(silent=True) or {}
+    actor, error = _admin_requerido()
+    if error:
+        return error
+    objetivo = str(d.get('objetivo') or '').strip()
+    motivo = str(d.get('motivo') or 'Degradación a Analista desde Administración').strip()
+    if not objetivo:
+        return jsonify({'success': False, 'message': 'Indica el colaborador.'}), 400
+    if actor.casefold() == objetivo.casefold():
+        return jsonify({'success': False, 'message': 'No puedes cambiar tu propio rol.'}), 400
+    db = obtener_cliente_supabase()
+    if not db:
+        return jsonify({'success': False, 'message': 'Sin conexión a Supabase.'}), 503
+    try:
+        fila = _buscar_usuario(db, objetivo)
+        if not fila:
+            return jsonify({'success': False, 'message': 'Colaborador no encontrado.'}), 404
+        if str(fila.get('rol') or 'analista').lower() != 'superadmin':
+            return jsonify({'success': False, 'message': 'El colaborador ya tiene rol Analista.'}), 409
+        if str(fila.get('estado') or 'activo').lower() == 'activo' and _contar_superadmins_activos(db) <= 1:
+            return jsonify({'success': False, 'message': 'No puedes degradar al último Super Admin activo.'}), 400
+        db.table('administradores').update({'rol': 'analista'}).eq('usuario', fila['usuario']).execute()
+        # El trigger SQL elimina automáticamente al usuario de superadmin_usuarios.
+        _auditar(db, fila['usuario'], 'degradacion_rol', actor, motivo or None)
+        return jsonify({'success': True, 'message': f"@{fila['usuario']} ahora es Analista."})
+    except Exception:
+        return jsonify({'success': False, 'message': 'No se pudo cambiar el rol. Verifica la migración SQL.'}), 500
 
 
 @administracion_usuarios.post('/api/superadmin/suspender')
@@ -82,8 +125,10 @@ def suspender():
     if not objetivo: return jsonify({'success': False, 'message': 'Indica el colaborador.'}), 400
     if actor.lower() == objetivo.lower(): return jsonify({'success': False, 'message': 'No puedes suspender tu propia cuenta.'}), 400
     db = obtener_cliente_supabase()
+    if not db:
+        return jsonify({'success': False, 'message': 'Sin conexión a Supabase.'}), 503
     try:
-        fila = _buscar_usuario(db, objetivo) if db else None
+        fila = _buscar_usuario(db, objetivo) if objetivo else None
         if not fila: return jsonify({'success': False, 'message': 'Colaborador no encontrado.'}), 404
         if fila.get('estado') == 'suspendido': return jsonify({'success': False, 'message': 'La cuenta ya está suspendida.'}), 400
         if fila.get('rol') == 'superadmin' and _contar_superadmins_activos(db) <= 1:
@@ -100,6 +145,8 @@ def reactivar():
     d = request.get_json(silent=True) or {}; actor, error = _admin_requerido((d.get('usuario') or '').strip())
     if error: return error
     objetivo = (d.get('objetivo') or '').strip(); db = obtener_cliente_supabase()
+    if not db:
+        return jsonify({'success': False, 'message': 'Sin conexión a Supabase.'}), 503
     try:
         fila = _buscar_usuario(db, objetivo) if db and objetivo else None
         if not fila: return jsonify({'success': False, 'message': 'Colaborador no encontrado.'}), 404
@@ -118,8 +165,10 @@ def actualizar_email():
     if email and (len(email) > 200 or not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", email)):
         return jsonify({'success': False, 'message': 'El correo no tiene un formato válido.'}), 400
     db = obtener_cliente_supabase()
+    if not db:
+        return jsonify({'success': False, 'message': 'Sin conexión a Supabase.'}), 503
     try:
-        fila = _buscar_usuario(db, objetivo) if db and objetivo else None
+        fila = _buscar_usuario(db, objetivo) if objetivo else None
         if not fila: return jsonify({'success': False, 'message': 'Colaborador no encontrado.'}), 404
         db.table('administradores').update({'email': email or None}).eq('usuario', fila['usuario']).execute()
         _auditar(db, fila['usuario'], 'actualizacion_email', actor, 'Correo actualizado' if email else 'Correo eliminado')

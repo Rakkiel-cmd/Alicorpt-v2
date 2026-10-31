@@ -10,7 +10,6 @@ RUTA_BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(RUTA_BASE, 'data')
 ARCHIVO_CLAVE_LOCAL = os.path.join(DATA_DIR, 'seguridad_clave.json')
 CLAVE_POR_DEFECTO = "784920"
-SUPERADMINS_POR_DEFECTO = ["LPerez", "manuelito"]
 
 
 def _obtener_supabase_client():

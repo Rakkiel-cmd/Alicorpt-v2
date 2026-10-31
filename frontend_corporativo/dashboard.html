@@ -4828,7 +4828,7 @@ function rfComparar() {
                 tbody.innerHTML = (d.usuarios || []).map(u => {
                     const propio = String(u.usuario).toLowerCase() === String(sesionUsuario.usuario).toLowerCase();
                     const superadmin = u.rol === 'superadmin'; const suspendido = u.estado === 'suspendido';
-                    return `<tr><td><strong>${esc(u.nombre_completo || u.usuario)}</strong><br><small>@${esc(u.usuario)}</small></td><td><span class="badge-role ${superadmin ? 'badge-superadmin' : 'badge-analista'}">${superadmin ? 'Super Admin' : 'Analista'}</span></td><td><span class="badge-role">${esc(suspendido ? 'Suspendido' : 'Activo')}</span></td><td>${esc(u.email || '—')}</td><td style="display:flex;gap:6px;flex-wrap:wrap;">${superadmin ? '<button disabled class="btn-timer-historial">Ascender</button>' : `<button class="btn-timer-historial" data-admin-action="ascender" data-usuario="${esc(u.usuario)}">Ascender</button>`}${propio && !suspendido ? '<button disabled class="btn-timer-historial">Suspender</button>' : suspendido ? `<button class="btn-timer-historial" data-admin-action="reactivar" data-usuario="${esc(u.usuario)}">Reactivar</button>` : `<button class="btn-timer-historial" data-admin-action="suspender" data-usuario="${esc(u.usuario)}">Suspender</button>`}<button class="btn-timer-historial" data-admin-action="email" data-usuario="${esc(u.usuario)}" data-email="${esc(u.email || '')}">Correo</button></td></tr>`;
+                    return `<tr><td><strong>${esc(u.nombre_completo || u.usuario)}</strong><br><small>@${esc(u.usuario)}</small></td><td><span class="badge-role ${superadmin ? 'badge-superadmin' : 'badge-analista'}">${superadmin ? 'Super Admin' : 'Analista'}</span></td><td><span class="badge-role">${esc(suspendido ? 'Suspendido' : 'Activo')}</span></td><td>${esc(u.email || '—')}</td><td style="display:flex;gap:6px;flex-wrap:wrap;">${superadmin ? `<button class="btn-timer-historial" data-admin-action="degradar" data-usuario="${esc(u.usuario)}">Bajar a Analista</button>` : `<button class="btn-timer-historial" data-admin-action="ascender" data-usuario="${esc(u.usuario)}">Ascender</button>`}${propio && !suspendido ? '<button disabled class="btn-timer-historial">Suspender</button>' : suspendido ? `<button class="btn-timer-historial" data-admin-action="reactivar" data-usuario="${esc(u.usuario)}">Reactivar</button>` : `<button class="btn-timer-historial" data-admin-action="suspender" data-usuario="${esc(u.usuario)}">Suspender</button>`}<button class="btn-timer-historial" data-admin-action="email" data-usuario="${esc(u.usuario)}" data-email="${esc(u.email || '')}">Correo</button></td></tr>`;
                 }).join('');
             } catch (e) { tbody.innerHTML = '<tr><td colspan="5">Error de conexión.</td></tr>'; }
         }
@@ -4861,7 +4861,8 @@ function rfComparar() {
             const b = e.target.closest('[data-admin-action]');
             if (b) {
                 const objetivo = b.dataset.usuario, accion = b.dataset.adminAction; let url = '', payload = {usuario: sesionUsuario.usuario, objetivo};
-                if (accion === 'ascender') { if (!confirm(`¿Ascender a @${objetivo}?`)) return; url = '/api/superadmin/ascender_rol'; }
+                if (accion === 'ascender') { if (!confirm(`¿Ascender a @${objetivo} a Super Admin?`)) return; url = '/api/superadmin/ascender_rol'; }
+                if (accion === 'degradar') { if (!confirm(`¿Bajar a @${objetivo} a Analista? Perderá los privilegios de Super Admin.`)) return; url = '/api/superadmin/degradar_rol'; }
                 if (accion === 'suspender' || accion === 'email') {
                     window.accionColaboradorPendiente = {accion, objetivo};
                     $('tituloModalColaborador').textContent = accion === 'suspender' ? 'Suspender colaborador' : 'Actualizar correo';
@@ -5134,13 +5135,14 @@ function rfComparar() {
             });
         }
 
-        // Inicializar perfil en el arranque del dashboard
-        inicializarPerfilUsuario();
-
-        /* ---------- Arranque con Carga Perezosa Estricta ---------- */
-        const hashInicial = location.hash.replace('#', '').trim();
-        const vistaInicial = VISTAS.includes(hashInicial) ? hashInicial : 'inicio';
-        mostrarVista(vistaInicial);
+        // Primero se valida el rol contra el servidor y después se abre la vista inicial.
+        // Evita que un Super Admin sea redirigido por error antes de terminar la consulta de perfil.
+        (async function iniciarDashboardSeguro() {
+            await inicializarPerfilUsuario();
+            const hashInicial = location.hash.replace('#', '').trim();
+            const vistaInicial = VISTAS.includes(hashInicial) ? hashInicial : 'inicio';
+            await mostrarVista(vistaInicial);
+        })();
     </script>
 
     <!-- Tienda en línea: resumen en Inicio y gráfico en Productos (script independiente: si falla, el resto del panel sigue igual) -->

@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS public.auditoria_usuarios (
 );
 ALTER TABLE public.auditoria_usuarios DROP CONSTRAINT IF EXISTS auditoria_usuarios_accion_check;
 ALTER TABLE public.auditoria_usuarios ADD CONSTRAINT auditoria_usuarios_accion_check
-    CHECK (accion IN ('suspension', 'reactivacion', 'ascenso_rol', 'cambio_clave', 'actualizacion_email'));
+    CHECK (accion IN ('suspension', 'reactivacion', 'ascenso_rol', 'degradacion_rol', 'cambio_clave', 'actualizacion_email'));
 CREATE INDEX IF NOT EXISTS idx_auditoria_usuarios_afectado ON public.auditoria_usuarios (usuario_afectado, fecha DESC);
 
 CREATE TABLE IF NOT EXISTS public.solicitudes_cambio_clave (
@@ -87,3 +87,76 @@ FROM pendientes p WHERE s.id = p.id AND p.rn > 1;
 -- Evita solicitudes pendientes simultáneas incluso ante dos peticiones concurrentes.
 CREATE UNIQUE INDEX IF NOT EXISTS uq_solicitud_clave_pendiente_unica
     ON public.solicitudes_cambio_clave ((estado)) WHERE estado = 'pendiente';
+
+
+-- Fuente de verdad: administradores. Esta lista heredada se mantiene sincronizada
+-- automáticamente para los módulos antiguos que todavía consultan superadmin_usuarios.
+-- Solo se incluyen cuentas con rol superadmin y estado activo.
+CREATE OR REPLACE FUNCTION public.reconstruir_lista_superadmin_usuarios()
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_lista JSONB;
+    v_tipo_valor TEXT;
+BEGIN
+    IF to_regclass('public.configuracion_seguridad') IS NULL THEN
+        RETURN;
+    END IF;
+
+    SELECT COALESCE(jsonb_agg(a.usuario ORDER BY lower(a.usuario)), '[]'::jsonb)
+      INTO v_lista
+      FROM public.administradores a
+     WHERE lower(COALESCE(a.rol, 'analista')) = 'superadmin'
+       AND lower(COALESCE(a.estado, 'activo')) = 'activo';
+
+    SELECT data_type INTO v_tipo_valor
+      FROM information_schema.columns
+     WHERE table_schema = 'public'
+       AND table_name = 'configuracion_seguridad'
+       AND column_name = 'valor';
+
+    IF v_tipo_valor IS NULL THEN
+        RAISE EXCEPTION 'No existe configuracion_seguridad.valor; no se puede sincronizar Super Admin.';
+    ELSIF v_tipo_valor IN ('json', 'jsonb') THEN
+        EXECUTE 'INSERT INTO public.configuracion_seguridad (clave, valor) VALUES ($1, $2) ON CONFLICT (clave) DO UPDATE SET valor = EXCLUDED.valor'
+            USING 'superadmin_usuarios', v_lista;
+    ELSE
+        EXECUTE 'INSERT INTO public.configuracion_seguridad (clave, valor) VALUES ($1, $2) ON CONFLICT (clave) DO UPDATE SET valor = EXCLUDED.valor'
+            USING 'superadmin_usuarios', v_lista::text;
+    END IF;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.reconstruir_lista_superadmin_usuarios() FROM PUBLIC;
+
+CREATE OR REPLACE FUNCTION public.sincronizar_superadmin_usuarios()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    PERFORM public.reconstruir_lista_superadmin_usuarios();
+    IF TG_OP = 'DELETE' THEN
+        RETURN OLD;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_sincronizar_superadmin_usuarios ON public.administradores;
+DROP TRIGGER IF EXISTS trg_sincronizar_superadmin_usuarios_update ON public.administradores;
+CREATE TRIGGER trg_sincronizar_superadmin_usuarios
+AFTER INSERT OR DELETE ON public.administradores
+FOR EACH ROW EXECUTE FUNCTION public.sincronizar_superadmin_usuarios();
+CREATE TRIGGER trg_sincronizar_superadmin_usuarios_update
+AFTER UPDATE OF rol, estado ON public.administradores
+FOR EACH ROW EXECUTE FUNCTION public.sincronizar_superadmin_usuarios();
+
+REVOKE ALL ON FUNCTION public.sincronizar_superadmin_usuarios() FROM PUBLIC;
+
+-- Sincronización inicial: reconstruye la lista a partir de los roles y estados ya migrados.
+SELECT public.reconstruir_lista_superadmin_usuarios();
