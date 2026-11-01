@@ -53,8 +53,21 @@ def _guardar_archivo_local(clave, actualizado_por='superadmin'):
         json.dump(datos, f, indent=2)
 
 
-def obtener_clave_acceso():
-    """La llave persistida en Supabase es la fuente principal para permitir su cambio aprobado."""
+_CACHE_CLAVE = {"valor": None, "timestamp": 0}
+
+def invalidar_cache_seguridad():
+    global _CACHE_CLAVE, _CACHE_PERFILES
+    _CACHE_CLAVE = {"valor": None, "timestamp": 0}
+    _CACHE_PERFILES = {}
+
+def obtener_clave_acceso(forzar_refresco=False):
+    """La llave persistida en Supabase es la fuente principal para permitir su cambio aprobado (con TTL 5s)."""
+    global _CACHE_CLAVE
+    import time
+    ahora = time.time()
+    if not forzar_refresco and _CACHE_CLAVE["valor"] and (ahora - _CACHE_CLAVE["timestamp"] < 5.0):
+        return _CACHE_CLAVE["valor"]
+
     client = _obtener_supabase_client()
     if client:
         try:
@@ -62,14 +75,17 @@ def obtener_clave_acceso():
             if res.data and res.data[0].get('valor') is not None:
                 clave = str(res.data[0]['valor']).strip()
                 _guardar_archivo_local(clave, 'sincronizacion_db')
+                _CACHE_CLAVE = {"valor": clave, "timestamp": ahora}
                 return clave
         except Exception:
-            # Si la consulta falla, no se usa un dato local antiguo por encima de una variable explícita.
             pass
     env_key = os.environ.get('LLAVE_ACCESO_PERSONAL')
     if env_key and env_key.strip():
+        _CACHE_CLAVE = {"valor": env_key.strip(), "timestamp": ahora}
         return env_key.strip()
-    return str(_asegurar_archivo_local().get('clave_acceso_personal', CLAVE_POR_DEFECTO)).strip()
+    clave_def = str(_asegurar_archivo_local().get('clave_acceso_personal', CLAVE_POR_DEFECTO)).strip()
+    _CACHE_CLAVE = {"valor": clave_def, "timestamp": ahora}
+    return clave_def
 
 
 def validar_clave_acceso(clave_candidata):
@@ -88,9 +104,19 @@ def validar_clave_acceso(clave_candidata):
     return False
 
 
-def obtener_perfil_usuario(usuario):
+_CACHE_PERFILES = {}
+
+def obtener_perfil_usuario(usuario, forzar_refresco=False):
     if not usuario:
         return None
+    import time
+    ahora = time.time()
+    u_key = str(usuario).strip().lower()
+    if not forzar_refresco and u_key in _CACHE_PERFILES:
+        datos, ts = _CACHE_PERFILES[u_key]
+        if (ahora - ts) < 15.0:
+            return datos
+
     client = _obtener_supabase_client()
     if not client:
         return None
@@ -98,8 +124,10 @@ def obtener_perfil_usuario(usuario):
         res = client.table('administradores').select('usuario, rol, estado').ilike('usuario', str(usuario).strip()).limit(1).execute()
         if res.data:
             fila = res.data[0]
-            return {'usuario': fila.get('usuario'), 'rol': str(fila.get('rol') or 'analista').lower(),
-                    'estado': str(fila.get('estado') or 'activo').lower()}
+            perfil = {'usuario': fila.get('usuario'), 'rol': str(fila.get('rol') or 'analista').lower(),
+                      'estado': str(fila.get('estado') or 'activo').lower()}
+            _CACHE_PERFILES[u_key] = (perfil, ahora)
+            return perfil
     except Exception:
         return None
     return None

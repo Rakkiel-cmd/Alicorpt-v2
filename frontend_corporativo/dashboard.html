@@ -57,16 +57,19 @@
         .sidebar {
             position: fixed; top: 0; left: 0; bottom: 0; width: var(--sidebar-w);
             background: var(--primary); color: #cbd5e1; display: flex; flex-direction: column;
-            padding: 20px 16px 24px; z-index: 60; transition: transform .3s ease;
+            padding: 20px 16px 80px; z-index: 60; transition: transform .3s ease;
             overflow-y: auto; overflow-x: hidden;
-            scrollbar-width: thin; scrollbar-color: rgba(56, 189, 248, 0.4) rgba(15, 23, 42, 0.6);
+            scrollbar-width: thin; scrollbar-color: #38bdf8 rgba(15, 23, 42, 0.8);
         }
         .sidebar::-webkit-scrollbar { width: 6px; }
         .sidebar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); border-radius: 4px; }
-        .sidebar::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.4); border-radius: 4px; }
+        .sidebar::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.5); border-radius: 4px; }
         .sidebar::-webkit-scrollbar-thumb:hover { background: #38bdf8; }
         .sb-brand, .sb-tag, .sb-menu { flex-shrink: 0; }
-        .sb-foot { flex-shrink: 0; margin-top: auto; padding-top: 14px; padding-bottom: 12px; border-top: 1px solid rgba(255,255,255,0.08); }
+        .sb-foot {
+            flex-shrink: 0; margin-top: auto; padding-top: 16px; padding-bottom: 20px;
+            border-top: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 10px;
+        }
         .sb-brand { font-weight: 800; font-size: 22px; color: #fff; letter-spacing: -0.5px; padding: 0 10px 4px; }
         .sb-brand span { color: #38bdf8; }
         .sb-tag { padding: 0 10px 24px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; }
@@ -75,9 +78,19 @@
         .sb-menu button .ico { font-size: 18px; width: 24px; text-align: center; }
         .sb-menu button:hover { background: rgba(255,255,255,0.07); color: #fff; }
         .sb-menu button.active { background: var(--accent-gradient); color: #fff; box-shadow: 0 6px 16px rgba(2,132,199,0.35); }
-        .sb-foot { margin-top: auto; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.08); }
-        .sb-user-card { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
-        .sb-user-top { display: flex; align-items: center; gap: 10px; padding: 2px 4px; }
+        .sb-user-card { display: flex; flex-direction: column; gap: 8px; margin-bottom: 4px; }
+        .sb-user-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 2px 4px; }
+        .btn-user-quick-logout {
+            margin-left: auto; width: 34px; height: 34px; border-radius: 8px;
+            background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.45);
+            color: #fca5a5; display: flex; align-items: center; justify-content: center;
+            font-size: 16px; cursor: pointer; text-decoration: none; transition: all .2s ease;
+            flex-shrink: 0;
+        }
+        .btn-user-quick-logout:hover {
+            background: #dc2626; border-color: #ef4444; color: #fff; transform: scale(1.08);
+            box-shadow: 0 0 12px rgba(220, 38, 38, 0.5);
+        }
         .sb-avatar {
             position: relative; width: 38px; height: 38px; min-width: 38px; border-radius: 50%;
             background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
@@ -228,8 +241,16 @@
         .tabla-historial td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); color: #cbd5e1; font-family: monospace; }
         .tabla-historial tr:hover td { background: rgba(56,189,248,0.05); }
 
-        .btn-logout { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 10px; border-radius: 10px; border: 1px solid rgba(248,113,113,0.5); color: #fca5a5; text-decoration: none; font-size: 13px; font-weight: 700; transition: all .2s ease; }
-        .btn-logout:hover { background: #dc2626; border-color: #dc2626; color: #fff; }
+        .btn-logout {
+            display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+            padding: 11px 14px; border-radius: 10px; background: rgba(220, 38, 38, 0.15);
+            border: 1px solid rgba(248, 113, 113, 0.6); color: #fca5a5; text-decoration: none;
+            font-size: 13px; font-weight: 700; transition: all .2s ease; margin-top: 4px;
+        }
+        .btn-logout:hover {
+            background: #dc2626; border-color: #ef4444; color: #fff; transform: translateY(-1px);
+            box-shadow: 0 4px 14px rgba(220, 38, 38, 0.4);
+        }
         .menu-toggle { display: none; position: fixed; top: 12px; left: 12px; z-index: 70; background: var(--primary); color: #fff; border: none; width: 44px; height: 44px; border-radius: 12px; font-size: 20px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.25); }
 
         .main { margin-left: var(--sidebar-w); min-height: 100vh; display: flex; flex-direction: column; }
@@ -1102,17 +1123,20 @@
             <div class="sb-user-card" id="sbUserCard">
                 <!-- Perfil del usuario -->
                 <div class="sb-user-top">
-                    <div class="sb-avatar" id="sbAvatar">
-                        <span id="txtAvatarInicial">A</span>
-                        <span class="avatar-status" title="Sesión Activa"></span>
-                    </div>
-                    <div class="sb-user-info">
-                        <b id="txtNombreUsuario">Cargando...</b>
-                        <div class="sb-subtext">
-                            <span class="alias" id="txtAliasUsuario">@admin</span>
-                            <span class="badge-role badge-analista" id="badgeRolUsuario">Analista</span>
+                    <div style="display:flex; align-items:center; gap:10px; overflow:hidden;">
+                        <div class="sb-avatar" id="sbAvatar">
+                            <span id="txtAvatarInicial">A</span>
+                            <span class="avatar-status" title="Sesión Activa"></span>
+                        </div>
+                        <div class="sb-user-info">
+                            <b id="txtNombreUsuario">Cargando...</b>
+                            <div class="sb-subtext">
+                                <span class="alias" id="txtAliasUsuario">@admin</span>
+                                <span class="badge-role badge-analista" id="badgeRolUsuario">Analista</span>
+                            </div>
                         </div>
                     </div>
+                    <a href="index.html" class="btn-user-quick-logout" id="btnUserQuickLogout" title="Cerrar sesión inmediatamente">🚪</a>
                 </div>
 
                 <!-- 3.1: Vector biométrico facial (clic para ver) -->
@@ -2625,9 +2649,13 @@
         $('menuToggle').addEventListener('click', () => $('sidebar').classList.toggle('open'));
 
         // Cerrar sesión: limpia la sesión del navegador y vuelve al login (index.html)
-        $('btnLogout').addEventListener('click', () => {
-            try { sessionStorage.clear(); } catch (e) {}
-        });
+        const limpiarSesionSalir = () => {
+            try { sessionStorage.clear(); localStorage.removeItem('sesion_admin'); } catch (e) {}
+            try { fetch('/api/logout', { method: 'POST' }); } catch (e) {}
+        };
+        if ($('btnLogout')) $('btnLogout').addEventListener('click', limpiarSesionSalir);
+        if ($('btnUserQuickLogout')) $('btnUserQuickLogout').addEventListener('click', limpiarSesionSalir);
+        if ($('btnTopLogout')) $('btnTopLogout').addEventListener('click', limpiarSesionSalir);
 
         /* ---------- Estadística y probabilidades (Integrante 3) ---------- */
         const pct = x => (x * 100).toLocaleString('es-PE', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' %';
@@ -5071,17 +5099,17 @@ function rfComparar() {
             cargarSolicitudesClave();
             refrescarClaveSilencioso();
 
-            // Auto-refresco rápido en tiempo real (cada 3 segundos) de solicitudes y llave actual
+            // Auto-refresco en vivo optimizado para bajo consumo de red y memoria (cada 5 segundos)
             intervaloRapidoClave = setInterval(() => {
                 cargarSolicitudesClave();
                 refrescarClaveSilencioso();
-            }, 3000);
+            }, 5000);
 
-            // Refresco de usuarios y auditoría cada 12 segundos
+            // Refresco de usuarios y auditoría cada 15 segundos
             intervaloPanelSuperAdmin = setInterval(() => {
                 cargarPanelSuperAdminUsuarios();
                 cargarAuditoriaSuperadmin();
-            }, 12000);
+            }, 15000);
         }
         function detenerRefrescoPanelSuperAdmin() {
             if (intervaloRapidoClave) {

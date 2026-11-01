@@ -59,12 +59,16 @@ def calcular_estadisticas_agregadas(datos, meta=200.0, umbral_stock=100):
 
 
 def calcular_estadisticas_supabase(meta, umbral_stock):
-    url = os.environ.get("SUPABASE_URL")
-    key = os.environ.get("SUPABASE_KEY")
-    if not url or not key:
-        raise RuntimeError("Supabase no configurado.")
-    from supabase import Client, create_client
-    supabase: Client = create_client(url, key)
+    try:
+        from backend.datos_supabase import obtener_cliente_supabase
+        supabase = obtener_cliente_supabase()
+    except Exception:
+        url = os.environ.get("SUPABASE_URL")
+        key = os.environ.get("SUPABASE_KEY")
+        if not url or not key:
+            raise RuntimeError("Supabase no configurado.")
+        from supabase import Client, create_client
+        supabase: Client = create_client(url, key)
     respuesta = supabase.rpc("estadisticas_dashboard", {
         "meta_venta": meta,
         "umbral_inventario": umbral_stock,

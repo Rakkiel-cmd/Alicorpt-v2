@@ -1,8 +1,13 @@
+import os
+os.environ["MALLOC_ARENA_MAX"] = "2"
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+import gc
+
 from flask import Flask, send_from_directory, request, jsonify, session
 import cv2
 import numpy as np
 import base64
-import os
 import hmac
 from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
@@ -717,16 +722,10 @@ def predecir_ventas():
         except Exception as e_rpc:
             print("[!] Aviso consultando RPC estadisticas_dashboard en predecir_ventas:", e_rpc)
 
-        # 2. Respaldo calculando directamente desde las transacciones de Supabase
+        # 2. Respaldo en memoria ultra-rápido (0 MB RAM en Render)
         if stats is None:
-            try:
-                from backend.datos_supabase import obtener_transacciones
-                from backend.estadistica_service import calcular_estadisticas
-                df = obtener_transacciones()
-                stats = calcular_estadisticas(df)
-            except Exception:
-                from backend.estadistica_service import calcular_estadisticas_memoria
-                stats = calcular_estadisticas_memoria(200.0, 100.0)
+            from backend.estadistica_service import calcular_estadisticas_memoria
+            stats = calcular_estadisticas_memoria(200.0, 100.0)
 
         # Usar el modelo entrenado con los datos reales
         from backend.ventas_extra import _obtener_modelo

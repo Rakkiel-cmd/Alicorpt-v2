@@ -37,14 +37,16 @@ def _limite_datos():
 
 
 def _cargar_datos_supabase(limite):
-    url = os.environ.get("SUPABASE_URL")
-    key = os.environ.get("SUPABASE_KEY")
-    if not url or not key:
-        raise RuntimeError("Supabase no configurado.")
-
-    from supabase import Client, create_client
-
-    supabase: Client = create_client(url, key)
+    try:
+        from backend.datos_supabase import obtener_cliente_supabase
+        supabase = obtener_cliente_supabase()
+    except Exception:
+        url = os.environ.get("SUPABASE_URL")
+        key = os.environ.get("SUPABASE_KEY")
+        if not url or not key:
+            raise RuntimeError("Supabase no configurado.")
+        from supabase import Client, create_client
+        supabase: Client = create_client(url, key)
     filas = []
     tamano_lote = 1000
     for inicio in range(0, limite, tamano_lote):

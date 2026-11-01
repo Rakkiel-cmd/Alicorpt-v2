@@ -41,75 +41,82 @@ def obtener_cliente_supabase():
 
 def descargar_todos_de_supabase():
     """
-    Descarga los 100,000 registros completos directamente desde la API REST
-    de la tabla transacciones_alicorp en Supabase en lotes concurrentes.
-    Cumple con la norma de privacidad: los datos viajan por API y no se guardan en el repositorio.
+    Descarga registros directamente desde la API REST de transacciones_alicorp en Supabase.
+    En entornos con memoria restringida (como Render Free 512MB RAM), limita la descarga
+    a un bloque muestral optimizado para evitar desbordamiento de memoria (OOM).
     """
     sb = obtener_cliente_supabase()
-    print("[*] Conectando a la API de Supabase para consultar los 100,000 registros...")
+    es_render = bool(os.environ.get("RENDER")) or os.environ.get("MODO_MEMORIA_LIGERA", "1") == "1"
+    max_filas = 2000 if es_render else 100000
+    limite_trabajadores = 2 if es_render else 4
+
+    print(f"[*] Conectando a Supabase para cargar {max_filas} registros (Render: {es_render})...")
     t0 = time.time()
-    from supabase import create_client
 
     def fetch_chunk(start):
         for intento in range(3):
             try:
-                sb_local = create_client(SUPABASE_URL, SUPABASE_KEY)
                 res = (
-                    sb_local.table("transacciones_alicorp")
+                    sb.table("transacciones_alicorp")
                     .select("fecha,producto,tienda,precio_unitario,stock_actual,temperatura_zona,cantidad_vendida,ventas_totales")
                     .range(start, start + 999)
                     .execute()
                 )
-                return res.data
+                return res.data or []
             except Exception as e:
                 if intento == 2:
-                    raise e
-                time.sleep(0.4)
+                    print(f"[!] Error descargando chunk {start}: {e}")
+                    return []
+                time.sleep(0.3)
+        return []
 
-    chunks = list(range(0, 100000, 1000))
-    with ThreadPoolExecutor(max_workers=8) as ex:
+    chunks = list(range(0, max_filas, 1000))
+    with ThreadPoolExecutor(max_workers=limite_trabajadores) as ex:
         results = list(ex.map(fetch_chunk, chunks))
 
-    all_rows = [row for chunk in results for row in chunk]
+    all_rows = [row for chunk in results for row in chunk if row]
+    if not all_rows:
+        return pd.DataFrame(columns=[
+            "fecha", "producto", "tienda", "precio_unitario",
+            "stock_actual", "temperatura_zona", "cantidad_vendida", "ventas_totales"
+        ])
+
     df = pd.DataFrame(all_rows)
-    # Asegurar tipos numericos
-    df["precio_unitario"] = df["precio_unitario"].astype(float)
-    df["stock_actual"] = df["stock_actual"].astype(int)
-    df["temperatura_zona"] = df["temperatura_zona"].astype(float)
-    df["cantidad_vendida"] = df["cantidad_vendida"].astype(int)
-    df["ventas_totales"] = df["ventas_totales"].astype(float)
+    df["precio_unitario"] = pd.to_numeric(df["precio_unitario"], errors="coerce").fillna(8.0)
+    df["stock_actual"] = pd.to_numeric(df["stock_actual"], errors="coerce").fillna(200).astype(int)
+    df["temperatura_zona"] = pd.to_numeric(df["temperatura_zona"], errors="coerce").fillna(24.0)
+    df["cantidad_vendida"] = pd.to_numeric(df["cantidad_vendida"], errors="coerce").fillna(15).astype(int)
+    df["ventas_totales"] = pd.to_numeric(df["ventas_totales"], errors="coerce").fillna(120.0)
 
-    # Persistir unicamente en memoria temporal de ejecucion (/tmp) fuera del repositorio
-    try:
-        df.to_parquet(ARCHIVO_CACHE_PARQUET, index=False)
-        print(f"[OK] 100,000 registros obtenidos de la API de Supabase en {time.time()-t0:.2f}s.")
-    except Exception as e:
-        print("[!] Aviso al guardar cache en /tmp:", e)
+    if not es_render:
+        try:
+            df.to_parquet(ARCHIVO_CACHE_PARQUET, index=False)
+        except Exception:
+            pass
 
+    print(f"[OK] {len(df)} registros obtenidos de Supabase en {time.time()-t0:.2f}s.")
     return df
 
 
 def obtener_transacciones():
     """
-    Retorna el DataFrame con los 100,000 registros descargados via API desde Supabase.
-    Mantiene los datos en memoria RAM (apenas ~8 MB) para respuesta inmediata sin exponer
-    archivos de datos privados en el repositorio Git.
+    Retorna el DataFrame con los registros descargados via API desde Supabase.
+    Mantiene los datos en memoria RAM ligera (< 5 MB) para respuesta inmediata.
     """
     global _df_cache
     with _candado_datos:
-        if _df_cache is not None:
+        if _df_cache is not None and not _df_cache.empty:
             return _df_cache
 
-        # 1. Si existe cache temporal en /tmp (creado en tiempo de ejecucion), usarlo
-        if os.path.exists(ARCHIVO_CACHE_PARQUET):
+        es_render = bool(os.environ.get("RENDER")) or os.environ.get("MODO_MEMORIA_LIGERA", "1") == "1"
+        if not es_render and os.path.exists(ARCHIVO_CACHE_PARQUET):
             try:
                 _df_cache = pd.read_parquet(ARCHIVO_CACHE_PARQUET)
-                if len(_df_cache) >= 100000:
+                if len(_df_cache) >= 10000:
                     return _df_cache
             except Exception as e:
                 print("[!] Aviso leyendo cache temporal:", e)
 
-        # 2. Descargar directamente desde la API de Supabase
         _df_cache = descargar_todos_de_supabase()
         return _df_cache
 
