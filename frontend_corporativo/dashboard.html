@@ -54,7 +54,19 @@
         button { font-family: inherit; }
 
         /* ===== MENÚ LATERAL ===== */
-        .sidebar { position: fixed; top: 0; left: 0; bottom: 0; width: var(--sidebar-w); background: var(--primary); color: #cbd5e1; display: flex; flex-direction: column; padding: 24px 16px; z-index: 60; transition: transform .3s ease; }
+        .sidebar {
+            position: fixed; top: 0; left: 0; bottom: 0; width: var(--sidebar-w);
+            background: var(--primary); color: #cbd5e1; display: flex; flex-direction: column;
+            padding: 20px 16px 24px; z-index: 60; transition: transform .3s ease;
+            overflow-y: auto; overflow-x: hidden;
+            scrollbar-width: thin; scrollbar-color: rgba(56, 189, 248, 0.4) rgba(15, 23, 42, 0.6);
+        }
+        .sidebar::-webkit-scrollbar { width: 6px; }
+        .sidebar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); border-radius: 4px; }
+        .sidebar::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.4); border-radius: 4px; }
+        .sidebar::-webkit-scrollbar-thumb:hover { background: #38bdf8; }
+        .sb-brand, .sb-tag, .sb-menu { flex-shrink: 0; }
+        .sb-foot { flex-shrink: 0; margin-top: auto; padding-top: 14px; padding-bottom: 12px; border-top: 1px solid rgba(255,255,255,0.08); }
         .sb-brand { font-weight: 800; font-size: 22px; color: #fff; letter-spacing: -0.5px; padding: 0 10px 4px; }
         .sb-brand span { color: #38bdf8; }
         .sb-tag { padding: 0 10px 24px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; }
@@ -484,6 +496,43 @@
             display: inline-flex;
             align-items: center;
             gap: 10px;
+        }
+        .btn-top-logout {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            background: rgba(220, 38, 38, 0.1);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1.5px solid rgba(239, 68, 68, 0.45);
+            color: #ef4444;
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            box-shadow: 0 4px 14px rgba(220, 38, 38, 0.12);
+            transition: all .25s ease;
+            user-select: none;
+        }
+        .btn-top-logout:hover {
+            background: #dc2626;
+            border-color: #dc2626;
+            color: #ffffff;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(220, 38, 38, 0.35);
+        }
+        .btn-top-logout .ico { font-size: 15px; }
+        body.dark-mode .btn-top-logout {
+            background: rgba(15, 23, 42, 0.88);
+            border: 1px solid rgba(239, 68, 68, 0.5);
+            color: #fca5a5;
+        }
+        body.dark-mode .btn-top-logout:hover {
+            background: #dc2626;
+            border-color: #dc2626;
+            color: #ffffff;
         }
         .btn-volver-web {
             display: inline-flex;
@@ -1016,11 +1065,15 @@
 <body>
     <button class="menu-toggle" id="menuToggle" aria-label="Abrir menú">☰</button>
 
-    <!-- ================= BARRA SUPERIOR (VOLVER A WEB & MODO OSCURO) ================= -->
+    <!-- ================= BARRA SUPERIOR (VOLVER A WEB & MODO OSCURO & CERRAR SESION) ================= -->
     <div class="top-nav-bar" id="topNavBar">
         <a href="index.html" class="btn-volver-web" id="btnVolverWeb" title="Regresar al portal principal de Alicorp">
             <span class="ico">🌐</span>
             <span class="txt">Volver a Web Inicial</span>
+        </a>
+        <a href="index.html" class="btn-top-logout" id="btnTopLogout" title="Cerrar sesión activa de forma segura">
+            <span class="ico">🚪</span>
+            <span class="txt">Cerrar sesión</span>
         </a>
         <button type="button" class="theme-toggle-btn" id="themeToggleBtn" aria-label="Cambiar tema claro/oscuro" title="Cambiar a Modo Oscuro">
             <span class="theme-icon" id="themeIcon">🌙</span>
@@ -5069,20 +5122,24 @@ function rfComparar() {
             }
         });
 
-        // Limpiar sesión en logout
-        const btnLogoutEl = $('btnLogout');
-        if (btnLogoutEl) {
-            btnLogoutEl.addEventListener('click', () => {
-                enviarLatidoActividad();
-                try {
-                    sessionStorage.removeItem('usuario_activo');
-                    localStorage.removeItem('usuario_activo');
-                    sessionStorage.removeItem('empleado_desbloqueado');
-                    localStorage.removeItem('empleado_desbloqueado');
-                    sessionStorage.clear();
-                } catch (e) {}
-            });
-        }
+        // Limpiar sesión en logout (sidebar y barra superior)
+        ['btnLogout', 'btnTopLogout'].forEach(id => {
+            const btn = $(id);
+            if (btn) {
+                btn.addEventListener('click', () => {
+                    enviarLatidoActividad();
+                    try {
+                        sessionStorage.removeItem('usuario_activo');
+                        localStorage.removeItem('usuario_activo');
+                        sessionStorage.removeItem('empleado_desbloqueado');
+                        localStorage.removeItem('empleado_desbloqueado');
+                        sessionStorage.removeItem('llave_personal_activa');
+                        localStorage.removeItem('llave_personal_activa');
+                        sessionStorage.clear();
+                    } catch (e) {}
+                });
+            }
+        });
 
         /* ===== LÓGICA DE SEGURIDAD Y CONTROL DE LLAVE SECRETA (SUPER ADMIN) ===== */
         let claveAccesoActual = '784920';

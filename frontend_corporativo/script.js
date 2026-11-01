@@ -24,28 +24,29 @@ function mostrarToastSeguridad(mensaje) {
     }, 4000);
 }
 
-// Flag en memoria de la página actual: solo es true si se ingresó con ?key=... válida en esta carga
+// Flag en memoria y evaluador de estado de desbloqueo
 let keyValidadaEnEstaCarga = false;
+
+function estaEmpleadoAutorizado() {
+    if (keyValidadaEnEstaCarga) return true;
+    if (sessionStorage.getItem('empleado_desbloqueado') === 'true') return true;
+    if (localStorage.getItem('empleado_desbloqueado') === 'true') {
+        const ts = parseInt(localStorage.getItem('empleado_desbloqueado_timestamp') || '0', 10);
+        if (ts && (Date.now() - ts) < 8 * 3600 * 1000) {
+            return true;
+        }
+    }
+    return false;
+}
 
 // Verifica si vino una key en la URL (?key=... o ?clave=...) y la valida en el backend
 async function verificarKeyUrl() {
     try {
-        // Limpiar siempre cualquier residuo antiguo en localStorage para evitar que quede pegado
-        localStorage.removeItem('empleado_desbloqueado');
-
         const urlObj = new URL(window.location.href);
         const params = urlObj.searchParams;
         const key = params.get('key') || params.get('clave') || params.get('access') || params.get('token');
 
         if (key) {
-            // Limpiar inmediatamente la URL para que no quede visible en el navegador ni historial
-            params.delete('key');
-            params.delete('clave');
-            params.delete('access');
-            params.delete('token');
-            const nuevaUrl = urlObj.pathname + (params.toString() ? '?' + params.toString() : '') + urlObj.hash;
-            window.history.replaceState({}, document.title, nuevaUrl);
-
             // Validar la key en el backend de Python / Supabase
             const resp = await fetch('/api/seguridad/validar_key', {
                 method: 'POST',
@@ -56,21 +57,36 @@ async function verificarKeyUrl() {
             const data = await resp.json();
             if (resp.ok && data.success && data.desbloqueado) {
                 keyValidadaEnEstaCarga = true;
+                const keyLimpia = key.trim();
                 sessionStorage.setItem('empleado_desbloqueado', 'true');
+                sessionStorage.setItem('llave_personal_activa', keyLimpia);
+                localStorage.setItem('empleado_desbloqueado', 'true');
+                localStorage.setItem('empleado_desbloqueado_timestamp', Date.now().toString());
+                localStorage.setItem('llave_personal_activa', keyLimpia);
+
+                // Limpiar la URL para que no quede visible
+                params.delete('key');
+                params.delete('clave');
+                params.delete('access');
+                params.delete('token');
+                const nuevaUrl = urlObj.pathname + (params.toString() ? '?' + params.toString() : '') + urlObj.hash;
+                window.history.replaceState({}, document.title, nuevaUrl);
+
                 mostrarToastSeguridad('🔑 Acceso de Personal Autorizado desbloqueado');
                 inicializarNavbarSesion();
                 return true;
             } else {
                 keyValidadaEnEstaCarga = false;
                 sessionStorage.removeItem('empleado_desbloqueado');
+                sessionStorage.removeItem('llave_personal_activa');
+                localStorage.removeItem('empleado_desbloqueado');
+                localStorage.removeItem('llave_personal_activa');
                 console.warn("Llave de acceso no válida.");
             }
         } else {
-            // Si entró a la página pública SIN ?key=... en la URL:
-            keyValidadaEnEstaCarga = false;
-            const haySesion = !!(sessionStorage.getItem('usuario_activo') || localStorage.getItem('usuario_activo'));
-            if (!haySesion) {
-                sessionStorage.removeItem('empleado_desbloqueado');
+            // Si no vino key en la URL, comprobamos si ya estaba desbloqueado previamente en esta sesión
+            if (estaEmpleadoAutorizado()) {
+                keyValidadaEnEstaCarga = true;
             }
         }
     } catch (e) {
@@ -93,7 +109,7 @@ function inicializarNavbarSesion() {
     }
 
     const estaLogueado = !!(sesion && (sesion.usuario || sesion.nombre_completo));
-    const estaDesbloqueado = keyValidadaEnEstaCarga;
+    const estaDesbloqueado = estaEmpleadoAutorizado();
 
     const navActionsContainers = document.querySelectorAll('.nav-actions');
     if (!navActionsContainers || navActionsContainers.length === 0) return;
@@ -115,7 +131,9 @@ function inicializarNavbarSesion() {
 
         // CASO A: Está desbloqueado por llave en esta carga pero AÚN NO ha iniciado sesión
         if (!estaLogueado) {
-            container.innerHTML = `<a href="admin_login.html" class="btn-outline">Personal Autorizado</a>`;
+            const keyActiva = sessionStorage.getItem('llave_personal_activa') || localStorage.getItem('llave_personal_activa') || '';
+            const queryKey = keyActiva ? `?key=${encodeURIComponent(keyActiva)}` : '';
+            container.innerHTML = `<a href="admin_login.html${queryKey}" class="btn-outline">Personal Autorizado</a>`;
             return;
         }
 
@@ -181,6 +199,8 @@ function inicializarNavbarSesion() {
                     // Al cerrar sesión, también re-bloqueamos para que vuelva a estar 100% oculto para clientes
                     sessionStorage.removeItem('empleado_desbloqueado');
                     localStorage.removeItem('empleado_desbloqueado');
+                    sessionStorage.removeItem('llave_personal_activa');
+                    localStorage.removeItem('llave_personal_activa');
                 } catch (err) {
                     console.warn("Error limpiando sesión:", err);
                 }
