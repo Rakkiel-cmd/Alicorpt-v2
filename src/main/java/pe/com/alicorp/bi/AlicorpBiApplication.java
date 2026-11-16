@@ -329,27 +329,6 @@ public class AlicorpBiApplication {
             ctx.json(Map.of("success", true, "historial", motorSeguridad.obtenerHistorialActividad3FN(usuario)));
         });
 
-        app.get("/api/superadmin/vector", ctx -> {
-            String target = ctx.queryParam("usuario");
-            Map<String, Object> p = motorSeguridad.obtenerPerfilUsuario3FN(target);
-            if (p == null) {
-                ctx.status(404).json(Map.of("success", false, "message", "Usuario no encontrado."));
-                return;
-            }
-            double[] vec = motorBiometria.parsearVectorJson(String.valueOf(p.get("face_encoding")));
-            List<Double> lista = new ArrayList<>();
-            if (vec != null) {
-                for (double v : vec) lista.add(v);
-            }
-            ctx.json(Map.of(
-                "success", true,
-                "usuario", p.get("usuario"),
-                "nombre_completo", p.get("nombre_completo"),
-                "l2_norm", vec != null ? motorBiometria.calcularNormaL2(vec) : 0.0,
-                "face_encoding", lista
-            ));
-        });
-
         app.post("/api/superadmin/suspender", ctx -> {
             Map<String, Object> body = ctx.bodyAsClass(Map.class);
             String admin = String.valueOf(body.getOrDefault("admin_usuario", body.getOrDefault("solicitante", "")));

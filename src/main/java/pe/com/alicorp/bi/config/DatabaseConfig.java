@@ -25,13 +25,14 @@ public class DatabaseConfig {
 
     public static synchronized DataSource getDataSource() {
         if (dataSource == null) {
+            java.util.Map<String, String> env = cargarEnvOpcional();
             HikariConfig config = new HikariConfig();
-            String jdbcUrl = System.getenv().getOrDefault(
+            String jdbcUrl = env.getOrDefault(
                     "JDBC_URL",
                     "jdbc:h2:file:./data/alicorp_3fn_relacional;MODE=Oracle;DATABASE_TO_UPPER=TRUE;DB_CLOSE_DELAY=-1"
             );
-            String jdbcUser = System.getenv().getOrDefault("JDBC_USER", "ADMIN");
-            String jdbcPass = System.getenv().getOrDefault("JDBC_PASSWORD", "Alicorp3FN2026");
+            String jdbcUser = env.getOrDefault("JDBC_USER", "ADMIN");
+            String jdbcPass = env.getOrDefault("JDBC_PASSWORD", "Alicorp3FN2026");
 
             config.setJdbcUrl(jdbcUrl);
             config.setUsername(jdbcUser);
@@ -44,6 +45,24 @@ public class DatabaseConfig {
             inicializarEsquema3FN();
         }
         return dataSource;
+    }
+
+    private static java.util.Map<String, String> cargarEnvOpcional() {
+        java.util.Map<String, String> mapa = new java.util.HashMap<>(System.getenv());
+        Path envPath = Path.of(".env");
+        if (Files.exists(envPath)) {
+            try {
+                for (String linea : Files.readAllLines(envPath)) {
+                    String l = linea.trim();
+                    if (l.isEmpty() || l.startsWith("#") || !l.contains("=")) continue;
+                    int idx = l.indexOf('=');
+                    String k = l.substring(0, idx).trim();
+                    String v = l.substring(idx + 1).trim();
+                    if (!v.isEmpty()) mapa.putIfAbsent(k, v);
+                }
+            } catch (Exception ignored) {}
+        }
+        return mapa;
     }
 
     private static void inicializarEsquema3FN() {
