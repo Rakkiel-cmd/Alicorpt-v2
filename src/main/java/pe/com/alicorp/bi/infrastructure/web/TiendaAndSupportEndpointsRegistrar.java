@@ -344,20 +344,25 @@ public class TiendaAndSupportEndpointsRegistrar {
             ctx.json(Map.of("success", true));
         });
 
-        app.get("/api/fallas_web", ctx -> ctx.json(Map.of("success", true, "fuente", "Supabase PostgreSQL (3FN)", "fallas", listarFallasWeb())));
-        app.get("/api/fallas_web/escanear", ctx -> ctx.json(Map.of("success", true, "fuente", "Supabase PostgreSQL (3FN)", "fallas", listarFallasWeb())));
+        app.get("/api/fallas_web", ctx -> ctx.json(Map.of("success", true, "fuente", "Supabase PostgreSQL (3FN)", "fallas", listarFallasWeb(false))));
+        app.get("/api/fallas_web/escanear", ctx -> ctx.json(Map.of("success", true, "fuente", "Supabase PostgreSQL (3FN)", "fallas", listarFallasWeb(true))));
+        app.post("/api/fallas_web/escanear", ctx -> ctx.json(Map.of("success", true, "fuente", "Supabase PostgreSQL (3FN)", "fallas", listarFallasWeb(true))));
 
         app.post("/api/fallas_web/reportar", ctx -> {
             Map<String, Object> body = ctx.bodyAsClass(Map.class);
-            String ruta = String.valueOf(body.getOrDefault("ruta", "/"));
-            String tipo = String.valueOf(body.getOrDefault("tipo", "frontend"));
-            String msg = String.valueOf(body.getOrDefault("mensaje", "Error reportado"));
+            String ruta = String.valueOf(body.getOrDefault("ruta", body.getOrDefault("origen", "/")));
+            String tipo = String.valueOf(body.getOrDefault("tipo", body.getOrDefault("tipo_falla", "Error Web")));
+            String msg = String.valueOf(body.getOrDefault("mensaje", body.getOrDefault("titulo_error", "Error reportado")));
+            String det = String.valueOf(body.getOrDefault("detalle_tecnico", ""));
+            String grav = String.valueOf(body.getOrDefault("gravedad", "Media"));
             try (Connection conn = DatabaseConfig.getDataSource().getConnection();
                  PreparedStatement ps = conn.prepareStatement(
-                         "INSERT INTO FALLAS_WEB_SISTEMA (ruta, tipo, mensaje) VALUES (?, ?, ?)")) {
+                         "INSERT INTO FALLAS_WEB_SISTEMA (ruta, tipo, gravedad, mensaje, detalle_tecnico) VALUES (?, ?, ?, ?, ?)")) {
                 ps.setString(1, ruta);
                 ps.setString(2, tipo);
-                ps.setString(3, msg);
+                ps.setString(3, grav);
+                ps.setString(4, msg);
+                ps.setString(5, det);
                 ps.executeUpdate();
             }
             ctx.json(Map.of("success", true));
@@ -365,13 +370,24 @@ public class TiendaAndSupportEndpointsRegistrar {
 
         app.post("/api/fallas_web/cambiar_estado", ctx -> {
             Map<String, Object> body = ctx.bodyAsClass(Map.class);
-            int id = ((Number) body.get("id")).intValue();
-            String estado = String.valueOf(body.getOrDefault("estado", "resuelto"));
-            try (Connection conn = DatabaseConfig.getDataSource().getConnection();
-                 PreparedStatement ps = conn.prepareStatement("UPDATE FALLAS_WEB_SISTEMA SET estado = ? WHERE id_falla = ?")) {
-                ps.setString(1, estado);
-                ps.setInt(2, id);
-                ps.executeUpdate();
+            int id = parseIntOrDefault(String.valueOf(body.getOrDefault("id", "-1")), -1);
+            String cod = String.valueOf(body.getOrDefault("codigo_unico", "")).trim();
+            String estUi = String.valueOf(body.getOrDefault("estado", "resuelto")).trim().toLowerCase();
+            String estDb = "resuelto".equals(estUi) ? "resuelto" : ("en_proceso".equals(estUi) || "en_revision".equals(estUi) ? "en_revision" : "pendiente");
+            try (Connection conn = DatabaseConfig.getDataSource().getConnection()) {
+                if (id > 0) {
+                    try (PreparedStatement ps = conn.prepareStatement("UPDATE FALLAS_WEB_SISTEMA SET estado = ? WHERE id_falla = ?")) {
+                        ps.setString(1, estDb);
+                        ps.setInt(2, id);
+                        ps.executeUpdate();
+                    }
+                } else if (!cod.isEmpty()) {
+                    try (PreparedStatement ps = conn.prepareStatement("UPDATE FALLAS_WEB_SISTEMA SET estado = ? WHERE codigo_unico = ?")) {
+                        ps.setString(1, estDb);
+                        ps.setString(2, cod);
+                        ps.executeUpdate();
+                    }
+                }
             }
             ctx.json(Map.of("success", true));
         });
@@ -777,20 +793,65 @@ public class TiendaAndSupportEndpointsRegistrar {
         return lista;
     }
 
-    private static List<Map<String, Object>> listarFallasWeb() throws SQLException {
+    private static List<Map<String, Object>> listarFallasWeb(boolean ejecutarEscaneo) throws SQLException {
         List<Map<String, Object>> lista = new ArrayList<>();
-        try (Connection conn = DatabaseConfig.getDataSource().getConnection();
-             PreparedStatement ps = conn.prepareStatement("SELECT * FROM FALLAS_WEB_SISTEMA ORDER BY fecha_reporte DESC");
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                Map<String, Object> m = new LinkedHashMap<>();
-                m.put("id", rs.getInt("id_falla"));
-                m.put("ruta", rs.getString("ruta"));
-                m.put("tipo", rs.getString("tipo"));
-                m.put("mensaje", rs.getString("mensaje"));
-                m.put("estado", rs.getString("estado"));
-                m.put("fecha", rs.getTimestamp("fecha_reporte").toInstant().toString());
-                lista.add(m);
+        try (Connection conn = DatabaseConfig.getDataSource().getConnection()) {
+            if (ejecutarEscaneo) {
+                int bajos = 0;
+                List<String> skusBajos = new ArrayList<>();
+                try (PreparedStatement psS = conn.prepareStatement(
+                        "SELECT sku_codigo, nombre_producto, stock_disponible FROM PRODUCTOS WHERE stock_disponible <= 180 ORDER BY stock_disponible ASC FETCH FIRST 6 ROWS ONLY");
+                     ResultSet rsS = psS.executeQuery()) {
+                    while (rsS.next()) {
+                        bajos++;
+                        skusBajos.add(rsS.getString("nombre_producto") + " [" + rsS.getString("sku_codigo") + ": " + rsS.getInt("stock_disponible") + " und.]");
+                    }
+                }
+                if (bajos > 0) {
+                    try (PreparedStatement psCnt = conn.prepareStatement("SELECT COUNT(*) FROM PRODUCTOS WHERE stock_disponible <= 180");
+                         ResultSet rsC = psCnt.executeQuery()) {
+                        if (rsC.next()) bajos = rsC.getInt(1);
+                    }
+                    String titulo = "Escasez de inventario: " + bajos + " productos por debajo del stock de seguridad mayorista (<= 180 und.)";
+                    String det = "SKUs con menor inventario actual: " + String.join(", ", skusBajos);
+                    try (PreparedStatement psUp = conn.prepareStatement(
+                            "UPDATE FALLAS_WEB_SISTEMA SET mensaje = ?, detalle_tecnico = ?, ocurrencias = ocurrencias + 1, fecha_reporte = CURRENT_TIMESTAMP WHERE codigo_unico = 'inventario-escasez-stock-minimo'")) {
+                        psUp.setString(1, titulo);
+                        psUp.setString(2, det);
+                        if (psUp.executeUpdate() == 0) {
+                            try (PreparedStatement psIn = conn.prepareStatement(
+                                    "INSERT INTO FALLAS_WEB_SISTEMA (codigo_unico, ruta, tipo, gravedad, mensaje, detalle_tecnico, ocurrencias, estado) VALUES ('inventario-escasez-stock-minimo', 'Almacén / Control de Stock', 'Escasez de Inventario', 'Alta', ?, ?, 1, 'pendiente')")) {
+                                psIn.setString(1, titulo);
+                                psIn.setString(2, det);
+                                psIn.executeUpdate();
+                            }
+                        }
+                    } catch (Exception ignored) {}
+                }
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement("SELECT * FROM FALLAS_WEB_SISTEMA ORDER BY fecha_reporte DESC");
+                 ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String estRaw = rs.getString("estado");
+                    String estUi = "resuelto".equalsIgnoreCase(estRaw) ? "resuelto"
+                            : ("en_revision".equalsIgnoreCase(estRaw) || "en_proceso".equalsIgnoreCase(estRaw) ? "en_proceso" : "sin_resolver");
+                    String ts = rs.getTimestamp("fecha_reporte").toInstant().toString();
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("id", rs.getInt("id_falla"));
+                    m.put("codigo_unico", rs.getString("codigo_unico") != null ? rs.getString("codigo_unico") : "falla-" + rs.getInt("id_falla"));
+                    m.put("titulo_error", rs.getString("mensaje"));
+                    m.put("detalle_tecnico", rs.getString("detalle_tecnico") != null ? rs.getString("detalle_tecnico") : "");
+                    m.put("tipo_falla", rs.getString("tipo"));
+                    m.put("gravedad", rs.getString("gravedad") != null ? rs.getString("gravedad") : "Media");
+                    m.put("origen", rs.getString("ruta"));
+                    m.put("estado", estUi);
+                    m.put("ocurrencias", rs.getObject("ocurrencias") != null ? rs.getInt("ocurrencias") : 1);
+                    m.put("actualizado_por", "detector_automatico");
+                    m.put("fecha_deteccion", ts);
+                    m.put("ultima_deteccion", ts);
+                    lista.add(m);
+                }
             }
         }
         return lista;
