@@ -3,9 +3,8 @@ package pe.com.alicorp.bi.application.biometria;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.bytedeco.opencv.opencv_core.*;
-import org.bytedeco.opencv.opencv_objdetect.CascadeClassifier;
 
-import static org.bytedeco.opencv.global.opencv_core.*;
+import static org.bytedeco.opencv.global.opencv_core.CV_8UC1;
 import static org.bytedeco.opencv.global.opencv_imgcodecs.*;
 import static org.bytedeco.opencv.global.opencv_imgproc.*;
 

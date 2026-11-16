@@ -1,3 +1,4 @@
+
 package pe.com.alicorp.bi.infrastructure.web;
 
 import io.javalin.Javalin;
@@ -8,7 +9,6 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.sql.*;
-import java.time.LocalDate;
 import java.util.*;
 import java.util.List;
 
@@ -16,6 +16,7 @@ import java.util.List;
  * Registra los endpoints de Tienda en Línea (E-Commerce 3FN), Reportes Mensuales,
  * Competencia, Incidencias de Contacto, Fallas Web y Gráficos Estadísticos PNG nativos en Java.
  */
+@SuppressWarnings("unchecked")
 public class TiendaAndSupportEndpointsRegistrar {
 
     public static void registrar(Javalin app) {
@@ -28,6 +29,8 @@ public class TiendaAndSupportEndpointsRegistrar {
                  PreparedStatement ps = conn.prepareStatement("SELECT COUNT(*) FROM PRODUCTOS WHERE activo = 'S'");
                  ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) totalProductos = rs.getInt(1);
+            } catch (SQLException e) {
+                System.err.println("[!] Error en /api/tienda/estado: " + e.getMessage());
             }
             ctx.json(Map.of(
                     "ok", true,
@@ -65,6 +68,8 @@ public class TiendaAndSupportEndpointsRegistrar {
                             "cantidad", rs.getInt("cantidad")
                     ));
                 }
+            } catch (SQLException e) {
+                System.err.println("[!] Error en /api/tienda/categorias: " + e.getMessage());
             }
             ctx.json(Map.of("ok", true, "categorias", categorias));
         });
@@ -245,6 +250,8 @@ public class TiendaAndSupportEndpointsRegistrar {
                             "items", items
                     )));
                 }
+            } catch (SQLException e) {
+                ctx.status(500).json(Map.of("ok", false, "error", e.getMessage()));
             }
         });
 
@@ -266,6 +273,8 @@ public class TiendaAndSupportEndpointsRegistrar {
                     c.put("fecha", rs.getTimestamp("fecha_compra").toInstant().toString());
                     compras.add(c);
                 }
+            } catch (SQLException e) {
+                System.err.println("[!] Error en /api/tienda/compras: " + e.getMessage());
             }
             ctx.json(Map.of("ok", true, "compras", compras, "total", compras.size()));
         });
@@ -279,6 +288,9 @@ public class TiendaAndSupportEndpointsRegistrar {
                 ps.setString(1, estado);
                 ps.setInt(2, id);
                 ps.executeUpdate();
+            } catch (SQLException e) {
+                ctx.status(500).json(Map.of("ok", false, "error", e.getMessage()));
+                return;
             }
             ctx.json(Map.of("ok", true, "estado", estado));
         });
@@ -302,6 +314,9 @@ public class TiendaAndSupportEndpointsRegistrar {
                 ps.setString(4, asunto);
                 ps.setString(5, mensaje);
                 ps.executeUpdate();
+            } catch (SQLException e) {
+                ctx.status(500).json(Map.of("success", false, "error", e.getMessage()));
+                return;
             }
             ctx.json(Map.of("success", true, "message", "Mensaje registrado en la base de datos relacional."));
         });
@@ -326,6 +341,8 @@ public class TiendaAndSupportEndpointsRegistrar {
                     m.put("fecha_registro", rs.getTimestamp("fecha_creacion").toInstant().toString());
                     lista.add(m);
                 }
+            } catch (SQLException e) {
+                System.err.println("[!] Error en /api/incidencias: " + e.getMessage());
             }
             ctx.json(Map.of("success", true, "fuente", "Supabase PostgreSQL (3FN)", "incidencias", lista));
         });
@@ -340,6 +357,9 @@ public class TiendaAndSupportEndpointsRegistrar {
                 ps.setString(1, estDb);
                 ps.setInt(2, id);
                 ps.executeUpdate();
+            } catch (SQLException e) {
+                ctx.status(500).json(Map.of("success", false, "error", e.getMessage()));
+                return;
             }
             ctx.json(Map.of("success", true));
         });
@@ -364,6 +384,9 @@ public class TiendaAndSupportEndpointsRegistrar {
                 ps.setString(4, msg);
                 ps.setString(5, det);
                 ps.executeUpdate();
+            } catch (SQLException e) {
+                ctx.status(500).json(Map.of("success", false, "error", e.getMessage()));
+                return;
             }
             ctx.json(Map.of("success", true));
         });
@@ -388,6 +411,9 @@ public class TiendaAndSupportEndpointsRegistrar {
                         ps.executeUpdate();
                     }
                 }
+            } catch (SQLException e) {
+                ctx.status(500).json(Map.of("success", false, "error", e.getMessage()));
+                return;
             }
             ctx.json(Map.of("success", true));
         });
@@ -457,6 +483,8 @@ public class TiendaAndSupportEndpointsRegistrar {
                         }
                     }
                 }
+            } catch (SQLException e) {
+                System.err.println("[!] Error en /api/reporte_mensual: " + e.getMessage());
             }
             ctx.json(Map.of(
                     "success", true,
@@ -563,6 +591,8 @@ public class TiendaAndSupportEndpointsRegistrar {
                         }
                     }
                 }
+            } catch (SQLException e) {
+                System.err.println("[!] Error en predecir_futuro: " + e.getMessage());
             }
 
             double margen = datos.isEmpty() ? 0.0 : Math.round((sumaVar / datos.size()) * 100.0) / 100.0;
@@ -604,6 +634,8 @@ public class TiendaAndSupportEndpointsRegistrar {
                     e.put("ventas_historicas", rs.getDouble("ventas_historicas_soles"));
                     empresas.add(e);
                 }
+            } catch (SQLException e) {
+                System.err.println("[!] Error en competencia/empresas: " + e.getMessage());
             }
             ctx.json(Map.of("success", true, "empresas", empresas));
         });
@@ -635,6 +667,8 @@ public class TiendaAndSupportEndpointsRegistrar {
                         }
                     }
                 }
+            } catch (SQLException e) {
+                System.err.println("[!] Error en competencia/simular: " + e.getMessage());
             }
 
             double factorRival = 1.0 - (agresividad / 100.0);
@@ -736,7 +770,7 @@ public class TiendaAndSupportEndpointsRegistrar {
         });
     }
 
-    private static List<Map<String, Object>> consultarProductos(String categoria, String marca, String q, String orden, int pagina, int limite) throws SQLException {
+    private static List<Map<String, Object>> consultarProductos(String categoria, String marca, String q, String orden, int pagina, int limite) {
         List<Map<String, Object>> lista = new ArrayList<>();
         StringBuilder sql = new StringBuilder("""
             SELECT p.sku_codigo, p.nombre_producto, p.marca, p.presentacion, p.stock_disponible,
@@ -789,11 +823,13 @@ public class TiendaAndSupportEndpointsRegistrar {
                     lista.add(item);
                 }
             }
+        } catch (SQLException e) {
+            System.err.println("[!] Error en consultarProductos: " + e.getMessage());
         }
         return lista;
     }
 
-    private static List<Map<String, Object>> listarFallasWeb(boolean ejecutarEscaneo) throws SQLException {
+    private static List<Map<String, Object>> listarFallasWeb(boolean ejecutarEscaneo) {
         List<Map<String, Object>> lista = new ArrayList<>();
         try (Connection conn = DatabaseConfig.getDataSource().getConnection()) {
             if (ejecutarEscaneo) {
@@ -853,6 +889,8 @@ public class TiendaAndSupportEndpointsRegistrar {
                     lista.add(m);
                 }
             }
+        } catch (SQLException e) {
+            System.err.println("[!] Error en listarFallasWeb: " + e.getMessage());
         }
         return lista;
     }

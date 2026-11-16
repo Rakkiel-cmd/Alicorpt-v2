@@ -11,7 +11,7 @@ import pe.com.alicorp.bi.config.DatabaseConfig;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.time.LocalDate;
+import java.sql.SQLException;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.*;
@@ -21,6 +21,7 @@ import java.util.*;
  * Levanta el servidor Javalin, inicializa la Base de Datos Relacional en 3FN y expone todos
  * los endpoints REST manteniendo intacto el frontend_corporativo (HTML/CSS/JS).
  */
+@SuppressWarnings("unchecked")
 public class AlicorpBiApplication {
 
     private static final ZoneOffset ZONA_PERU = ZoneOffset.ofHours(-5);
@@ -320,6 +321,8 @@ public class AlicorpBiApplication {
             int limite = ctx.queryParamAsClass("limite", Integer.class).getOrDefault(2500);
             try (Connection conn = DatabaseConfig.getDataSource().getConnection()) {
                 ctx.json(motorSmile.ejecutarSegmentacionKMeans(conn, clusters, limite));
+            } catch (Exception e) {
+                ctx.status(500).json(Map.of("error", e.getMessage()));
             }
         });
 
@@ -421,6 +424,9 @@ public class AlicorpBiApplication {
                  PreparedStatement ps = conn.prepareStatement("UPDATE ADMINISTRADORES SET id_rol = 1 WHERE LOWER(usuario) = LOWER(?)")) {
                 ps.setString(1, objetivo);
                 ps.executeUpdate();
+            } catch (SQLException e) {
+                ctx.status(500).json(Map.of("success", false, "message", "Error al actualizar rol: " + e.getMessage()));
+                return;
             }
             ctx.json(Map.of("success", true, "message", "Rol cambiado a Analista."));
         });
@@ -439,6 +445,9 @@ public class AlicorpBiApplication {
                 ps.setString(1, email);
                 ps.setString(2, objetivo);
                 ps.executeUpdate();
+            } catch (SQLException e) {
+                ctx.status(500).json(Map.of("success", false, "message", "Error al actualizar correo: " + e.getMessage()));
+                return;
             }
             ctx.json(Map.of("success", true, "message", "Correo actualizado."));
         });

@@ -4,11 +4,13 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
 import javax.sql.DataSource;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDate;
 import java.util.Random;
@@ -68,7 +70,7 @@ public class DatabaseConfig {
                     String v = l.substring(idx + 1).trim();
                     if (!v.isEmpty()) mapa.putIfAbsent(k, v);
                 }
-            } catch (Exception ignored) {}
+            } catch (IOException ignored) {}
         }
         return mapa;
     }
@@ -82,7 +84,7 @@ public class DatabaseConfig {
                 if (rs.next() && rs.getInt(1) > 0) {
                     return;
                 }
-            } catch (Exception ignored) {}
+            } catch (SQLException ignored) {}
 
             Path rutaSql = Path.of("database", "esquema_relacional_3fn.sql");
             if (Files.exists(rutaSql)) {
@@ -100,12 +102,12 @@ public class DatabaseConfig {
                     poblarCatalogosMaestros3FN(conn);
                 }
             }
-        } catch (Exception e) {
+        } catch (SQLException | IOException e) {
             System.err.println("[!] Error inicializando esquema 3FN: " + e.getMessage());
         }
     }
 
-    private static void poblarCatalogosMaestros3FN(Connection conn) throws Exception {
+    private static void poblarCatalogosMaestros3FN(Connection conn) throws SQLException {
         conn.setAutoCommit(false);
         try (Statement st = conn.createStatement()) {
             // 1. Roles de Seguridad (PK: id_rol)

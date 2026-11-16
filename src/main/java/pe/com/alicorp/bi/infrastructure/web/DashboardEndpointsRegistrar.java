@@ -10,12 +10,14 @@ import pe.com.alicorp.bi.config.DatabaseConfig;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.*;
 
 /**
  * Registra todos los endpoints analíticos, de simulación competitiva y de administración
  * consultando exclusivamente las tablas normalizadas en 3ra Forma Normal (3FN) con JOINs estrictos.
  */
+@SuppressWarnings("unchecked")
 public class DashboardEndpointsRegistrar {
 
     public static void registrarRutas(
@@ -88,6 +90,8 @@ public class DashboardEndpointsRegistrar {
                         tiendas.add(m);
                     }
                 }
+            } catch (SQLException e) {
+                System.err.println("[!] Error en resumen_productos: " + e.getMessage());
             }
 
             Map<String, Object> resp = new LinkedHashMap<>();
@@ -106,18 +110,20 @@ public class DashboardEndpointsRegistrar {
         });
 
         // 2. Predicción general de ventas y explicación del modelo
-        app.post("/api/predecir_ventas", ctx -> ctx.json(Map.of(
-            "success", true,
-            "total_registros", 100000,
-            "media_ventas", 138.20,
-            "mediana_ventas", 119.00,
-            "desviacion_ventas", 74.07,
-            "varianza", 5486.18,
-            "prob_venta_mayor_meta", 0.2019,
-            "mse", 1210.02,
-            "r2", 0.7798,
-            "prediccion_resultado", 139.42
-        )));
+        app.post("/api/predecir_ventas", ctx -> {
+            Map<String, Object> predMap = new LinkedHashMap<>();
+            predMap.put("success", true);
+            predMap.put("total_registros", 100000);
+            predMap.put("media_ventas", 138.20);
+            predMap.put("mediana_ventas", 119.00);
+            predMap.put("desviacion_ventas", 74.07);
+            predMap.put("varianza", 5486.18);
+            predMap.put("prob_venta_mayor_meta", 0.2019);
+            predMap.put("mse", 1210.02);
+            predMap.put("r2", 0.7798);
+            predMap.put("prediccion_resultado", 139.42);
+            ctx.json(predMap);
+        });
 
         app.get("/api/explicar_modelo", ctx -> ctx.json(Map.of(
             "success", true,
@@ -203,6 +209,9 @@ public class DashboardEndpointsRegistrar {
                 ps.setString(1, nuevoRol);
                 ps.setString(2, objetivo);
                 ps.executeUpdate();
+            } catch (SQLException e) {
+                ctx.status(500).json(Map.of("success", false, "message", "Error al actualizar rol: " + e.getMessage()));
+                return;
             }
             motorSeguridad.registrarAuditoria3FN(admin, objetivo, "CAMBIO_ROL_3FN", "Rol actualizado a " + nuevoRol);
             ctx.json(Map.of("success", true, "message", "Rol actualizado en tabla ADMINISTRADORES (FK ROLES_SEGURIDAD)."));

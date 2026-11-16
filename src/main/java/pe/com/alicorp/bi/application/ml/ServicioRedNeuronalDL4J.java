@@ -48,7 +48,7 @@ public class ServicioRedNeuronalDL4J {
         if (archivoH5.exists()) {
             try {
                 this.modeloDl4j = KerasModelImport.importKerasSequentialModelAndWeights(archivoH5.getAbsolutePath(), false);
-            } catch (Exception e) {
+            } catch (java.io.IOException | org.deeplearning4j.nn.modelimport.keras.exceptions.InvalidKerasConfigurationException | org.deeplearning4j.nn.modelimport.keras.exceptions.UnsupportedKerasConfigurationException e) {
                 this.modeloDl4j = null;
             }
         }

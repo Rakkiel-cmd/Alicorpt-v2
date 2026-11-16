@@ -1,7 +1,6 @@
 package pe.com.alicorp.bi.application.ml;
 
 import smile.clustering.KMeans;
-import smile.math.MathEx;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
