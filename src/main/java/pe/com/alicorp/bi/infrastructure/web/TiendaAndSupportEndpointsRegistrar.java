@@ -452,18 +452,117 @@ public class TiendaAndSupportEndpointsRegistrar {
         });
 
         app.get("/api/reporte_mensual/predecir_futuro", ctx -> {
-            int anio = parseIntOrDefault(ctx.queryParam("anio"), LocalDate.now().getYear() + 1);
-            int mes = parseIntOrDefault(ctx.queryParam("mes"), 1);
-            double crecimiento = 1.0 + ((anio - 2024) * 0.045) + (mes * 0.008);
-            double ventasEst = Math.round(64500.0 * crecimiento * 100.0) / 100.0;
-            ctx.json(Map.of(
-                    "success", true,
-                    "anio", anio,
-                    "mes", mes,
-                    "ventas_predichas", ventasEst,
-                    "unidades_predichas", (int) Math.round(ventasEst / 7.2),
-                    "confianza", 91.4
-            ));
+            int anio = parseIntOrDefault(ctx.queryParam("anio"), 2027);
+            int mes = Math.max(1, Math.min(12, parseIntOrDefault(ctx.queryParam("mes"), 1)));
+            String periodo = String.format("%04d-%02d", anio, mes);
+            String[] nombresMes = {"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"};
+            String nombreMes = nombresMes[mes - 1] + " " + anio;
+
+            List<Map<String, Object>> datos = new ArrayList<>();
+            boolean reutilizado = false;
+            double total = 0.0;
+            double sumaVar = 0.0;
+
+            try (Connection conn = DatabaseConfig.getDataSource().getConnection()) {
+                String sqlCheck = """
+                    SELECT p.nombre_producto, p.precio_base, r.precio_estimado, r.variacion_pct, r.ventas_predichas
+                    FROM REPORTES_MENSUALES_PREDICHOS r
+                    INNER JOIN PRODUCTOS p ON r.id_producto = p.id_producto
+                    WHERE r.periodo_mes = ?
+                    ORDER BY p.id_producto
+                    """;
+                try (PreparedStatement ps = conn.prepareStatement(sqlCheck)) {
+                    ps.setString(1, periodo);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        while (rs.next()) {
+                            reutilizado = true;
+                            double actual = Math.round(rs.getDouble("precio_base") * 100.0) / 100.0;
+                            double futuro = Math.round(rs.getDouble("precio_estimado") * 100.0) / 100.0;
+                            double varPct = Math.round(rs.getDouble("variacion_pct") * 100.0) / 100.0;
+                            double vtas = Math.round(rs.getDouble("ventas_predichas") * 100.0) / 100.0;
+                            total += vtas;
+                            sumaVar += varPct;
+                            datos.add(Map.of(
+                                    "producto", rs.getString("nombre_producto"),
+                                    "actual", actual,
+                                    "futuro", futuro,
+                                    "variacion", varPct,
+                                    "ventas", vtas,
+                                    "estado", estadoRentabilidadMap(varPct)
+                            ));
+                        }
+                    }
+                }
+
+                if (datos.isEmpty()) {
+                    String sqlProds = """
+                        SELECT p.id_producto, p.nombre_producto, p.precio_base, p.factor_mercado,
+                               SUM(t.ventas_totales) / 24.0 AS venta_mensual_base
+                        FROM PRODUCTOS p
+                        INNER JOIN TRANSACCIONES_ALICORP t ON t.id_producto = p.id_producto
+                        GROUP BY p.id_producto, p.nombre_producto, p.precio_base, p.factor_mercado
+                        ORDER BY p.id_producto
+                        """;
+                    double mesesFuturos = (anio - 2025) * 12.0 + mes;
+                    try (PreparedStatement psP = conn.prepareStatement(sqlProds);
+                         ResultSet rsP = psP.executeQuery()) {
+                        while (rsP.next()) {
+                            int idProd = rsP.getInt("id_producto");
+                            String nom = rsP.getString("nombre_producto");
+                            double actual = Math.round(rsP.getDouble("precio_base") * 100.0) / 100.0;
+                            double factor = rsP.getDouble("factor_mercado");
+                            if (Math.abs(factor) < 0.001) {
+                                factor = (idProd % 2 == 1) ? 0.024 : -0.018;
+                            }
+                            double deriva = factor * (1.0 + (mesesFuturos * 0.035)) + ((mes - 6) * 0.002);
+                            double futuro = Math.round(actual * (1.0 + deriva) * 100.0) / 100.0;
+                            double varPct = Math.round(((futuro - actual) / actual) * 10000.0) / 100.0;
+                            double vtasBase = rsP.getDouble("venta_mensual_base");
+                            double vtas = Math.round(vtasBase * (1.0 + deriva * 0.8 + (anio - 2025) * 0.03) * 100.0) / 100.0;
+                            int unid = (int) Math.round(vtas / Math.max(0.5, futuro));
+                            Map<String, String> estMap = estadoRentabilidadMap(varPct);
+
+                            total += vtas;
+                            sumaVar += varPct;
+                            datos.add(Map.of(
+                                    "producto", nom,
+                                    "actual", actual,
+                                    "futuro", futuro,
+                                    "variacion", varPct,
+                                    "ventas", vtas,
+                                    "estado", estMap
+                            ));
+
+                            try (PreparedStatement psIns = conn.prepareStatement(
+                                    "INSERT INTO REPORTES_MENSUALES_PREDICHOS (periodo_mes, id_producto, precio_estimado, unidades_predichas, ventas_predichas, variacion_pct, estado_rentab) VALUES (?, ?, ?, ?, ?, ?, ?)")) {
+                                psIns.setString(1, periodo);
+                                psIns.setInt(2, idProd);
+                                psIns.setDouble(3, futuro);
+                                psIns.setInt(4, unid);
+                                psIns.setDouble(5, vtas);
+                                psIns.setDouble(6, varPct);
+                                psIns.setString(7, estMap.get("clase"));
+                                psIns.executeUpdate();
+                            } catch (Exception ignored) {}
+                        }
+                    }
+                }
+            }
+
+            double margen = datos.isEmpty() ? 0.0 : Math.round((sumaVar / datos.size()) * 100.0) / 100.0;
+            Map<String, Object> resp = new LinkedHashMap<>();
+            resp.put("success", true);
+            resp.put("anio", anio);
+            resp.put("mes", mes);
+            resp.put("periodo", periodo);
+            resp.put("nombre_mes", nombreMes);
+            resp.put("reutilizado", reutilizado);
+            resp.put("origen", "supabase_postgresql_3fn");
+            resp.put("mensaje", reutilizado ? "Reporte recuperado de REPORTES_MENSUALES_PREDICHOS" : "Nueva predicción guardada en REPORTES_MENSUALES_PREDICHOS");
+            resp.put("total", Math.round(total * 100.0) / 100.0);
+            resp.put("margen", margen);
+            resp.put("datos", datos);
+            ctx.json(resp);
         });
 
         app.get("/api/keras/competencia/empresas", ctx -> {
@@ -752,6 +851,12 @@ public class TiendaAndSupportEndpointsRegistrar {
         } catch (Exception e) {
             return new byte[0];
         }
+    }
+
+    private static Map<String, String> estadoRentabilidadMap(double variacion) {
+        if (variacion > 2.0) return Map.of("clase", "ganancia", "texto", "🟢 Ganancia");
+        if (variacion < -2.0) return Map.of("clase", "perdida", "texto", "🔴 Pérdida");
+        return Map.of("clase", "neutro", "texto", "⚪ Neutro");
     }
 
     private static int parseIntOrDefault(String s, int def) {
