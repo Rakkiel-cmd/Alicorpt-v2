@@ -18,7 +18,7 @@ import java.util.*;
  */
 public class ServicioBiometriaJavaCV {
 
-    public static final double UMBRAL_DISTANCIA = 0.45;
+    public static final double UMBRAL_DISTANCIA = 0.78;
     public static final int DIMENSIONES = 128;
     private static final ObjectMapper MAPPER = new ObjectMapper();
 

@@ -94,16 +94,22 @@ public class DatabaseConfig {
             st.executeUpdate("INSERT INTO CATEGORIAS_PRODUCTO (id_categoria, nombre_categoria) VALUES (4, 'Salsas y Untables')");
 
             // 4. Productos (PK: id_producto, FK: id_categoria -> CATEGORIAS_PRODUCTO)
-            st.executeUpdate("INSERT INTO PRODUCTOS (id_producto, sku_codigo, nombre_producto, id_categoria, precio_base, costo_unitario, factor_mercado) " +
-                    "VALUES (1, 'ALI-PRI-1L', 'Aceite Primor 1L', 1, 8.50, 5.80, 0.0250)");
-            st.executeUpdate("INSERT INTO PRODUCTOS (id_producto, sku_codigo, nombre_producto, id_categoria, precio_base, costo_unitario, factor_mercado) " +
-                    "VALUES (2, 'ALI-BOL-2K', 'Detergente Bolívar 2kg', 2, 12.50, 6.40, -0.0200)");
-            st.executeUpdate("INSERT INTO PRODUCTOS (id_producto, sku_codigo, nombre_producto, id_categoria, precio_base, costo_unitario, factor_mercado) " +
-                    "VALUES (3, 'ALI-CDV-500', 'Fideos Don Vittorio 500g', 3, 4.20, 2.90, 0.0350)");
-            st.executeUpdate("INSERT INTO PRODUCTOS (id_producto, sku_codigo, nombre_producto, id_categoria, precio_base, costo_unitario, factor_mercado) " +
-                    "VALUES (4, 'ALI-HBF-1K', 'Harina Blanca Flor 1kg', 3, 4.80, 4.35, -0.0150)");
-            st.executeUpdate("INSERT INTO PRODUCTOS (id_producto, sku_codigo, nombre_producto, id_categoria, precio_base, costo_unitario, factor_mercado) " +
-                    "VALUES (5, 'ALI-ALA-500', 'Mayonesa Alacena 500g', 4, 7.50, 5.15, 0.0300)");
+            st.executeUpdate("INSERT INTO PRODUCTOS (id_producto, sku_codigo, nombre_producto, marca, presentacion, stock_disponible, id_categoria, precio_base, costo_unitario, factor_mercado) " +
+                    "VALUES (1, 'ALI-PRI-1L', 'Aceite Primor 1L', 'Primor', 'Botella 1 L', 1200, 1, 8.50, 5.80, 0.0250)");
+            st.executeUpdate("INSERT INTO PRODUCTOS (id_producto, sku_codigo, nombre_producto, marca, presentacion, stock_disponible, id_categoria, precio_base, costo_unitario, factor_mercado) " +
+                    "VALUES (2, 'ALI-BOL-2K', 'Detergente Bolívar 2kg', 'Bolívar', 'Bolsa 2 kg', 850, 2, 12.50, 6.40, -0.0200)");
+            st.executeUpdate("INSERT INTO PRODUCTOS (id_producto, sku_codigo, nombre_producto, marca, presentacion, stock_disponible, id_categoria, precio_base, costo_unitario, factor_mercado) " +
+                    "VALUES (3, 'ALI-CDV-500', 'Fideos Don Vittorio 500g', 'Don Vittorio', 'Paquete 500 g', 2400, 3, 4.20, 2.90, 0.0350)");
+            st.executeUpdate("INSERT INTO PRODUCTOS (id_producto, sku_codigo, nombre_producto, marca, presentacion, stock_disponible, id_categoria, precio_base, costo_unitario, factor_mercado) " +
+                    "VALUES (4, 'ALI-HBF-1K', 'Harina Blanca Flor 1kg', 'Blanca Flor', 'Bolsa 1 kg', 1500, 3, 4.80, 4.35, -0.0150)");
+            st.executeUpdate("INSERT INTO PRODUCTOS (id_producto, sku_codigo, nombre_producto, marca, presentacion, stock_disponible, id_categoria, precio_base, costo_unitario, factor_mercado) " +
+                    "VALUES (5, 'ALI-ALA-500', 'Mayonesa Alacena 500g', 'Alacena', 'Doypack 500 g', 1100, 4, 7.50, 5.15, 0.0300)");
+            st.executeUpdate("INSERT INTO PRODUCTOS (id_producto, sku_codigo, nombre_producto, marca, presentacion, stock_disponible, id_categoria, precio_base, costo_unitario, factor_mercado) " +
+                    "VALUES (6, 'ALI-COC-1L', 'Aceite Cocinero 1L', 'Cocinero', 'Botella 1 L', 950, 1, 7.90, 5.40, 0.0150)");
+            st.executeUpdate("INSERT INTO PRODUCTOS (id_producto, sku_codigo, nombre_producto, marca, presentacion, stock_disponible, id_categoria, precio_base, costo_unitario, factor_mercado) " +
+                    "VALUES (7, 'ALI-OPA-1K', 'Detergente Opal Ultra 1kg', 'Opal', 'Bolsa 1 kg', 720, 2, 9.20, 5.90, 0.0100)");
+            st.executeUpdate("INSERT INTO PRODUCTOS (id_producto, sku_codigo, nombre_producto, marca, presentacion, stock_disponible, id_categoria, precio_base, costo_unitario, factor_mercado) " +
+                    "VALUES (8, 'ALI-TAR-400', 'Salsa Huancaína Alacena 400g', 'Alacena', 'Doypack 400 g', 640, 4, 6.90, 4.50, 0.0200)");
 
             // 5. Tiendas (PK: id_tienda)
             st.executeUpdate("INSERT INTO TIENDAS (id_tienda, codigo_tienda, nombre_tienda, canal_venta, distrito_zona, temperatura_prom) " +
@@ -125,6 +131,19 @@ public class DatabaseConfig {
             // 7. Configuración de Seguridad (FK: id_actualizado_por -> ADMINISTRADORES)
             st.executeUpdate("INSERT INTO CONFIGURACION_SEGURIDAD (clave_parametro, valor_parametro, id_actualizado_por) " +
                     "VALUES ('clave_acceso_personal', '784920', 1)");
+
+            // 8. Empresas Competidoras (FK: id_producto_alicorp -> PRODUCTOS)
+            st.executeUpdate("INSERT INTO EMPRESAS_COMPETENCIA (codigo_empresa, nombre_empresa, perfil_estrategia, id_producto_alicorp, marca_competidora, precio_promedio, costo_unitario, stock_promedio, ventas_historicas_soles, ganancias_netas_historicas, perdida_estimada_competencia, cuota_mercado_pct) " +
+                    "VALUES ('PG', 'Procter & Gamble Perú', 'Liderazgo en detergentes y cuidado del hogar', 2, 'Ace / Ariel 2kg', 12.90, 6.80, 750, 485000.00, 145000.00, 32000.00, 34.50)");
+            st.executeUpdate("INSERT INTO EMPRESAS_COMPETENCIA (codigo_empresa, nombre_empresa, perfil_estrategia, id_producto_alicorp, marca_competidora, precio_promedio, costo_unitario, stock_promedio, ventas_historicas_soles, ganancias_netas_historicas, perdida_estimada_competencia, cuota_mercado_pct) " +
+                    "VALUES ('MOL', 'Molitalia S.A.', 'Competencia directa en pastas y harinas', 3, 'Molitalia 500g', 4.10, 2.85, 1900, 392000.00, 98000.00, 21500.00, 28.20)");
+            st.executeUpdate("INSERT INTO EMPRESAS_COMPETENCIA (codigo_empresa, nombre_empresa, perfil_estrategia, id_producto_alicorp, marca_competidora, precio_promedio, costo_unitario, stock_promedio, ventas_historicas_soles, ganancias_netas_historicas, perdida_estimada_competencia, cuota_mercado_pct) " +
+                    "VALUES ('UNL', 'Unilever Perú', 'Competencia en salsas y aceites premium', 5, 'Hellmanns 500g', 7.80, 5.30, 880, 315000.00, 87000.00, 18400.00, 22.80)");
+
+            // Reiniciar secuencias IDENTITY para evitar colisiones en nuevos registros
+            st.executeUpdate("ALTER TABLE ADMINISTRADORES ALTER COLUMN id_admin RESTART WITH 10");
+            st.executeUpdate("ALTER TABLE PRODUCTOS ALTER COLUMN id_producto RESTART WITH 20");
+            st.executeUpdate("ALTER TABLE TIENDAS ALTER COLUMN id_tienda RESTART WITH 10");
         }
 
         // 8. Semilla de Transacciones Normalizadas (con FKs id_producto e id_tienda, sin repetir textos)

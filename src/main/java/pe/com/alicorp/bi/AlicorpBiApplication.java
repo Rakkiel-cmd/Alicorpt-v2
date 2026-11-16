@@ -57,9 +57,17 @@ public class AlicorpBiApplication {
             String key = String.valueOf(body.getOrDefault("key", "")).trim();
             boolean valido = motorSeguridad.validarClaveAcceso(key);
             if (valido) {
-                ctx.json(Map.of("success", true, "message", "Llave corporativa verificada."));
+                ctx.json(Map.of(
+                    "success", true,
+                    "desbloqueado", true,
+                    "message", "Llave corporativa verificada."
+                ));
             } else {
-                ctx.status(403).json(Map.of("success", false, "message", "Llave de acceso inválida."));
+                ctx.status(403).json(Map.of(
+                    "success", false,
+                    "desbloqueado", false,
+                    "message", "Llave de acceso inválida."
+                ));
             }
         });
 
@@ -102,26 +110,92 @@ public class AlicorpBiApplication {
             }
 
             // Comparar distancia euclidiana contra los administradores activos en la BD 3FN
+            Map<String, Object> mejorAdmin = null;
+            double mejorDist = Double.MAX_VALUE;
+            double[] mejorVec = null;
+
             for (Map<String, Object> u : motorSeguridad.listarUsuariosConEstado3FN()) {
                 if (!"activo".equalsIgnoreCase(String.valueOf(u.get("estado")))) continue;
                 Map<String, Object> p = motorSeguridad.obtenerPerfilUsuario3FN(String.valueOf(u.get("usuario")));
                 double[] vecGuardado = motorBiometria.parsearVectorJson(String.valueOf(p.get("face_encoding")));
                 if (vecGuardado != null) {
                     double dist = motorBiometria.calcularDistanciaEuclidiana(vectorVivo, vecGuardado);
-                    if (dist <= ServicioBiometriaJavaCV.UMBRAL_DISTANCIA) {
-                        ctx.req().getSession(true).setAttribute("usuario", p.get("usuario"));
-                        ctx.json(Map.of(
-                            "success", true,
-                            "usuario", p.get("usuario"),
-                            "nombre_completo", p.get("nombre_completo"),
-                            "rol", p.get("rol"),
-                            "distancia", Math.round(dist * 10000.0) / 10000.0
-                        ));
-                        return;
+                    if (dist < mejorDist) {
+                        mejorDist = dist;
+                        mejorAdmin = p;
+                        mejorVec = vecGuardado;
                     }
                 }
             }
-            ctx.status(401).json(Map.of("success", false, "message", "Rostro no coincide con ningún administrador autorizado."));
+
+            if (mejorAdmin != null && mejorDist <= ServicioBiometriaJavaCV.UMBRAL_DISTANCIA) {
+                ctx.req().getSession(true).setAttribute("usuario", mejorAdmin.get("usuario"));
+                double porcentaje = Math.max(70.0, Math.min(99.9, Math.round((1.0 - mejorDist / 1.5) * 1000.0) / 10.0));
+                List<Double> vecLista = new ArrayList<>();
+                for (double v : mejorVec) vecLista.add(v);
+                Map<String, Object> resp = new LinkedHashMap<>();
+                resp.put("success", true);
+                resp.put("message", "Identidad biométrica verificada: " + mejorAdmin.get("nombre_completo"));
+                resp.put("usuario", mejorAdmin.get("usuario"));
+                resp.put("nombre_completo", mejorAdmin.get("nombre_completo"));
+                resp.put("rol", mejorAdmin.get("rol"));
+                resp.put("es_superadmin", mejorAdmin.get("es_superadmin"));
+                resp.put("face_encoding", vecLista);
+                resp.put("distancia", Math.round(mejorDist * 10000.0) / 10000.0);
+                resp.put("porcentaje", porcentaje);
+                resp.put("redirect", "/dashboard.html");
+                ctx.json(resp);
+                return;
+            }
+            ctx.status(401).json(Map.of("success", false, "message", "Rostro no coincide con ningún administrador autorizado. Si aún no registraste tu rostro, usa '+ Nuevo Registro'."));
+        });
+
+        app.post("/api/verificar_rostro", ctx -> {
+            Map<String, Object> body = ctx.bodyAsClass(Map.class);
+            String imagenB64 = String.valueOf(body.getOrDefault("image", ""));
+            double[] vector = motorBiometria.extraerEmbedding128D(imagenB64);
+            if (vector == null) {
+                ctx.status(400).json(Map.of("success", false, "message", "No se detectó un rostro válido en la captura."));
+                return;
+            }
+            ctx.json(Map.of(
+                "success", true,
+                "message", "Rostro validado y vectorizado en 128-D correctamente (Norma L2: " + motorBiometria.calcularNormaL2(vector) + ")."
+            ));
+        });
+
+        app.post("/api/registrar_admin_web", ctx -> {
+            Map<String, Object> body = ctx.bodyAsClass(Map.class);
+            String nombre = String.valueOf(body.getOrDefault("nombre_completo", "")).trim();
+            String usuario = String.valueOf(body.getOrDefault("usuario", "")).trim();
+            String password = String.valueOf(body.getOrDefault("password", ""));
+            String imagenB64 = String.valueOf(body.getOrDefault("image", ""));
+
+            double[] vector = motorBiometria.extraerEmbedding128D(imagenB64);
+            if (vector == null) {
+                ctx.status(400).json(Map.of("success", false, "message", "Captura facial inválida. Toma la foto nuevamente."));
+                return;
+            }
+            double l2 = motorBiometria.calcularNormaL2(vector);
+            String error = motorSeguridad.registrarAdministrador3FN(usuario, nombre, password, vector, l2);
+            if (error != null) {
+                ctx.status(400).json(Map.of("success", false, "message", error));
+                return;
+            }
+            ctx.json(Map.of(
+                "success", true,
+                "usuario", usuario,
+                "nombre_completo", nombre,
+                "l2_norm", l2,
+                "message", "Administrador registrado con biometría 128-D en BD 3FN."
+            ));
+        });
+
+        app.post("/api/logout", ctx -> {
+            if (ctx.req().getSession(false) != null) {
+                ctx.req().getSession(false).invalidate();
+            }
+            ctx.json(Map.of("success", true));
         });
 
         app.get("/api/usuario_perfil", ctx -> {
@@ -250,9 +324,93 @@ public class AlicorpBiApplication {
             ctx.json(Map.of("success", true, "fecha", fechaPeru, "tiempo_segundos", 0));
         });
 
+        app.get("/api/actividad/historial", ctx -> {
+            String usuario = ctx.queryParam("usuario");
+            ctx.json(Map.of("success", true, "historial", motorSeguridad.obtenerHistorialActividad3FN(usuario)));
+        });
+
+        app.get("/api/superadmin/vector", ctx -> {
+            String target = ctx.queryParam("usuario");
+            Map<String, Object> p = motorSeguridad.obtenerPerfilUsuario3FN(target);
+            if (p == null) {
+                ctx.status(404).json(Map.of("success", false, "message", "Usuario no encontrado."));
+                return;
+            }
+            double[] vec = motorBiometria.parsearVectorJson(String.valueOf(p.get("face_encoding")));
+            List<Double> lista = new ArrayList<>();
+            if (vec != null) {
+                for (double v : vec) lista.add(v);
+            }
+            ctx.json(Map.of(
+                "success", true,
+                "usuario", p.get("usuario"),
+                "nombre_completo", p.get("nombre_completo"),
+                "l2_norm", vec != null ? motorBiometria.calcularNormaL2(vec) : 0.0,
+                "face_encoding", lista
+            ));
+        });
+
+        app.post("/api/superadmin/suspender", ctx -> {
+            Map<String, Object> body = ctx.bodyAsClass(Map.class);
+            String admin = String.valueOf(body.getOrDefault("admin_usuario", body.getOrDefault("solicitante", "")));
+            String objetivo = String.valueOf(body.getOrDefault("usuario_objetivo", body.getOrDefault("usuario", "")));
+            boolean ok = motorSeguridad.cambiarEstadoUsuario3FN(admin, objetivo, 2, "SUSPENSION");
+            ctx.json(Map.of("success", ok, "message", ok ? "Usuario suspendido." : "No autorizado."));
+        });
+
+        app.post("/api/superadmin/reactivar", ctx -> {
+            Map<String, Object> body = ctx.bodyAsClass(Map.class);
+            String admin = String.valueOf(body.getOrDefault("admin_usuario", body.getOrDefault("solicitante", "")));
+            String objetivo = String.valueOf(body.getOrDefault("usuario_objetivo", body.getOrDefault("usuario", "")));
+            boolean ok = motorSeguridad.cambiarEstadoUsuario3FN(admin, objetivo, 1, "REACTIVACION");
+            ctx.json(Map.of("success", ok, "message", ok ? "Usuario reactivado." : "No autorizado."));
+        });
+
+        app.get("/api/seguridad/generar_clave_random", ctx -> {
+            String admin = ctx.queryParam("usuario");
+            String nueva = String.format("%06d", new Random().nextInt(1000000));
+            String res = motorSeguridad.actualizarClaveAccesoDirecta(admin, nueva);
+            if (res == null) {
+                ctx.status(403).json(Map.of("success", false, "message", "No autorizado."));
+                return;
+            }
+            ctx.json(Map.of("success", true, "clave", res, "clave_actual", res));
+        });
+
+        app.get("/api/superadmin/clave/solicitudes", ctx -> {
+            String admin = ctx.queryParam("usuario");
+            if (!motorSeguridad.esSuperAdminActivo(admin)) {
+                ctx.status(403).json(Map.of("success", false, "message", "No autorizado."));
+                return;
+            }
+            ctx.json(Map.of("success", true, "solicitudes", motorSeguridad.listarSolicitudesClave3FN()));
+        });
+
+        app.post("/api/superadmin/clave/solicitar", ctx -> {
+            Map<String, Object> body = ctx.bodyAsClass(Map.class);
+            String admin = String.valueOf(body.getOrDefault("usuario", ""));
+            String clave = String.valueOf(body.getOrDefault("nueva_clave", ""));
+            boolean ok = motorSeguridad.crearSolicitudClave3FN(admin, clave);
+            ctx.json(Map.of("success", ok));
+        });
+
+        app.post("/api/superadmin/clave/aprobar", ctx -> {
+            Map<String, Object> body = ctx.bodyAsClass(Map.class);
+            int id = ((Number) body.get("id")).intValue();
+            String admin = String.valueOf(body.getOrDefault("usuario", ""));
+            boolean aprobar = !"rechazar".equalsIgnoreCase(String.valueOf(body.getOrDefault("accion", "aprobar")));
+            String err = motorSeguridad.resolverSolicitudClave3FN(id, admin, aprobar);
+            if (err != null) {
+                ctx.status(400).json(Map.of("success", false, "message", err));
+                return;
+            }
+            ctx.json(Map.of("success", true));
+        });
+
         pe.com.alicorp.bi.infrastructure.web.DashboardEndpointsRegistrar.registrarRutas(
                 app, motorDl4j, motorSmile, motorBiometria, motorSeguridad
         );
+        pe.com.alicorp.bi.infrastructure.web.TiendaAndSupportEndpointsRegistrar.registrar(app);
 
         app.start(puerto);
         System.out.println("=========================================================================");

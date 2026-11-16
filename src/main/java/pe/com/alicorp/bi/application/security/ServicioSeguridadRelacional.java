@@ -176,4 +176,175 @@ public class ServicioSeguridadRelacional {
         } catch (Exception ignored) {}
         return logs;
     }
+
+    public String registrarAdministrador3FN(String usuario, String nombreCompleto, String password, double[] vector128D, double l2Norm) {
+        if (usuario == null || usuario.isBlank() || nombreCompleto == null || nombreCompleto.isBlank() || password == null || password.isBlank()) {
+            return "Completa todos los campos requeridos.";
+        }
+        if (obtenerPerfilUsuario3FN(usuario.trim()) != null) {
+            return "El usuario '" + usuario.trim() + "' ya existe.";
+        }
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < vector128D.length; i++) {
+            if (i > 0) sb.append(",");
+            sb.append(vector128D[i]);
+        }
+        sb.append("]");
+
+        String sql = "INSERT INTO ADMINISTRADORES (usuario, nombre_completo, email, password_hash, id_rol, id_estado, face_encoding, l2_norm) " +
+                "VALUES (?, ?, ?, ?, 1, 1, ?, ?)";
+        try (Connection conn = DatabaseConfig.getDataSource().getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, usuario.trim());
+            ps.setString(2, nombreCompleto.trim());
+            ps.setString(3, usuario.trim().toLowerCase() + "@alicorp.com.pe");
+            ps.setString(4, password);
+            ps.setString(5, sb.toString());
+            ps.setDouble(6, l2Norm);
+            ps.executeUpdate();
+            return null;
+        } catch (Exception e) {
+            return "Error al registrar en BD 3FN: " + e.getMessage();
+        }
+    }
+
+    public boolean cambiarEstadoUsuario3FN(String adminEjecutor, String usuarioObjetivo, int nuevoIdEstado, String accionNombre) {
+        Map<String, Object> ejec = obtenerPerfilUsuario3FN(adminEjecutor);
+        Map<String, Object> obj = obtenerPerfilUsuario3FN(usuarioObjetivo);
+        if (ejec == null || obj == null || !Boolean.TRUE.equals(ejec.get("es_superadmin"))) return false;
+        try (Connection conn = DatabaseConfig.getDataSource().getConnection()) {
+            try (PreparedStatement ps = conn.prepareStatement("UPDATE ADMINISTRADORES SET id_estado = ? WHERE id_admin = ?")) {
+                ps.setInt(1, nuevoIdEstado);
+                ps.setInt(2, (Integer) obj.get("id_admin"));
+                ps.executeUpdate();
+            }
+            try (PreparedStatement psAud = conn.prepareStatement(
+                    "INSERT INTO AMPLIACION_AUDITORIA (id_admin_ejecutor, id_admin_objetivo, accion, detalle) VALUES (?, ?, ?, ?)")) {
+                psAud.setInt(1, (Integer) ejec.get("id_admin"));
+                psAud.setInt(2, (Integer) obj.get("id_admin"));
+                psAud.setString(3, accionNombre);
+                psAud.setString(4, "Cambio de estado aplicado por @" + adminEjecutor + " sobre @" + usuarioObjetivo);
+                psAud.executeUpdate();
+            }
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public List<Map<String, Object>> obtenerHistorialActividad3FN(String usuario) {
+        List<Map<String, Object>> hist = new ArrayList<>();
+        String sql = """
+            SELECT act.fecha_sesion, act.tiempo_segundos, act.primer_ingreso, act.ultimo_latido
+            FROM ACTIVIDAD_USUARIOS act
+            INNER JOIN ADMINISTRADORES a ON act.id_admin = a.id_admin
+            WHERE LOWER(a.usuario) = LOWER(?)
+            ORDER BY act.fecha_sesion DESC
+            FETCH FIRST 30 ROWS ONLY
+            """;
+        try (Connection conn = DatabaseConfig.getDataSource().getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, usuario);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> f = new LinkedHashMap<>();
+                    f.put("fecha", rs.getDate("fecha_sesion").toString());
+                    f.put("tiempo_segundos", rs.getInt("tiempo_segundos"));
+                    f.put("primer_ingreso", rs.getTimestamp("primer_ingreso").toInstant().toString());
+                    f.put("ultimo_latido", rs.getTimestamp("ultimo_latido").toInstant().toString());
+                    hist.add(f);
+                }
+            }
+        } catch (Exception ignored) {}
+        return hist;
+    }
+
+    public String actualizarClaveAccesoDirecta(String adminUsuario, String nuevaClave) {
+        Map<String, Object> ejec = obtenerPerfilUsuario3FN(adminUsuario);
+        if (ejec == null || !Boolean.TRUE.equals(ejec.get("es_superadmin"))) return null;
+        try (Connection conn = DatabaseConfig.getDataSource().getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                     "UPDATE CONFIGURACION_SEGURIDAD SET valor_parametro = ?, id_actualizado_por = ?, updated_at = CURRENT_TIMESTAMP WHERE clave_parametro = 'clave_acceso_personal'")) {
+            ps.setString(1, nuevaClave);
+            ps.setInt(2, (Integer) ejec.get("id_admin"));
+            ps.executeUpdate();
+            return nuevaClave;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public boolean crearSolicitudClave3FN(String solicitante, String nuevaClave) {
+        Map<String, Object> sol = obtenerPerfilUsuario3FN(solicitante);
+        if (sol == null || !Boolean.TRUE.equals(sol.get("es_superadmin"))) return false;
+        try (Connection conn = DatabaseConfig.getDataSource().getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                     "INSERT INTO SOLICITUDES_CAMBIO_CLAVE (nueva_clave, id_solicitante, estado_solicitud) VALUES (?, ?, 'pendiente')")) {
+            ps.setString(1, nuevaClave);
+            ps.setInt(2, (Integer) sol.get("id_admin"));
+            ps.executeUpdate();
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public List<Map<String, Object>> listarSolicitudesClave3FN() {
+        List<Map<String, Object>> lista = new ArrayList<>();
+        String sql = """
+            SELECT s.id_solicitud, s.nueva_clave, a.usuario AS solicitante, s.estado_solicitud, s.created_at
+            FROM SOLICITUDES_CAMBIO_CLAVE s
+            INNER JOIN ADMINISTRADORES a ON s.id_solicitante = a.id_admin
+            ORDER BY s.created_at DESC
+            FETCH FIRST 20 ROWS ONLY
+            """;
+        try (Connection conn = DatabaseConfig.getDataSource().getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("id", rs.getInt("id_solicitud"));
+                m.put("nueva_clave", rs.getString("nueva_clave"));
+                m.put("solicitante", rs.getString("solicitante"));
+                m.put("estado", rs.getString("estado_solicitud"));
+                m.put("fecha", rs.getTimestamp("created_at").toInstant().toString());
+                lista.add(m);
+            }
+        } catch (Exception ignored) {}
+        return lista;
+    }
+
+    public String resolverSolicitudClave3FN(int idSolicitud, String aprobador, boolean aprobar) {
+        Map<String, Object> ap = obtenerPerfilUsuario3FN(aprobador);
+        if (ap == null || !Boolean.TRUE.equals(ap.get("es_superadmin"))) return "No autorizado.";
+        int idAp = (Integer) ap.get("id_admin");
+        try (Connection conn = DatabaseConfig.getDataSource().getConnection()) {
+            String nuevaClave = null;
+            int idSol = -1;
+            try (PreparedStatement ps = conn.prepareStatement("SELECT nueva_clave, id_solicitante FROM SOLICITUDES_CAMBIO_CLAVE WHERE id_solicitud = ? AND estado_solicitud = 'pendiente'")) {
+                ps.setInt(1, idSolicitud);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        nuevaClave = rs.getString("nueva_clave");
+                        idSol = rs.getInt("id_solicitante");
+                    }
+                }
+            }
+            if (nuevaClave == null) return "Solicitud no encontrada o ya procesada.";
+            if (idSol == idAp && aprobar) return "Otro SuperAdmin distinto debe aprobar esta solicitud (regla CHK_DOBLE_SUPERADMIN).";
+
+            try (PreparedStatement ps = conn.prepareStatement("UPDATE SOLICITUDES_CAMBIO_CLAVE SET estado_solicitud = ?, id_aprobador = ?, resolved_at = CURRENT_TIMESTAMP WHERE id_solicitud = ?")) {
+                ps.setString(1, aprobar ? "aprobada" : "rechazada");
+                ps.setInt(2, idAp);
+                ps.setInt(3, idSolicitud);
+                ps.executeUpdate();
+            }
+            if (aprobar) {
+                actualizarClaveAccesoDirecta(aprobador, nuevaClave);
+            }
+            return null;
+        } catch (Exception e) {
+            return e.getMessage();
+        }
+    }
 }
