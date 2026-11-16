@@ -1,39 +1,24 @@
-# Entornos virtuales y dependencias
-.venv/
-venv/
-env/
+# Compilados Java y artefactos Maven
+target/
+dependency-reduced-pom.xml
+*.class
+*.jar
+*.war
+*.ear
 
-# Python cache y compilados
-__pycache__/
-*.py[cod]
-*$py.class
-*.pyc
+# Base de datos local embebida H2 (se autogenera al iniciar)
+data/*.mv.db
+data/*.trace.db
+data/*.lock.db
 
 # Variables de entorno y configuración local privada
 .env
 .env.*
-!.env.example
 .vscode/
 .idea/
 
-# Datos pesados, CSVs y temporales (la data vive en Supabase)
-*.csv
-*.parquet
-data/*.csv
-data/*.parquet
-data/seguridad_clave.json
-data/incidencias_contacto.json
-data/fallas_web_sistema.json
-
-# Scripts de prueba y temporales
-scratch/
+# Logs y temporales
 *.log
-
-# Fotos físicas o guías internas locales
-rostros_autorizados/
-.guia_reconocimiento_facial.md
-
-# Archivos del sistema operativo
 .DS_Store
 Thumbs.db
-desktop.ini
+desktop.ini
