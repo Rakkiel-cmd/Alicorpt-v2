@@ -334,7 +334,8 @@ public class AlicorpBiApplication {
                 return;
             }
             List<Map<String, Object>> usuarios = motorSeguridad.listarUsuariosConEstado3FN();
-            ctx.json(Map.of("success", true, "usuarios", usuarios, "total", usuarios.size()));
+            long conectados = usuarios.stream().filter(u -> Boolean.TRUE.equals(u.get("conectado"))).count();
+            ctx.json(Map.of("success", true, "usuarios", usuarios, "total", usuarios.size(), "conectados", conectados));
         });
 
         app.get("/api/superadmin/auditoria", ctx -> {
@@ -394,29 +395,57 @@ public class AlicorpBiApplication {
 
         app.post("/api/superadmin/suspender", ctx -> {
             Map<String, Object> body = ctx.bodyAsClass(Map.class);
-            String admin = String.valueOf(body.getOrDefault("admin_usuario", body.getOrDefault("solicitante", "")));
-            String objetivo = String.valueOf(body.getOrDefault("usuario_objetivo", body.getOrDefault("usuario", "")));
+            String admin = String.valueOf(body.getOrDefault("usuario", body.getOrDefault("admin_usuario", body.getOrDefault("solicitante", ""))));
+            String objetivo = String.valueOf(body.getOrDefault("objetivo", body.getOrDefault("usuario_objetivo", "")));
             boolean ok = motorSeguridad.cambiarEstadoUsuario3FN(admin, objetivo, 2, "SUSPENSION");
-            ctx.json(Map.of("success", ok, "message", ok ? "Usuario suspendido." : "No autorizado."));
+            ctx.json(Map.of("success", ok, "message", ok ? "Usuario suspendido correctamente." : "No autorizado."));
         });
 
         app.post("/api/superadmin/reactivar", ctx -> {
             Map<String, Object> body = ctx.bodyAsClass(Map.class);
-            String admin = String.valueOf(body.getOrDefault("admin_usuario", body.getOrDefault("solicitante", "")));
-            String objetivo = String.valueOf(body.getOrDefault("usuario_objetivo", body.getOrDefault("usuario", "")));
+            String admin = String.valueOf(body.getOrDefault("usuario", body.getOrDefault("admin_usuario", body.getOrDefault("solicitante", ""))));
+            String objetivo = String.valueOf(body.getOrDefault("objetivo", body.getOrDefault("usuario_objetivo", "")));
             boolean ok = motorSeguridad.cambiarEstadoUsuario3FN(admin, objetivo, 1, "REACTIVACION");
-            ctx.json(Map.of("success", ok, "message", ok ? "Usuario reactivado." : "No autorizado."));
+            ctx.json(Map.of("success", ok, "message", ok ? "Usuario reactivado correctamente." : "No autorizado."));
         });
 
-        app.get("/api/seguridad/generar_clave_random", ctx -> {
-            String admin = ctx.queryParam("usuario");
-            String nueva = String.format("%06d", new Random().nextInt(1000000));
-            String res = motorSeguridad.actualizarClaveAccesoDirecta(admin, nueva);
-            if (res == null) {
+        app.post("/api/superadmin/degradar_rol", ctx -> {
+            Map<String, Object> body = ctx.bodyAsClass(Map.class);
+            String admin = String.valueOf(body.getOrDefault("usuario", ""));
+            String objetivo = String.valueOf(body.getOrDefault("objetivo", ""));
+            if (!motorSeguridad.esSuperAdminActivo(admin)) {
                 ctx.status(403).json(Map.of("success", false, "message", "No autorizado."));
                 return;
             }
-            ctx.json(Map.of("success", true, "clave", res, "clave_actual", res));
+            try (Connection conn = DatabaseConfig.getDataSource().getConnection();
+                 PreparedStatement ps = conn.prepareStatement("UPDATE ADMINISTRADORES SET id_rol = 1 WHERE LOWER(usuario) = LOWER(?)")) {
+                ps.setString(1, objetivo);
+                ps.executeUpdate();
+            }
+            ctx.json(Map.of("success", true, "message", "Rol cambiado a Analista."));
+        });
+
+        app.post("/api/superadmin/actualizar_email", ctx -> {
+            Map<String, Object> body = ctx.bodyAsClass(Map.class);
+            String admin = String.valueOf(body.getOrDefault("usuario", ""));
+            String objetivo = String.valueOf(body.getOrDefault("objetivo", ""));
+            String email = String.valueOf(body.getOrDefault("email", "")).trim();
+            if (!motorSeguridad.esSuperAdminActivo(admin)) {
+                ctx.status(403).json(Map.of("success", false, "message", "No autorizado."));
+                return;
+            }
+            try (Connection conn = DatabaseConfig.getDataSource().getConnection();
+                 PreparedStatement ps = conn.prepareStatement("UPDATE ADMINISTRADORES SET email = ? WHERE LOWER(usuario) = LOWER(?)")) {
+                ps.setString(1, email);
+                ps.setString(2, objetivo);
+                ps.executeUpdate();
+            }
+            ctx.json(Map.of("success", true, "message", "Correo actualizado."));
+        });
+
+        app.get("/api/seguridad/generar_clave_random", ctx -> {
+            String nueva = String.format("%06d", 100000 + new Random().nextInt(900000));
+            ctx.json(Map.of("success", true, "clave_sugerida", nueva, "clave", nueva));
         });
 
         app.get("/api/superadmin/clave/solicitudes", ctx -> {
@@ -430,23 +459,52 @@ public class AlicorpBiApplication {
 
         app.post("/api/superadmin/clave/solicitar", ctx -> {
             Map<String, Object> body = ctx.bodyAsClass(Map.class);
-            String admin = String.valueOf(body.getOrDefault("usuario", ""));
-            String clave = String.valueOf(body.getOrDefault("nueva_clave", ""));
+            String admin = String.valueOf(body.getOrDefault("usuario", "")).trim();
+            String pass = String.valueOf(body.getOrDefault("password", ""));
+            String clave = String.valueOf(body.getOrDefault("clave_propuesta", body.getOrDefault("nueva_clave", ""))).trim();
+
+            Map<String, Object> perfil = motorSeguridad.obtenerPerfilUsuario3FN(admin);
+            if (perfil == null || !Boolean.TRUE.equals(perfil.get("es_superadmin"))) {
+                ctx.status(403).json(Map.of("success", false, "message", "No autorizado."));
+                return;
+            }
+            if (!pass.isEmpty() && !pass.equals(perfil.get("password_hash"))) {
+                ctx.status(401).json(Map.of("success", false, "message", "Contraseña de Super Admin incorrecta."));
+                return;
+            }
             boolean ok = motorSeguridad.crearSolicitudClave3FN(admin, clave);
-            ctx.json(Map.of("success", ok));
+            ctx.json(Map.of("success", ok, "message", ok ? "Solicitud creada. Otro Super Admin debe aprobarla." : "Error al crear solicitud."));
         });
 
         app.post("/api/superadmin/clave/aprobar", ctx -> {
             Map<String, Object> body = ctx.bodyAsClass(Map.class);
-            int id = ((Number) body.get("id")).intValue();
-            String admin = String.valueOf(body.getOrDefault("usuario", ""));
+            int id = Integer.parseInt(String.valueOf(body.getOrDefault("id", "0")).trim());
+            String admin = String.valueOf(body.getOrDefault("usuario", "")).trim();
+            String pass = String.valueOf(body.getOrDefault("password", ""));
+            Map<String, Object> perfil = motorSeguridad.obtenerPerfilUsuario3FN(admin);
+            if (perfil != null && !pass.isEmpty() && !pass.equals(perfil.get("password_hash"))) {
+                ctx.status(401).json(Map.of("success", false, "message", "Contraseña de confirmación incorrecta."));
+                return;
+            }
             boolean aprobar = !"rechazar".equalsIgnoreCase(String.valueOf(body.getOrDefault("accion", "aprobar")));
             String err = motorSeguridad.resolverSolicitudClave3FN(id, admin, aprobar);
             if (err != null) {
                 ctx.status(400).json(Map.of("success", false, "message", err));
                 return;
             }
-            ctx.json(Map.of("success", true));
+            ctx.json(Map.of("success", true, "message", "Solicitud procesada."));
+        });
+
+        app.post("/api/superadmin/clave/rechazar", ctx -> {
+            Map<String, Object> body = ctx.bodyAsClass(Map.class);
+            int id = Integer.parseInt(String.valueOf(body.getOrDefault("id", "0")).trim());
+            String admin = String.valueOf(body.getOrDefault("usuario", "")).trim();
+            String err = motorSeguridad.resolverSolicitudClave3FN(id, admin, false);
+            if (err != null) {
+                ctx.status(400).json(Map.of("success", false, "message", err));
+                return;
+            }
+            ctx.json(Map.of("success", true, "message", "Solicitud rechazada."));
         });
 
         pe.com.alicorp.bi.infrastructure.web.DashboardEndpointsRegistrar.registrarRutas(

@@ -140,6 +140,7 @@ public class ServicioSeguridadRelacional {
                     item.put("tiene_biometria", vector != null && vector.length() > 20);
                     item.put("conectado", conectado);
                     item.put("tiempo_hoy_segundos", segs);
+                    item.put("tiempo_segundos_hoy", segs);
                     lista.add(item);
                 }
             }
@@ -164,12 +165,19 @@ public class ServicioSeguridadRelacional {
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
+                String accRaw = rs.getString("accion") != null ? rs.getString("accion").toLowerCase() : "auditoria";
+                if (accRaw.contains("susp")) accRaw = "suspension";
+                else if (accRaw.contains("react")) accRaw = "reactivacion";
+                else if (accRaw.contains("ascen")) accRaw = "ascenso_rol";
                 Map<String, Object> fila = new LinkedHashMap<>();
                 fila.put("id", rs.getInt("id_auditoria"));
                 fila.put("admin_usuario", rs.getString("admin_usuario"));
+                fila.put("realizado_por", rs.getString("admin_usuario"));
                 fila.put("usuario_objetivo", rs.getString("usuario_objetivo"));
-                fila.put("accion", rs.getString("accion"));
+                fila.put("usuario_afectado", rs.getString("usuario_objetivo"));
+                fila.put("accion", accRaw);
                 fila.put("detalle", rs.getString("detalle"));
+                fila.put("motivo", rs.getString("detalle"));
                 fila.put("fecha", rs.getTimestamp("fecha_evento").toInstant().toString());
                 logs.add(fila);
             }
@@ -292,9 +300,11 @@ public class ServicioSeguridadRelacional {
     public List<Map<String, Object>> listarSolicitudesClave3FN() {
         List<Map<String, Object>> lista = new ArrayList<>();
         String sql = """
-            SELECT s.id_solicitud, s.nueva_clave, a.usuario AS solicitante, s.estado_solicitud, s.created_at
+            SELECT s.id_solicitud, s.nueva_clave, a.usuario AS solicitante, ap.usuario AS aprobador,
+                   s.estado_solicitud, s.created_at
             FROM SOLICITUDES_CAMBIO_CLAVE s
             INNER JOIN ADMINISTRADORES a ON s.id_solicitante = a.id_admin
+            LEFT JOIN ADMINISTRADORES ap ON s.id_aprobador = ap.id_admin
             ORDER BY s.created_at DESC
             FETCH FIRST 20 ROWS ONLY
             """;
@@ -302,12 +312,19 @@ public class ServicioSeguridadRelacional {
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
+                String estRaw = rs.getString("estado_solicitud");
+                String estUi = "aprobada".equalsIgnoreCase(estRaw) ? "aprobado"
+                        : ("rechazada".equalsIgnoreCase(estRaw) ? "rechazado" : "pendiente");
+                String ts = rs.getTimestamp("created_at").toInstant().toString();
                 Map<String, Object> m = new LinkedHashMap<>();
                 m.put("id", rs.getInt("id_solicitud"));
                 m.put("nueva_clave", rs.getString("nueva_clave"));
                 m.put("solicitante", rs.getString("solicitante"));
-                m.put("estado", rs.getString("estado_solicitud"));
-                m.put("fecha", rs.getTimestamp("created_at").toInstant().toString());
+                m.put("solicitado_por", rs.getString("solicitante"));
+                m.put("aprobado_por", rs.getString("aprobador"));
+                m.put("estado", estUi);
+                m.put("fecha", ts);
+                m.put("creado_en", ts);
                 lista.add(m);
             }
         } catch (Exception ignored) {}
@@ -335,7 +352,8 @@ public class ServicioSeguridadRelacional {
 
             try (PreparedStatement ps = conn.prepareStatement("UPDATE SOLICITUDES_CAMBIO_CLAVE SET estado_solicitud = ?, id_aprobador = ?, resolved_at = CURRENT_TIMESTAMP WHERE id_solicitud = ?")) {
                 ps.setString(1, aprobar ? "aprobada" : "rechazada");
-                ps.setInt(2, idAp);
+                if (idSol != idAp) ps.setInt(2, idAp);
+                else ps.setNull(2, java.sql.Types.INTEGER);
                 ps.setInt(3, idSolicitud);
                 ps.executeUpdate();
             }

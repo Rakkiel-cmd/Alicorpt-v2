@@ -34,11 +34,19 @@ public class DatabaseConfig {
             String jdbcUser = env.getOrDefault("JDBC_USER", "ADMIN");
             String jdbcPass = env.getOrDefault("JDBC_PASSWORD", "Alicorp3FN2026");
 
+            if (jdbcUrl.contains("postgresql") && !jdbcUrl.contains("prepareThreshold")) {
+                jdbcUrl += (jdbcUrl.contains("?") ? "&" : "?") + "prepareThreshold=0&tcpKeepAlive=true";
+            }
+
             config.setJdbcUrl(jdbcUrl);
             config.setUsername(jdbcUser);
             config.setPassword(jdbcPass);
-            config.setMaximumPoolSize(10);
-            config.setMinimumIdle(2);
+            config.setMaximumPoolSize(6);
+            config.setMinimumIdle(1);
+            config.setConnectionTimeout(15000);
+            config.setIdleTimeout(120000);
+            config.setMaxLifetime(240000);
+            config.setKeepaliveTime(60000);
             config.setPoolName("Alicorp3FNPool");
 
             dataSource = new HikariDataSource(config);
@@ -69,6 +77,13 @@ public class DatabaseConfig {
         try (Connection conn = dataSource.getConnection();
              Statement stmt = conn.createStatement()) {
 
+            // Si las tablas maestras ya existen y tienen datos (ej. Supabase migrado), omitir re-ejecucion DDL
+            try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM ROLES_SEGURIDAD")) {
+                if (rs.next() && rs.getInt(1) > 0) {
+                    return;
+                }
+            } catch (Exception ignored) {}
+
             Path rutaSql = Path.of("database", "esquema_relacional_3fn.sql");
             if (Files.exists(rutaSql)) {
                 String script = Files.readString(rutaSql);
@@ -80,7 +95,6 @@ public class DatabaseConfig {
                 }
             }
 
-            // Verificar si las tablas maestras ya tienen datos
             try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM ROLES_SEGURIDAD")) {
                 if (rs.next() && rs.getInt(1) == 0) {
                     poblarCatalogosMaestros3FN(conn);
