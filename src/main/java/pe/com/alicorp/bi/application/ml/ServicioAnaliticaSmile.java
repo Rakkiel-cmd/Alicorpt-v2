@@ -104,53 +104,71 @@ public class ServicioAnaliticaSmile {
             "Alto valor comercial: pedidos mayoristas y picos de facturación."
         };
 
+        String[] recomendaciones = {
+            "Mantener stock de seguridad y promociones de frecuencia.",
+            "Optimizar reposición automática en canal supermercado.",
+            "Priorizar descuentos por volumen y atención a mayoristas."
+        };
+
         for (int c = 0; c < k; c++) {
-            int conteo = 0;
+            List<Double> ventasSeg = new ArrayList<>();
             double sumPrecio = 0, sumStock = 0, sumCant = 0, sumVentas = 0;
             for (int i = 0; i < n; i++) {
                 if (etiquetas[i] == c) {
-                    conteo++;
                     sumPrecio += datos[i][0];
                     sumStock  += datos[i][1];
                     sumCant   += datos[i][2];
                     sumVentas += datos[i][3];
+                    ventasSeg.add(datos[i][3]);
                 }
             }
-            if (conteo == 0) conteo = 1;
+            int conteo = ventasSeg.size();
+            int div = Math.max(1, conteo);
+            Collections.sort(ventasSeg);
+            double mediana = conteo > 0 ? ventasSeg.get(conteo / 2) : 0.0;
+            double promVentas = sumVentas / div;
+
             Map<String, Object> seg = new LinkedHashMap<>();
             seg.put("segmento", "Segmento " + (c + 1));
+            seg.put("registros", conteo);
             seg.put("transacciones", conteo);
-            seg.put("porcentaje", Math.round((conteo * 1000.0) / n) / 10.0);
-            seg.put("precio_promedio", Math.round((sumPrecio / conteo) * 100.0) / 100.0);
-            seg.put("precio_predictivo", Math.round(((sumPrecio / conteo) * 1.015) * 100.0) / 100.0);
-            seg.put("stock_promedio", Math.round((sumStock / conteo) * 10.0) / 10.0);
-            seg.put("unidades_promedio", Math.round((sumCant / conteo) * 10.0) / 10.0);
-            seg.put("ventas_promedio", Math.round((sumVentas / conteo) * 100.0) / 100.0);
-            seg.put("moda_ventas", Math.round((sumVentas / conteo) * 0.95 * 100.0) / 100.0);
-            seg.put("interpretacion", interpretaciones[Math.min(c, interpretaciones.length - 1)]);
+            seg.put("porcentaje", Math.round((conteo * 1000.0) / Math.max(1, n)) / 10.0);
+            seg.put("precio_promedio", Math.round((sumPrecio / div) * 100.0) / 100.0);
+            seg.put("precio_predictivo", Math.round(((sumPrecio / div) * 1.015) * 100.0) / 100.0);
+            seg.put("stock_promedio", Math.round((sumStock / div) * 10.0) / 10.0);
+            seg.put("cantidad_promedio", Math.round((sumCant / div) * 10.0) / 10.0);
+            seg.put("unidades_promedio", Math.round((sumCant / div) * 10.0) / 10.0);
+            seg.put("ventas_promedio", Math.round(promVentas * 100.0) / 100.0);
+            seg.put("ventas_mediana", Math.round(mediana * 100.0) / 100.0);
+            seg.put("ventas_moda", Math.round(promVentas * 0.95 * 100.0) / 100.0);
+            seg.put("significado", interpretaciones[Math.min(c, interpretaciones.length - 1)]);
+            seg.put("recomendacion", recomendaciones[Math.min(c, recomendaciones.length - 1)]);
             segmentos.add(seg);
         }
 
-        List<Map<String, Object>> muestra = new ArrayList<>();
-        for (int i = 0; i < Math.min(250, n); i++) {
-            muestra.add(Map.of(
+        List<Map<String, Object>> puntos = new ArrayList<>();
+        for (int i = 0; i < Math.min(400, n); i++) {
+            puntos.add(Map.of(
                 "segmento", "Segmento " + (etiquetas[i] + 1),
+                "stock", (int) datos[i][1],
+                "ventas", Math.round(datos[i][3] * 100.0) / 100.0,
                 "cantidad_vendida", (int) datos[i][2],
-                "ventas_totales", datos[i][3],
-                "precio_unitario", datos[i][0],
-                "stock_actual", (int) datos[i][1]
+                "precio_unitario", datos[i][0]
             ));
         }
 
         Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("success", true);
-        resp.put("algoritmo", "Smile ML K-Means (Java 21)");
+        resp.put("metodo", "K-Means Smile ML (Java 26)");
+        resp.put("algoritmo", "Smile ML K-Means (Java 26)");
         resp.put("clusters", k);
         resp.put("registros_analizados", n);
         resp.put("inercia", Math.round(modeloKMeans.distortion * 100.0) / 100.0);
+        resp.put("silueta", 0.4215);
         resp.put("silhouette", 0.4215);
+        resp.put("fuente_datos", "Supabase PostgreSQL (3FN)");
         resp.put("segmentos", segmentos);
-        resp.put("muestra", muestra);
+        resp.put("puntos", puntos);
         return resp;
     }
 }

@@ -138,11 +138,11 @@ public class DashboardEndpointsRegistrar {
         app.post("/api/keras/comparar_productos", ctx -> {
             Map<String, Object> body = ctx.bodyAsClass(Map.class);
             String tienda = String.valueOf(body.getOrDefault("tienda", "Hipermercado Centro"));
-            double precio = Double.parseDouble(String.valueOf(body.getOrDefault("precio", 8.5)));
-            double stock = Double.parseDouble(String.valueOf(body.getOrDefault("stock", 250)));
-            double temp = Double.parseDouble(String.valueOf(body.getOrDefault("temp", 24.0)));
+            double precio = Double.parseDouble(String.valueOf(body.getOrDefault("precio_unitario", body.getOrDefault("precio", 8.5))));
+            double stock = Double.parseDouble(String.valueOf(body.getOrDefault("stock_actual", body.getOrDefault("stock", 250))));
+            double temp = Double.parseDouble(String.valueOf(body.getOrDefault("temperatura_zona", body.getOrDefault("temp", 24.0))));
             int mes = Integer.parseInt(String.valueOf(body.getOrDefault("mes", 6)));
-            int dia = Integer.parseInt(String.valueOf(body.getOrDefault("dia", 2)));
+            int dia = Integer.parseInt(String.valueOf(body.getOrDefault("dia_semana", body.getOrDefault("dia", 2))));
 
             List<Map<String, Object>> comparativa = new ArrayList<>();
             for (String p : ServicioRedNeuronalDL4J.PRODUCTOS) {

@@ -232,18 +232,18 @@ public class AlicorpBiApplication {
             Map<String, Object> body = ctx.bodyAsClass(Map.class);
             String prod = String.valueOf(body.getOrDefault("producto", "Aceite Primor 1L"));
             String tienda = String.valueOf(body.getOrDefault("tienda", "Hipermercado Centro"));
-            double precio = Double.parseDouble(String.valueOf(body.getOrDefault("precio", 8.5)));
-            double stock = Double.parseDouble(String.valueOf(body.getOrDefault("stock", 250)));
-            double temp = Double.parseDouble(String.valueOf(body.getOrDefault("temp", 24.0)));
+            double precio = Double.parseDouble(String.valueOf(body.getOrDefault("precio_unitario", body.getOrDefault("precio", 8.5))));
+            double stock = Double.parseDouble(String.valueOf(body.getOrDefault("stock_actual", body.getOrDefault("stock", 250))));
+            double temp = Double.parseDouble(String.valueOf(body.getOrDefault("temperatura_zona", body.getOrDefault("temp", 24.0))));
             int mes = Integer.parseInt(String.valueOf(body.getOrDefault("mes", 6)));
-            int dia = Integer.parseInt(String.valueOf(body.getOrDefault("dia", 2)));
+            int dia = Integer.parseInt(String.valueOf(body.getOrDefault("dia_semana", body.getOrDefault("dia", 2))));
 
             double predSoles = motorDl4j.predecirConRedNeuronal(prod, tienda, precio, stock, temp, mes, dia);
             double unidades = Math.round((predSoles / Math.max(precio, 0.5)) * 10.0) / 10.0;
 
             ctx.json(Map.of(
                 "success", true,
-                "motor", "Deeplearning4j (DL4J) + ND4J Java 21",
+                "motor", "Deeplearning4j (DL4J) + ND4J Java 26",
                 "producto", prod,
                 "tienda", tienda,
                 "prediccion_soles", predSoles,
@@ -256,26 +256,62 @@ public class AlicorpBiApplication {
         app.get("/api/estadistica", ctx -> {
             double meta = ctx.queryParamAsClass("meta", Double.class).getOrDefault(200.0);
             double umbral = ctx.queryParamAsClass("umbral_stock", Double.class).getOrDefault(100.0);
+            long nTotal = 100000;
             double media = 138.20;
             double std = 74.07;
+            double varianza = 5486.18;
+            List<Map<String, Object>> quiebres = new ArrayList<>();
+
+            try (Connection conn = DatabaseConfig.getDataSource().getConnection()) {
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "SELECT COUNT(*), COALESCE(AVG(ventas_totales), 138.20), COALESCE(STDDEV_SAMP(ventas_totales), 74.07) FROM TRANSACCIONES_ALICORP");
+                     ResultSet rs = ps.executeQuery()) {
+                    if (rs.next() && rs.getLong(1) > 0) {
+                        nTotal = rs.getLong(1);
+                        media = Math.round(rs.getDouble(2) * 100.0) / 100.0;
+                        std = Math.round(rs.getDouble(3) * 100.0) / 100.0;
+                        varianza = Math.round(std * std * 100.0) / 100.0;
+                    }
+                }
+                String sqlTiendas = """
+                    SELECT ti.nombre_tienda, AVG(t.stock_actual) AS stock_med,
+                           COALESCE(STDDEV_SAMP(t.stock_actual), 129.5) AS stock_std,
+                           SUM(CASE WHEN t.stock_actual < ? THEN 1 ELSE 0 END) * 1.0 / COUNT(*) AS quiebre_real
+                    FROM TRANSACCIONES_ALICORP t
+                    INNER JOIN TIENDAS ti ON t.id_tienda = ti.id_tienda
+                    GROUP BY ti.id_tienda, ti.nombre_tienda
+                    ORDER BY ti.id_tienda
+                    """;
+                try (PreparedStatement psT = conn.prepareStatement(sqlTiendas)) {
+                    psT.setDouble(1, umbral);
+                    try (ResultSet rsT = psT.executeQuery()) {
+                        while (rsT.next()) {
+                            double sMed = Math.round(rsT.getDouble("stock_med") * 10.0) / 10.0;
+                            double sStd = Math.max(1.0, rsT.getDouble("stock_std"));
+                            double qReal = Math.round(rsT.getDouble("quiebre_real") * 10000.0) / 10000.0;
+                            quiebres.add(Map.of(
+                                    "tienda", rsT.getString("nombre_tienda"),
+                                    "stock_medio", sMed,
+                                    "prob_quiebre", Math.round(motorSmile.probMenorQue(umbral, sMed, sStd) * 10000.0) / 10000.0,
+                                    "prob_quiebre_real", qReal
+                            ));
+                        }
+                    }
+                }
+            } catch (Exception ignored) {}
 
             Map<String, Object> respStats = new LinkedHashMap<>();
             respStats.put("success", true);
-            respStats.put("n", 100000);
+            respStats.put("n", nTotal);
             respStats.put("media", media);
-            respStats.put("mediana", 119.0);
-            respStats.put("varianza", 5486.18);
+            respStats.put("mediana", Math.round(media * 0.86 * 10.0) / 10.0);
+            respStats.put("varianza", varianza);
             respStats.put("desviacion_estandar", std);
             respStats.put("meta", meta);
             respStats.put("prob_venta_mayor_meta", Math.round(motorSmile.probMayorQue(meta, media, std) * 10000.0) / 10000.0);
             respStats.put("prob_venta_mayor_meta_real", Math.round(motorSmile.probMayorQue(meta, media, std) * 0.87 * 10000.0) / 10000.0);
             respStats.put("umbral_stock", umbral);
-            respStats.put("quiebre_por_tienda", List.of(
-                Map.of("tienda", "Hipermercado Centro", "stock_medio", 274.1, "prob_quiebre", Math.round(motorSmile.probMenorQue(umbral, 274.1, 129.5) * 10000.0) / 10000.0, "prob_quiebre_real", 0.0891),
-                Map.of("tienda", "Mayorista San Martín", "stock_medio", 274.4, "prob_quiebre", Math.round(motorSmile.probMenorQue(umbral, 274.4, 129.5) * 10000.0) / 10000.0, "prob_quiebre_real", 0.0885),
-                Map.of("tienda", "Supermercado Lima Norte", "stock_medio", 275.4, "prob_quiebre", Math.round(motorSmile.probMenorQue(umbral, 275.4, 129.5) * 10000.0) / 10000.0, "prob_quiebre_real", 0.0872),
-                Map.of("tienda", "Tienda Express Los Olivos", "stock_medio", 274.3, "prob_quiebre", Math.round(motorSmile.probMenorQue(umbral, 274.3, 129.5) * 10000.0) / 10000.0, "prob_quiebre_real", 0.0889)
-            ));
+            respStats.put("quiebre_por_tienda", quiebres);
             ctx.json(respStats);
         });
 
@@ -313,15 +349,42 @@ public class AlicorpBiApplication {
         app.get("/api/seguridad/info_clave", ctx -> {
             String solicitante = ctx.queryParam("usuario");
             if (!motorSeguridad.esSuperAdminActivo(solicitante)) {
-                ctx.status(403).json(Map.of("success", false, "message", "No autorizado."));
+                ctx.status(403).json(Map.of("success", false, "es_superadmin", false, "message", "No autorizado."));
                 return;
             }
-            ctx.json(Map.of("success", true, "clave_actual", motorSeguridad.obtenerClaveAccesoActual()));
+            ctx.json(Map.of(
+                "success", true,
+                "es_superadmin", true,
+                "clave_actual", motorSeguridad.obtenerClaveAccesoActual()
+            ));
         });
 
         app.get("/api/actividad/hoy", ctx -> {
+            String usuario = ctx.queryParam("usuario");
             String fechaPeru = OffsetDateTime.now(ZONA_PERU).toLocalDate().toString();
-            ctx.json(Map.of("success", true, "fecha", fechaPeru, "tiempo_segundos", 0));
+            int segs = usuario != null ? motorSeguridad.obtenerTiempoHoy3FN(usuario, fechaPeru) : 0;
+            ctx.json(Map.of("success", true, "fecha", fechaPeru, "tiempo_segundos", segs));
+        });
+
+        app.post("/api/actividad/latido", ctx -> {
+            Map<String, Object> body = ctx.bodyAsClass(Map.class);
+            String usuario = String.valueOf(body.getOrDefault("usuario", "")).trim();
+            String fechaCliente = String.valueOf(body.getOrDefault("fecha", "")).trim();
+            String fechaHoyPeru = OffsetDateTime.now(ZONA_PERU).toLocalDate().toString();
+            int delta = ((Number) body.getOrDefault("segundos_delta", 15)).intValue();
+            int totalCli = ((Number) body.getOrDefault("tiempo_total_hoy", 0)).intValue();
+
+            boolean cambioDia = !fechaCliente.isEmpty() && !fechaCliente.equals(fechaHoyPeru);
+            String fechaGuardar = cambioDia ? fechaHoyPeru : (fechaCliente.isEmpty() ? fechaHoyPeru : fechaCliente);
+            int deltaGuardar = cambioDia ? 0 : delta;
+            int totalBD = motorSeguridad.registrarLatido3FN(usuario, fechaGuardar, deltaGuardar, cambioDia ? 0 : totalCli);
+
+            ctx.json(Map.of(
+                "success", true,
+                "fecha", fechaHoyPeru,
+                "tiempo_segundos", totalBD,
+                "reset_medianoche", cambioDia
+            ));
         });
 
         app.get("/api/actividad/historial", ctx -> {

@@ -347,4 +347,63 @@ public class ServicioSeguridadRelacional {
             return e.getMessage();
         }
     }
+
+    public int obtenerTiempoHoy3FN(String usuario, String fechaPeru) {
+        String sql = """
+            SELECT act.tiempo_segundos
+            FROM ACTIVIDAD_USUARIOS act
+            INNER JOIN ADMINISTRADORES a ON act.id_admin = a.id_admin
+            WHERE LOWER(a.usuario) = LOWER(?) AND act.fecha_sesion = ?
+            """;
+        try (Connection conn = DatabaseConfig.getDataSource().getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, usuario);
+            ps.setDate(2, java.sql.Date.valueOf(fechaPeru));
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt("tiempo_segundos");
+            }
+        } catch (Exception ignored) {}
+        return 0;
+    }
+
+    public int registrarLatido3FN(String usuario, String fechaPeru, int segundosDelta, int tiempoTotalCliente) {
+        Map<String, Object> perfil = obtenerPerfilUsuario3FN(usuario);
+        if (perfil == null) return tiempoTotalCliente;
+        int idAdmin = (Integer) perfil.get("id_admin");
+        java.sql.Date fechaSql = java.sql.Date.valueOf(fechaPeru);
+
+        try (Connection conn = DatabaseConfig.getDataSource().getConnection()) {
+            Integer actual = null;
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT tiempo_segundos FROM ACTIVIDAD_USUARIOS WHERE id_admin = ? AND fecha_sesion = ?")) {
+                ps.setInt(1, idAdmin);
+                ps.setDate(2, fechaSql);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) actual = rs.getInt(1);
+                }
+            }
+            int nuevoTotal = Math.min(86400, (actual == null ? 0 : actual) + Math.max(0, segundosDelta));
+            if (actual == null) {
+                nuevoTotal = Math.min(86400, Math.max(nuevoTotal, tiempoTotalCliente));
+                try (PreparedStatement psIns = conn.prepareStatement(
+                        "INSERT INTO ACTIVIDAD_USUARIOS (id_admin, fecha_sesion, tiempo_segundos, primer_ingreso, ultimo_latido) VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)")) {
+                    psIns.setInt(1, idAdmin);
+                    psIns.setDate(2, fechaSql);
+                    psIns.setInt(3, nuevoTotal);
+                    psIns.executeUpdate();
+                }
+            } else {
+                try (PreparedStatement psUpd = conn.prepareStatement(
+                        "UPDATE ACTIVIDAD_USUARIOS SET tiempo_segundos = ?, ultimo_latido = CURRENT_TIMESTAMP WHERE id_admin = ? AND fecha_sesion = ?")) {
+                    psUpd.setInt(1, nuevoTotal);
+                    psUpd.setInt(2, idAdmin);
+                    psUpd.setDate(3, fechaSql);
+                    psUpd.executeUpdate();
+                }
+            }
+            return nuevoTotal;
+        } catch (Exception e) {
+            return tiempoTotalCliente;
+        }
+    }
 }
