@@ -2,6 +2,7 @@
 package pe.com.alicorp.bi.infrastructure.web;
 
 import io.javalin.Javalin;
+import pe.com.alicorp.bi.application.equipo.ServicioActividadEquipo;
 import pe.com.alicorp.bi.config.DatabaseConfig;
 
 import javax.imageio.ImageIO;
@@ -352,6 +353,8 @@ public class TiendaAndSupportEndpointsRegistrar {
             int id = ((Number) body.get("id")).intValue();
             String est = String.valueOf(body.getOrDefault("estado", "leido"));
             String estDb = "leido".equalsIgnoreCase(est) || "resuelto".equalsIgnoreCase(est) ? "resuelto" : "pendiente";
+            String actor = String.valueOf(body.getOrDefault("usuario", "")).trim();
+            String estadoPrevio = ServicioActividadEquipo.compartido().estadoPrevioIncidencia(id);
             try (Connection conn = DatabaseConfig.getDataSource().getConnection();
                  PreparedStatement ps = conn.prepareStatement("UPDATE INCIDENCIAS_CONTACTO SET estado = ? WHERE id_incidencia = ?")) {
                 ps.setString(1, estDb);
@@ -361,6 +364,8 @@ public class TiendaAndSupportEndpointsRegistrar {
                 ctx.status(500).json(Map.of("success", false, "error", e.getMessage()));
                 return;
             }
+            // Quién atendió y cuándo (no interrumpe el cambio de estado si falla)
+            ServicioActividadEquipo.compartido().registrarAtencionIncidencia(id, estadoPrevio, estDb, actor);
             ctx.json(Map.of("success", true));
         });
 
@@ -397,6 +402,9 @@ public class TiendaAndSupportEndpointsRegistrar {
             String cod = String.valueOf(body.getOrDefault("codigo_unico", "")).trim();
             String estUi = String.valueOf(body.getOrDefault("estado", "resuelto")).trim().toLowerCase();
             String estDb = "resuelto".equals(estUi) ? "resuelto" : ("en_proceso".equals(estUi) || "en_revision".equals(estUi) ? "en_revision" : "pendiente");
+            String actor = String.valueOf(body.getOrDefault("usuario", "")).trim();
+            int idFalla = ServicioActividadEquipo.compartido().resolverIdFalla(id, cod);
+            String estadoPrevio = ServicioActividadEquipo.compartido().estadoPrevioFalla(idFalla);
             try (Connection conn = DatabaseConfig.getDataSource().getConnection()) {
                 if (id > 0) {
                     try (PreparedStatement ps = conn.prepareStatement("UPDATE FALLAS_WEB_SISTEMA SET estado = ? WHERE id_falla = ?")) {
@@ -415,6 +423,7 @@ public class TiendaAndSupportEndpointsRegistrar {
                 ctx.status(500).json(Map.of("success", false, "error", e.getMessage()));
                 return;
             }
+            ServicioActividadEquipo.compartido().registrarAtencionFalla(idFalla, estadoPrevio, estDb, actor);
             ctx.json(Map.of("success", true));
         });
 
