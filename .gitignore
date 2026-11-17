@@ -14,6 +14,7 @@ data/*.lock.db
 # Variables de entorno y configuración local privada
 .env
 .env.*
+!.env.example
 .vscode/
 .idea/
 
