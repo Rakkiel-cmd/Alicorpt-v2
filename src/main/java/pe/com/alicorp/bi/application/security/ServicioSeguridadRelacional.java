@@ -217,6 +217,11 @@ public class ServicioSeguridadRelacional {
     }
 
     public boolean cambiarEstadoUsuario3FN(String adminEjecutor, String usuarioObjetivo, int nuevoIdEstado, String accionNombre) {
+        return cambiarEstadoUsuario3FN(adminEjecutor, usuarioObjetivo, nuevoIdEstado, accionNombre, null);
+    }
+
+    /** Igual que el anterior, pero guarda el motivo escrito por el Super Admin en el detalle de la auditoría. */
+    public boolean cambiarEstadoUsuario3FN(String adminEjecutor, String usuarioObjetivo, int nuevoIdEstado, String accionNombre, String motivo) {
         Map<String, Object> ejec = obtenerPerfilUsuario3FN(adminEjecutor);
         Map<String, Object> obj = obtenerPerfilUsuario3FN(usuarioObjetivo);
         if (ejec == null || obj == null || !Boolean.TRUE.equals(ejec.get("es_superadmin"))) return false;
@@ -231,7 +236,10 @@ public class ServicioSeguridadRelacional {
                 psAud.setInt(1, (Integer) ejec.get("id_admin"));
                 psAud.setInt(2, (Integer) obj.get("id_admin"));
                 psAud.setString(3, accionNombre);
-                psAud.setString(4, "Cambio de estado aplicado por @" + adminEjecutor + " sobre @" + usuarioObjetivo);
+                String detalleAud = (motivo != null && !motivo.isBlank())
+                        ? (motivo.trim().length() > 450 ? motivo.trim().substring(0, 450) : motivo.trim())
+                        : "Cambio de estado aplicado por @" + adminEjecutor + " sobre @" + usuarioObjetivo;
+                psAud.setString(4, detalleAud);
                 psAud.executeUpdate();
             }
             return true;

@@ -3,6 +3,7 @@ package pe.com.alicorp.bi;
 import io.javalin.Javalin;
 import io.javalin.http.staticfiles.Location;
 import pe.com.alicorp.bi.application.biometria.ServicioBiometriaJavaCV;
+import pe.com.alicorp.bi.application.equipo.ServicioActividadEquipo;
 import pe.com.alicorp.bi.application.ml.ServicioAnaliticaSmile;
 import pe.com.alicorp.bi.application.ml.ServicioRedNeuronalDL4J;
 import pe.com.alicorp.bi.application.security.ServicioSeguridadRelacional;
@@ -35,6 +36,7 @@ public class AlicorpBiApplication {
         ServicioAnaliticaSmile motorSmile = new ServicioAnaliticaSmile();
         ServicioBiometriaJavaCV motorBiometria = new ServicioBiometriaJavaCV();
         ServicioSeguridadRelacional motorSeguridad = new ServicioSeguridadRelacional();
+        ServicioActividadEquipo servicioEquipo = ServicioActividadEquipo.compartido();
 
         int puerto = Integer.parseInt(System.getenv().getOrDefault("PORT", "5000"));
 
@@ -337,6 +339,7 @@ public class AlicorpBiApplication {
                 return;
             }
             List<Map<String, Object>> usuarios = motorSeguridad.listarUsuariosConEstado3FN();
+            servicioEquipo.enriquecerUsuarios(usuarios);   // última actividad, último latido de hoy y motivo de suspensión
             long conectados = usuarios.stream().filter(u -> Boolean.TRUE.equals(u.get("conectado"))).count();
             ctx.json(Map.of("success", true, "usuarios", usuarios, "total", usuarios.size(), "conectados", conectados));
         });
@@ -348,6 +351,40 @@ public class AlicorpBiApplication {
                 return;
             }
             ctx.json(Map.of("success", true, "registros", motorSeguridad.listarAuditoria3FN()));
+        });
+
+        // Auditoría con filtros (fecha, acción, colaborador, texto) y paginación en la base de datos
+        app.get("/api/superadmin/auditoria_filtrada", ctx -> {
+            if (!motorSeguridad.esSuperAdminActivo(ctx.queryParam("usuario"))) {
+                ctx.status(403).json(Map.of("success", false, "message", "Exclusivo para Super Administradores."));
+                return;
+            }
+            try {
+                ctx.json(servicioEquipo.auditoriaFiltrada(ctx.queryParam("desde"), ctx.queryParam("hasta"),
+                        ctx.queryParam("accion"), ctx.queryParam("colaborador"), ctx.queryParam("q"),
+                        ctx.queryParam("pagina"), ctx.queryParam("por_pagina")));
+            } catch (IllegalArgumentException e) {
+                ctx.status(400).json(Map.of("success", false, "message", e.getMessage()));
+            } catch (Exception e) {
+                System.err.println("[!] Error en /api/superadmin/auditoria_filtrada: " + e.getMessage());
+                ctx.status(500).json(Map.of("success", false, "message", "No se pudo consultar la auditoría."));
+            }
+        });
+
+        // Dashboard "Actividad del equipo": ranking, horas pico, acciones, tickets y proyección
+        app.get("/api/superadmin/equipo", ctx -> {
+            if (!motorSeguridad.esSuperAdminActivo(ctx.queryParam("usuario"))) {
+                ctx.status(403).json(Map.of("success", false, "message", "Exclusivo para Super Administradores."));
+                return;
+            }
+            try {
+                ctx.json(servicioEquipo.equipo(ctx.queryParam("periodo"), ctx.queryParam("ref")));
+            } catch (IllegalArgumentException e) {
+                ctx.status(400).json(Map.of("success", false, "message", e.getMessage()));
+            } catch (Exception e) {
+                System.err.println("[!] Error en /api/superadmin/equipo: " + e.getMessage());
+                ctx.status(500).json(Map.of("success", false, "message", "No se pudo calcular la actividad del equipo."));
+            }
         });
 
         app.get("/api/seguridad/info_clave", ctx -> {
@@ -400,7 +437,9 @@ public class AlicorpBiApplication {
             Map<String, Object> body = ctx.bodyAsClass(Map.class);
             String admin = String.valueOf(body.getOrDefault("usuario", body.getOrDefault("admin_usuario", body.getOrDefault("solicitante", ""))));
             String objetivo = String.valueOf(body.getOrDefault("objetivo", body.getOrDefault("usuario_objetivo", "")));
-            boolean ok = motorSeguridad.cambiarEstadoUsuario3FN(admin, objetivo, 2, "SUSPENSION");
+            Object motivoRaw = body.get("motivo");
+            String motivo = motivoRaw == null ? "" : String.valueOf(motivoRaw).trim();
+            boolean ok = motorSeguridad.cambiarEstadoUsuario3FN(admin, objetivo, 2, "SUSPENSION", motivo);
             ctx.json(Map.of("success", ok, "message", ok ? "Usuario suspendido correctamente." : "No autorizado."));
         });
 
@@ -428,6 +467,7 @@ public class AlicorpBiApplication {
                 ctx.status(500).json(Map.of("success", false, "message", "Error al actualizar rol: " + e.getMessage()));
                 return;
             }
+            motorSeguridad.registrarAuditoria3FN(admin, objetivo, "DEGRADACION_ROL", "Rol cambiado a analista");
             ctx.json(Map.of("success", true, "message", "Rol cambiado a Analista."));
         });
 
@@ -449,6 +489,7 @@ public class AlicorpBiApplication {
                 ctx.status(500).json(Map.of("success", false, "message", "Error al actualizar correo: " + e.getMessage()));
                 return;
             }
+            motorSeguridad.registrarAuditoria3FN(admin, objetivo, "ACTUALIZACION_EMAIL", "Correo actualizado a " + email);
             ctx.json(Map.of("success", true, "message", "Correo actualizado."));
         });
 

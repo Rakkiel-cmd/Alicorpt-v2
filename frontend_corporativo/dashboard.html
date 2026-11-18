@@ -1081,6 +1081,47 @@
             .theme-toggle-btn { padding: 8px 12px; }
             .theme-toggle-btn .theme-text { display: none; }
         }
+        /* ===== Tabla moderna: legible en modo claro y oscuro ===== */
+        .tabla-moderna-wrap { border: 1px solid var(--border); border-radius: 12px; overflow: auto; }
+        .tabla-moderna { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .tabla-moderna th { background: var(--bg-main); color: var(--text-muted); text-align: left; padding: 10px 12px; position: sticky; top: 0; z-index: 1; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; }
+        .tabla-moderna td { padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--text-main); font-family: inherit; vertical-align: middle; }
+        .tabla-moderna tbody tr:last-child td { border-bottom: 0; }
+        .tabla-moderna tr:hover td { background: rgba(2,132,199,.06); }
+        .tabla-moderna small { color: var(--text-muted); }
+        /* ===== Administración: resumen, tabla de colaboradores y menú de acciones ===== */
+        .adm-resumen { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 14px 0; }
+        .adm-card { text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; cursor: pointer; color: var(--text-main); font: inherit; transition: border-color .15s, box-shadow .15s; }
+        .adm-card:hover { border-color: var(--accent); }
+        .adm-card.activa { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(2,132,199,.25); }
+        .adm-card b { display: block; font-size: 22px; line-height: 1.2; }
+        .adm-card span { font-size: 12px; color: var(--text-muted); }
+        .adm-buscar { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text-main); margin-bottom: 12px; }
+        .adm-persona { display: flex; align-items: center; gap: 10px; }
+        .adm-avatar { flex: 0 0 36px; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; color: #fff; background: var(--accent-gradient); }
+        .adm-avatar.sa { background: linear-gradient(135deg, #7c3aed, #5b21b6); }
+        .adm-fila-susp { opacity: .6; }
+        .adm-punto { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; background: #94a3b8; }
+        .adm-punto.ok { background: #10b981; } .adm-punto.off { background: #ef4444; } .adm-punto.susp { background: #f59e0b; }
+        .adm-susp-detalle { display: block; margin-top: 3px; font-size: 11.5px; color: var(--text-muted); }
+        .adm-btn-acc { padding: 6px 12px; font-size: 12px; white-space: nowrap; }
+        .adm-menu { position: fixed; z-index: 3000; min-width: 250px; max-width: 300px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 12px 32px rgba(0,0,0,.25); padding: 6px; display: none; }
+        .adm-menu.open { display: block; }
+        .adm-menu button, .adm-menu .adm-item-off { display: block; width: 100%; text-align: left; padding: 8px 10px; border: 0; background: transparent; color: var(--text-main); border-radius: 8px; font: inherit; font-size: 13px; cursor: pointer; }
+        .adm-menu button:hover { background: rgba(2,132,199,.12); }
+        .adm-menu button.peligro { color: #ef4444; } .adm-menu button.peligro:hover { background: rgba(239,68,68,.12); }
+        .adm-menu .adm-item-off { cursor: not-allowed; opacity: .55; }
+        .adm-menu .adm-item-off small { display: block; font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+        .adm-menu hr { border: 0; border-top: 1px solid var(--border); margin: 5px 0; }
+        @media (max-width: 760px) {
+            .adm-tabla thead { display: none; }
+            .adm-tabla, .adm-tabla tbody, .adm-tabla tr, .adm-tabla td { display: block; width: 100%; }
+            .adm-tabla tr { border: 1px solid var(--border); border-radius: 12px; margin-bottom: 12px; padding: 8px 12px; }
+            .adm-tabla td { display: flex; justify-content: space-between; align-items: center; gap: 12px; border: 0 !important; padding: 6px 0; text-align: right; }
+            .adm-tabla td::before { content: attr(data-label); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; text-align: left; flex: 0 0 90px; }
+            .adm-tabla td:first-child::before { display: none; }
+            .adm-tabla td:first-child { text-align: left; }
+        }
     </style>
 </head>
 <body>
@@ -2105,7 +2146,7 @@
                     </div>
                 </div>
             </div>
-            <div id="panelAuditoriaColaboradoresInc" class="contenido" style="display:none;"><div class="panel"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;"><h3>Auditoría de colaboradores</h3><button type="button" class="btn-secundario" id="btnActualizarAuditoriaInc">Actualizar</button></div><div class="tabla-historial-wrap"><table class="tabla-historial"><thead><tr><th>Fecha</th><th>Colaborador</th><th>Acción</th><th>Realizado por</th><th>Motivo</th></tr></thead><tbody id="tablaAuditoriaIncBody"><tr><td colspan="5">Cargando...</td></tr></tbody></table></div></div></div>
+            <div id="panelAuditoriaColaboradoresInc" class="contenido" style="display:none;"><div class="panel"><h3>Auditoría de colaboradores</h3><p style="font-size:13px;color:var(--text-muted);">La auditoría ahora es una sola, con filtros, buscador, paginación y exportación a PDF, y está en Administración.</p><button type="button" class="btn-secundario" id="btnIrAuditoriaAdmin">Ir a Administración</button></div></div>
         </section>
 
         <!-- ================= VISTA: ADMINISTRACIÓN DE COLABORADORES ================= -->
@@ -2114,9 +2155,70 @@
         <section id="vista-administracion" class="vista">
             <div class="page-hero"><span class="chip">Módulo restringido</span><h1>Administración</h1><p>Gestión de colaboradores, roles, estado de acceso y correo corporativo.</p></div>
             <div class="contenido"><div class="panel">
-                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><h3>Colaboradores</h3><button type="button" class="btn-secundario" id="btnRecargarAdministracion">Actualizar</button></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><h3>Colaboradores</h3>
+                    <div style="display:flex;gap:8px;"><button type="button" class="btn-secundario" id="btnAdmPdf" style="padding:6px 12px;font-size:12px;">📄 Exportar PDF</button><button type="button" class="btn-secundario" id="btnRecargarAdministracion" style="padding:6px 12px;font-size:12px;">🔄 Actualizar</button></div></div>
+                <p style="font-size:13px;color:var(--text-muted);margin:6px 0 0;">Aquí se gestionan roles, cuentas y correos. La pestaña Seguridad Super Admin es solo para monitorear en vivo.</p>
+                <div class="adm-resumen" id="admResumen">
+                    <button type="button" class="adm-card activa" data-adm-filtro="todos"><b id="admCntTodos">–</b><span>Total</span></button>
+                    <button type="button" class="adm-card" data-adm-filtro="superadmin"><b id="admCntSuper">–</b><span>Super Admin</span></button>
+                    <button type="button" class="adm-card" data-adm-filtro="analista"><b id="admCntAnalista">–</b><span>Analistas</span></button>
+                    <button type="button" class="adm-card" data-adm-filtro="suspendido"><b id="admCntSusp">–</b><span>Suspendidos</span></button>
+                    <button type="button" class="adm-card" data-adm-filtro="conectado"><b id="admCntConectados">–</b><span>Conectados ahora</span></button>
+                </div>
+                <input type="search" id="admBuscar" class="adm-buscar" placeholder="Buscar por nombre, usuario o correo…" maxlength="80" autocomplete="off">
                 <div id="statusAdministracion" style="margin:10px 0;display:none;"></div>
-                <div class="tabla-historial-wrap"><table class="tabla-historial"><thead><tr><th>Colaborador</th><th>Rol</th><th>Estado</th><th>Correo</th><th>Acciones</th></tr></thead><tbody id="tablaAdministracionBody"><tr><td colspan="5">Cargando...</td></tr></tbody></table></div>
+                <div class="tabla-historial-wrap tabla-moderna-wrap" style="max-height:560px;"><table class="tabla-historial tabla-moderna adm-tabla"><thead><tr><th>Colaborador</th><th>Rol</th><th>Estado</th><th>Correo</th><th>Última actividad</th><th>Acciones</th></tr></thead><tbody id="tablaAdministracionBody"><tr><td colspan="6">Cargando...</td></tr></tbody></table></div>
+            </div></div>
+            <div class="adm-menu" id="admMenu" role="menu"></div>
+            <!-- ===== Actividad del equipo (carga solo al abrir; sin refresco automático) ===== -->
+            <div class="contenido"><details class="panel" id="detActividadEquipo" style="margin-top:25px;">
+                <summary style="cursor:pointer;font-size:1.15rem;font-weight:700;">📊 Actividad del equipo <span style="font-size:12px;font-weight:400;color:var(--text-muted);">· ranking, atención de tickets y proyección</span></summary>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:16px 0 8px;">
+                    <div id="eqPeriodo" style="display:inline-flex;gap:4px;">
+                        <button type="button" class="btn-secundario" data-eq-periodo="mes" style="padding:6px 12px;font-size:12px;font-weight:700;">Mes</button>
+                        <button type="button" class="btn-secundario" data-eq-periodo="anio" style="padding:6px 12px;font-size:12px;">Año</button>
+                    </div>
+                    <input type="month" id="eqMes" style="padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:inherit;">
+                    <input type="number" id="eqAnio" min="2020" max="2100" style="display:none;width:90px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:inherit;">
+                    <button type="button" class="btn-secundario" id="btnEqActualizar" style="padding:6px 12px;font-size:12px;">🔄 Actualizar</button>
+                </div>
+                <p style="font-size:12.5px;color:var(--text-muted);margin:6px 0 14px;">Estar conectado no equivale a rendir: se muestran varias métricas juntas y no hay un único “mejor”. Las proyecciones usan regresión lineal sobre las últimas 12 semanas y requieren al menos 4 semanas de datos.</p>
+                <div id="eqContenido" style="font-size:13px;color:var(--text-muted);">Abre este panel para cargar los datos reales del equipo.</div>
+            </details></div>
+
+            <!-- ===== Auditoría con filtros, paginación y PDF ===== -->
+            <div class="contenido"><div class="panel" style="margin-top:25px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:10px;">
+                    <h3 style="margin:0;font-size:1.15rem;">📋 Auditoría de acciones administrativas</h3>
+                    <div style="display:flex;gap:8px;">
+                        <button type="button" class="btn-secundario" id="btnRefrescarAuditoria" style="padding:6px 12px;font-size:12px;">🔄 Actualizar</button>
+                        <button type="button" class="btn-secundario" id="btnAudPdf" style="padding:6px 12px;font-size:12px;">📄 Exportar PDF</button>
+                    </div>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 14px;font-size:12px;">
+                    <input type="date" id="audDesde" title="Desde" style="padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:inherit;">
+                    <input type="date" id="audHasta" title="Hasta" style="padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:inherit;">
+                    <select id="audAccion" style="padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:inherit;">
+                        <option value="">Todas las acciones</option>
+                        <option value="suspension">Suspensión</option><option value="reactivacion">Reactivación</option>
+                        <option value="ascenso_rol">Ascenso de rol</option><option value="degradacion_rol">Degradación de rol</option>
+                        <option value="cambio_clave">Cambio de llave</option><option value="actualizacion_email">Actualización de correo</option>
+                    </select>
+                    <input type="text" id="audColaborador" placeholder="Colaborador" maxlength="60" style="width:130px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:inherit;">
+                    <input type="search" id="audBuscar" placeholder="Buscar texto…" maxlength="80" style="flex:1;min-width:140px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:inherit;">
+                    <button type="button" class="btn-secundario" id="btnAudLimpiar" style="padding:6px 12px;font-size:12px;">Limpiar</button>
+                </div>
+                <div class="tabla-historial-wrap tabla-moderna-wrap" style="max-height:420px;">
+                    <table class="tabla-historial tabla-moderna">
+                        <thead><tr><th>Fecha</th><th>Usuario afectado</th><th>Acción</th><th>Ejecutado por</th><th>Motivo / detalle</th></tr></thead>
+                        <tbody id="tablaAuditoriaSuperadminBody"><tr><td colspan="5" style="text-align:center;color:#64748b;">Cargando auditoría…</td></tr></tbody>
+                    </table>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:12px;color:var(--text-muted);gap:10px;flex-wrap:wrap;">
+                    <span id="audInfo">—</span>
+                    <span><button type="button" class="btn-secundario" id="btnAudAnterior" style="padding:5px 10px;font-size:12px;">← Anterior</button>
+                    <button type="button" class="btn-secundario" id="btnAudSiguiente" style="padding:5px 10px;font-size:12px;">Siguiente →</button></span>
+                </div>
             </div></div>
         </section>
 
@@ -2207,11 +2309,11 @@
                         <span id="txtResumenConectados" style="font-size: 12px; color: var(--text-muted);">Cargando...</span>
                     </div>
                     <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
-                        Estado en tiempo real de cada colaborador registrado, gestión de roles (ascenso a Super Admin), suspensión/reactivación de cuentas y consulta biométrica.
+                        Monitor en vivo (solo lectura): estado, tiempo de hoy, biometría, vector e historial de cada colaborador. Los roles, suspensiones y correos se gestionan en Administración.
                     </p>
                     <div id="statusAdminUsuarios" style="margin-bottom: 12px; font-size: 13px; display: none;"></div>
-                    <div class="tabla-historial-wrap" style="max-height: 420px;">
-                        <table class="tabla-historial">
+                    <div class="tabla-historial-wrap tabla-moderna-wrap" style="max-height: 420px;">
+                        <table class="tabla-historial tabla-moderna">
                             <thead>
                                 <tr>
                                     <th>Estado</th>
@@ -2220,40 +2322,11 @@
                                     <th>Rol</th>
                                     <th>Tiempo hoy</th>
                                     <th>Biometría</th>
-                                    <th>Acciones y Gestión</th>
+                                    <th>Consultas</th>
                                 </tr>
                             </thead>
                             <tbody id="tablaUsuariosSuperadminBody">
                                 <tr><td colspan="7" style="text-align: center; color: #64748b;">Cargando usuarios desde Supabase...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Tarjeta: Historial de Auditoría de Usuarios (Suspensiones, Reactivaciones y Ascensos) -->
-                <div class="panel" style="margin-bottom: 25px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 10px;">
-                        <h3 style="margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: 8px;">
-                            <span>📋</span> Auditoría de Acciones sobre Usuarios
-                        </h3>
-                        <button type="button" class="btn-secundario" id="btnRefrescarAuditoria" style="padding: 6px 12px; font-size: 12px;">🔄 Actualizar auditoría</button>
-                    </div>
-                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
-                        Registro histórico en Supabase (<code>auditoria_usuarios</code>) de ascensos de rol, suspensiones y reactivaciones ejecutadas por Super Administradores.
-                    </p>
-                    <div class="tabla-historial-wrap" style="max-height: 320px;">
-                        <table class="tabla-historial">
-                            <thead>
-                                <tr>
-                                    <th>Fecha</th>
-                                    <th>Usuario Afectado</th>
-                                    <th>Acción</th>
-                                    <th>Ejecutado Por</th>
-                                    <th>Motivo / Detalle</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tablaAuditoriaSuperadminBody">
-                                <tr><td colspan="5" style="text-align: center; color: #64748b;">Cargando auditoría desde Supabase...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -2352,6 +2425,7 @@
             </div>
 
             <div class="modal-actions">
+                <button type="button" class="btn-light" id="btnHistPdf">📄 Exportar PDF</button>
                 <button type="button" class="btn-light" id="btnCerrarModalHist2">Cerrar</button>
             </div>
         </div>
@@ -3953,7 +4027,7 @@ function rfComparar() {
                 const resp = await fetch('/api/incidencias/cambiar_estado', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: id, estado: nuevoEstado })
+                    body: JSON.stringify({ id: id, estado: nuevoEstado, usuario: (sesionUsuario && sesionUsuario.usuario) || 'analista' })
                 });
                 const data = await resp.json();
                 if (!resp.ok || !data.success) {
@@ -4707,6 +4781,7 @@ function rfComparar() {
             const usuario = usuarioObjetivo || sesionUsuario.usuario;
             const nombre = nombreObjetivo || sesionUsuario.nombre_completo || sesionUsuario.usuario;
             const esUnoMismo = usuario === sesionUsuario.usuario;
+            window.histActual = { usuario, nombre };
 
             const modal = $('modalHistorialSesiones');
             if (!modal) return;
@@ -4799,45 +4874,391 @@ function rfComparar() {
             mostrarAvisoAdminUsuarios._t = setTimeout(() => { box.style.display = 'none'; }, 6000);
         }
 
-        async function cargarAuditoriaSuperadmin() {
+        /* ===== AUDITORÍA (filtros en servidor, paginada, sin refresco automático) ===== */
+        const audEstado = { pagina: 1, paginas: 1, total: 0 };
+        const AUD_ETIQUETAS = {
+            suspension: ['🚫 Suspensión', '#ef4444', 'rgba(239,68,68,0.15)'],
+            reactivacion: ['✅ Reactivación', '#10b981', 'rgba(16,185,129,0.15)'],
+            ascenso_rol: ['⬆️ Ascenso de rol', '#38bdf8', 'rgba(14,165,233,0.15)'],
+            degradacion_rol: ['⬇️ Degradación de rol', '#f59e0b', 'rgba(245,158,11,0.15)'],
+            cambio_clave: ['🔑 Cambio de llave', '#a78bfa', 'rgba(167,139,250,0.15)'],
+            actualizacion_email: ['✉️ Correo actualizado', '#94a3b8', 'rgba(148,163,184,0.15)']
+        };
+        function audBadge(accion) {
+            const e = AUD_ETIQUETAS[accion];
+            return e ? `<span style="background:${e[2]};color:${e[1]};padding:3px 9px;border-radius:12px;font-size:11px;font-weight:700;">${e[0]}</span>`
+                     : `<span class="badge-role">${esc(accion || '—')}</span>`;
+        }
+        function audParams(extra) {
+            const p = new URLSearchParams({ usuario: sesionUsuario.usuario });
+            [['desde', 'audDesde'], ['hasta', 'audHasta'], ['accion', 'audAccion'], ['colaborador', 'audColaborador'], ['q', 'audBuscar']].forEach(([k, id]) => {
+                const v = (($(id) && $(id).value) || '').trim();
+                if (v) p.set(k, v);
+            });
+            Object.entries(extra || {}).forEach(([k, v]) => p.set(k, v));
+            return p;
+        }
+        async function cargarAuditoriaSuperadmin(pagina) {
             const tbody = $('tablaAuditoriaSuperadminBody');
             if (!tbody) return;
+            if (typeof pagina === 'number') audEstado.pagina = pagina;
             try {
-                const res = await fetch(`/api/superadmin/auditoria?usuario=${encodeURIComponent(sesionUsuario.usuario)}`);
+                const res = await fetch('/api/superadmin/auditoria_filtrada?' + audParams({ pagina: audEstado.pagina, por_pagina: 20 }));
                 const data = await res.json();
                 if (!data.success) {
                     tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#ef4444;padding:16px;">${esc(data.message || 'No se pudo cargar la auditoría.')}</td></tr>`;
                     return;
                 }
+                audEstado.pagina = data.pagina; audEstado.paginas = data.paginas; audEstado.total = data.total;
                 const regs = data.registros || [];
-                if (regs.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#64748b;padding:16px;">Sin movimientos administrativos registrados aún.</td></tr>';
-                    return;
-                }
-                tbody.innerHTML = regs.map(r => {
-                    const fechaStr = r.fecha ? new Date(r.fecha).toLocaleString('es-PE', { timeZone: 'America/Lima' }) : '--';
-                    let badgeAccion = `<span class="badge-role">${esc(r.accion)}</span>`;
-                    if (r.accion === 'suspension') {
-                        badgeAccion = '<span style="background:rgba(239,68,68,0.15);color:#ef4444;padding:3px 9px;border-radius:12px;font-size:11px;font-weight:700;">🚫 Suspensión</span>';
-                    } else if (r.accion === 'reactivacion') {
-                        badgeAccion = '<span style="background:rgba(16,185,129,0.15);color:#10b981;padding:3px 9px;border-radius:12px;font-size:11px;font-weight:700;">✅ Reactivación</span>';
-                    } else if (r.accion === 'ascenso_rol') {
-                        badgeAccion = '<span style="background:rgba(14,165,233,0.15);color:#38bdf8;padding:3px 9px;border-radius:12px;font-size:11px;font-weight:700;">⬆️ Ascenso SuperAdmin</span>';
-                    }
-                    return `
-                        <tr>
-                            <td style="font-size:12px;color:#94a3b8;">${esc(fechaStr)}</td>
-                            <td><strong>@${esc(r.usuario_afectado)}</strong></td>
-                            <td>${badgeAccion}</td>
-                            <td>@${esc(r.realizado_por)}</td>
-                            <td style="font-size:12.5px;">${esc(r.motivo || '—')}</td>
-                        </tr>
-                    `;
-                }).join('');
+                tbody.innerHTML = regs.length ? regs.map(r => {
+                    const f = r.fecha ? new Date(r.fecha).toLocaleString('es-PE', { timeZone: 'America/Lima' }) : '--';
+                    return `<tr><td style="font-size:12px;color:#94a3b8;">${esc(f)}</td><td><strong>@${esc(r.usuario_afectado)}</strong></td><td>${audBadge(r.accion)}</td><td>@${esc(r.realizado_por)}</td><td style="font-size:12.5px;">${esc(r.motivo || '—')}</td></tr>`;
+                }).join('') : '<tr><td colspan="5" style="text-align:center;color:#64748b;padding:16px;">Sin movimientos con esos filtros.</td></tr>';
+                if ($('audInfo')) $('audInfo').textContent = `${data.total.toLocaleString('es-PE')} registros · página ${data.pagina} de ${data.paginas}`;
+                if ($('btnAudAnterior')) $('btnAudAnterior').disabled = data.pagina <= 1;
+                if ($('btnAudSiguiente')) $('btnAudSiguiente').disabled = data.pagina >= data.paginas;
             } catch (e) {
                 tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#ef4444;padding:16px;">Error consultando auditoría.</td></tr>';
             }
         }
+        (function () {
+            let t = null;
+            const recargar = () => { clearTimeout(t); t = setTimeout(() => cargarAuditoriaSuperadmin(1), 400); };
+            ['audDesde', 'audHasta', 'audAccion'].forEach(id => $(id) && $(id).addEventListener('change', () => cargarAuditoriaSuperadmin(1)));
+            ['audColaborador', 'audBuscar'].forEach(id => $(id) && $(id).addEventListener('input', recargar));
+            if ($('btnAudLimpiar')) $('btnAudLimpiar').addEventListener('click', () => {
+                ['audDesde', 'audHasta', 'audAccion', 'audColaborador', 'audBuscar'].forEach(id => { if ($(id)) $(id).value = ''; });
+                cargarAuditoriaSuperadmin(1);
+            });
+            if ($('btnAudAnterior')) $('btnAudAnterior').addEventListener('click', () => cargarAuditoriaSuperadmin(Math.max(1, audEstado.pagina - 1)));
+            if ($('btnAudSiguiente')) $('btnAudSiguiente').addEventListener('click', () => cargarAuditoriaSuperadmin(Math.min(audEstado.paginas, audEstado.pagina + 1)));
+            if ($('btnAudPdf')) $('btnAudPdf').addEventListener('click', exportarAuditoriaPdf);
+        })();
+
+        /* ===== ADMINISTRACIÓN: tabla de colaboradores (resumen, filtros, menú de acciones) ===== */
+        const admEstado = { usuarios: [], filtro: 'todos', texto: '' };
+        const admIniciales = n => String(n || '?').trim().split(/\s+/).slice(0, 2).map(p => p[0]).join('').toUpperCase() || '?';
+        const admEsPropio = u => String(u.usuario).toLowerCase() === String(sesionUsuario.usuario || '').toLowerCase();
+        const admSuperActivos = () => admEstado.usuarios.filter(u => u.rol === 'superadmin' && u.estado !== 'suspendido').length;
+        function admFechaCorta(iso) {
+            if (!iso) return '';
+            const d = new Date(String(iso).length <= 10 ? iso + 'T12:00:00-05:00' : iso);
+            return isNaN(d) ? '' : d.toLocaleDateString('es-PE', { timeZone: 'America/Lima', day: '2-digit', month: '2-digit', year: 'numeric' });
+        }
+        function admUltimaActividad(u) {
+            if (u.conectado) return '<span class="adm-punto ok"></span>Conectado ahora';
+            if (u.ultimo_latido) {
+                const h = new Date(u.ultimo_latido).toLocaleTimeString('es-PE', { timeZone: 'America/Lima', hour: '2-digit', minute: '2-digit', hour12: false });
+                return `<span class="adm-punto off"></span>Hoy, ${h}`;
+            }
+            return u.ultima_actividad ? `<span class="adm-punto"></span>${esc(admFechaCorta(u.ultima_actividad))}` : '<span style="color:var(--text-muted);">Sin actividad</span>';
+        }
+        function admFiltrados() {
+            const t = admEstado.texto.trim().toLowerCase();
+            return admEstado.usuarios.filter(u => {
+                const susp = u.estado === 'suspendido';
+                const okFiltro = { todos: true, superadmin: u.rol === 'superadmin', analista: u.rol !== 'superadmin', suspendido: susp, conectado: !!u.conectado }[admEstado.filtro];
+                return okFiltro && (!t || `${u.nombre_completo || ''} ${u.usuario} ${u.email || ''}`.toLowerCase().includes(t));
+            });
+        }
+        function admRender() {
+            const tbody = $('tablaAdministracionBody'); if (!tbody) return;
+            const us = admEstado.usuarios;
+            const cuenta = { admCntTodos: us.length, admCntSuper: us.filter(u => u.rol === 'superadmin').length, admCntAnalista: us.filter(u => u.rol !== 'superadmin').length, admCntSusp: us.filter(u => u.estado === 'suspendido').length, admCntConectados: us.filter(u => u.conectado).length };
+            Object.entries(cuenta).forEach(([id, v]) => { if ($(id)) $(id).textContent = v; });
+            document.querySelectorAll('#admResumen .adm-card').forEach(c => c.classList.toggle('activa', c.dataset.admFiltro === admEstado.filtro));
+            const lista = admFiltrados();
+            if (!lista.length) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:18px;">${us.length ? 'Ningún colaborador coincide con el filtro.' : 'No hay colaboradores registrados.'}</td></tr>`; return; }
+            tbody.innerHTML = lista.map(u => {
+                const sa = u.rol === 'superadmin', susp = u.estado === 'suspendido', nombre = u.nombre_completo || u.usuario;
+                const detalleSusp = susp && u.suspension ? `<span class="adm-susp-detalle">Motivo: ${esc(u.suspension.motivo || 'sin motivo registrado')} · por @${esc(u.suspension.por || '—')}${u.suspension.fecha ? ' · ' + esc(admFechaCorta(u.suspension.fecha)) : ''}</span>` : '';
+                const estado = susp ? '<span class="adm-punto susp"></span><strong>Suspendido</strong>' : '<span class="adm-punto ok"></span>Activo';
+                return `<tr class="${susp ? 'adm-fila-susp' : ''}">
+                    <td data-label="Colaborador"><div class="adm-persona"><div class="adm-avatar ${sa ? 'sa' : ''}">${esc(admIniciales(nombre))}</div><div><strong>${esc(nombre)}</strong>${admEsPropio(u) ? ' <small>(tú)</small>' : ''}<br><small>@${esc(u.usuario)}</small></div></div></td>
+                    <td data-label="Rol"><span class="badge-role ${sa ? 'badge-superadmin' : 'badge-analista'}">${sa ? 'Super Admin' : 'Analista'}</span></td>
+                    <td data-label="Estado">${estado}${detalleSusp}</td>
+                    <td data-label="Correo">${u.email ? esc(u.email) : `<a href="#" data-menu-action="agregar-correo" data-usuario="${esc(u.usuario)}" style="color:var(--accent);">Agregar correo</a>`}</td>
+                    <td data-label="Última actividad">${admUltimaActividad(u)}</td>
+                    <td data-label="Acciones"><button type="button" class="btn-secundario adm-btn-acc" data-adm-menu="${esc(u.usuario)}">Acciones ▾</button></td>
+                </tr>`;
+            }).join('');
+        }
+        async function cargarAdministracion() {
+            const tbody = $('tablaAdministracionBody'); if (!tbody || !esSuperAdminActivo) return;
+            try {
+                const r = await fetch(`/api/superadmin/usuarios?usuario=${encodeURIComponent(sesionUsuario.usuario)}`);
+                const d = await r.json();
+                if (!r.ok || !d.success) { tbody.innerHTML = `<tr><td colspan="6">${esc(d.message || 'No se pudo cargar la lista.')}</td></tr>`; return; }
+                admEstado.usuarios = d.usuarios || [];
+                admRender();
+            } catch (e) { tbody.innerHTML = '<tr><td colspan="6">Error de conexión.</td></tr>'; }
+        }
+
+        // Menú único de acciones por fila (lo peligroso en rojo; lo bloqueado explica por qué)
+        function admCerrarMenu() { const m = $('admMenu'); if (m) m.classList.remove('open'); }
+        function admAbrirMenu(usuario, boton) {
+            const u = admEstado.usuarios.find(x => x.usuario === usuario); const m = $('admMenu'); if (!u || !m) return;
+            const sa = u.rol === 'superadmin', susp = u.estado === 'suspendido', propio = admEsPropio(u), unico = sa && !susp && admSuperActivos() <= 1;
+            const attrs = a => `data-admin-action="${a}" data-usuario="${esc(u.usuario)}" data-email="${esc(u.email || '')}"`;
+            const item = (accion, texto, { peligro = false, bloqueo = '' } = {}) => bloqueo
+                ? `<div class="adm-item-off" title="${esc(bloqueo)}">${texto}<small>${esc(bloqueo)}</small></div>`
+                : `<button type="button" role="menuitem" class="${peligro ? 'peligro' : ''}" ${attrs(accion)}>${texto}</button>`;
+            const menuAcc = (accion, texto) => `<button type="button" role="menuitem" data-menu-action="${accion}" data-usuario="${esc(u.usuario)}">${texto}</button>`;
+            m.innerHTML = [
+                sa ? item('degradar', '⬇️ Bajar a Analista', { peligro: true, bloqueo: propio ? 'No puedes cambiar tu propio rol.' : unico ? 'Es el único Super Admin activo.' : '' })
+                   : item('ascender', '⬆️ Ascender a Super Admin', { bloqueo: propio ? 'No puedes cambiar tu propio rol.' : susp ? 'Reactiva la cuenta antes de ascenderla.' : '' }),
+                item('email', u.email ? '✉️ Editar correo' : '✉️ Agregar correo'),
+                '<hr>', menuAcc('historial', '📊 Ver historial de actividad'), menuAcc('historial-pdf', '📄 Historial en PDF'), '<hr>',
+                susp ? item('reactivar', '✅ Reactivar cuenta')
+                     : item('suspender', '🚫 Suspender cuenta', { peligro: true, bloqueo: propio ? 'No puedes suspender tu propia cuenta.' : unico ? 'Es el único Super Admin activo.' : '' })
+            ].join('');
+            const r = boton.getBoundingClientRect();
+            m.classList.add('open');
+            const alto = m.offsetHeight, ancho = m.offsetWidth;
+            m.style.left = Math.max(8, Math.min(window.innerWidth - ancho - 8, r.right - ancho)) + 'px';
+            m.style.top = (r.bottom + alto + 8 > window.innerHeight ? Math.max(8, r.top - alto - 4) : r.bottom + 4) + 'px';
+        }
+        document.addEventListener('click', e => {
+            const btn = e.target.closest('[data-adm-menu]');
+            if (btn) { const abierto = $('admMenu').classList.contains('open') && $('admMenu').dataset.de === btn.dataset.admMenu; admCerrarMenu(); if (!abierto) { admAbrirMenu(btn.dataset.admMenu, btn); $('admMenu').dataset.de = btn.dataset.admMenu; } return; }
+            const acc = e.target.closest('[data-menu-action]');
+            if (acc) {
+                e.preventDefault(); admCerrarMenu();
+                const u = admEstado.usuarios.find(x => x.usuario === acc.dataset.usuario); if (!u) return;
+                const nombre = u.nombre_completo || u.usuario;
+                if (acc.dataset.menuAction === 'historial') mostrarModalHistorial(u.usuario, nombre);
+                else if (acc.dataset.menuAction === 'historial-pdf') exportarHistorialPdf(u.usuario, nombre);
+                else if (acc.dataset.menuAction === 'agregar-correo') { const fila = document.createElement('button'); fila.dataset.adminAction = 'email'; fila.dataset.usuario = u.usuario; fila.dataset.email = ''; document.body.appendChild(fila); fila.click(); fila.remove(); }
+                return;
+            }
+            if (!e.target.closest('#admMenu')) admCerrarMenu(); else if (e.target.closest('[data-admin-action]')) admCerrarMenu();
+        });
+        window.addEventListener('scroll', admCerrarMenu, true);
+        window.addEventListener('resize', admCerrarMenu);
+        window.addEventListener('keydown', e => { if (e.key === 'Escape') admCerrarMenu(); });
+        document.querySelectorAll('#admResumen .adm-card').forEach(c => c.addEventListener('click', () => { admEstado.filtro = c.dataset.admFiltro; admRender(); }));
+        if ($('admBuscar')) $('admBuscar').addEventListener('input', e => { admEstado.texto = e.target.value; admRender(); });
+
+        /* ===== PDF (jsPDF se descarga solo al pulsar un botón de exportación) ===== */
+        const PDF_LIBS = ['https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js', 'https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js'];
+        let _pdfPromesa = null;
+        function _cargarScript(src) { return new Promise((ok, ko) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => ko(new Error('No se pudo descargar ' + src)); document.head.appendChild(s); }); }
+        function cargarJsPdf() {
+            if (window.jspdf && window.jspdf.jsPDF && typeof window.jspdf.jsPDF.API.autoTable === 'function') return Promise.resolve();
+            if (!_pdfPromesa) _pdfPromesa = (async () => { await _cargarScript(PDF_LIBS[0]); await _cargarScript(PDF_LIBS[1]); })().catch(e => { _pdfPromesa = null; throw e; });
+            return _pdfPromesa;
+        }
+        // La fuente estándar del PDF solo admite Latin-1: se quitan emojis y símbolos fuera de ese rango.
+        const pdfTxt = s => String(s == null ? '' : s).replace(/[\u2014\u2013]/g, '-').replace(/[\u2018\u2019]/g, "'").replace(/[\u201c\u201d]/g, '"').replace(/[\u202f\u00a0]/g, ' ').replace(/[^\x09\x0A\x20-\x7E\u00A1-\u00FF]/g, '').trim();
+        const pdfFechaHora = iso => { if (!iso) return '—'; const d = new Date(iso); return isNaN(d) ? '—' : pdfTxt(d.toLocaleString('es-PE', { timeZone: 'America/Lima', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })); };
+        const pdfHora = iso => { if (!iso) return '—'; const d = new Date(iso); return isNaN(d) ? '—' : pdfTxt(d.toLocaleTimeString('es-PE', { timeZone: 'America/Lima', hour: '2-digit', minute: '2-digit', hour12: false })); };
+        const pdfHoy = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' });
+        const pdfArchivo = s => String(s).replace(/[^a-zA-Z0-9_-]+/g, '_').slice(0, 40);
+
+        async function generarPdf({ titulo, lineas = [], columnas, filas, archivo, horizontal = false, anchos = {} }) {
+            await cargarJsPdf();
+            const doc = new window.jspdf.jsPDF({ orientation: horizontal ? 'landscape' : 'portrait', unit: 'pt', format: 'a4' });
+            const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), M = 40;
+            const encabezado = () => {
+                doc.setFillColor(11, 19, 41); doc.rect(0, 0, W, 56, 'F');
+                doc.setFillColor(2, 132, 199); doc.rect(0, 56, W, 4, 'F');
+                doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.text('Alicorp Intelligence', M, 26);
+                doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.text(pdfTxt(titulo), M, 44);
+            };
+            let y = 84;
+            doc.setTextColor(51, 65, 85); doc.setFontSize(9);
+            lineas.forEach(l => { const partes = doc.splitTextToSize(pdfTxt(l), W - 2 * M); doc.text(partes, M, y); y += 12 * partes.length; });
+            doc.autoTable({
+                head: [columnas.map(pdfTxt)], body: filas.map(f => f.map(pdfTxt)), startY: y + 6,
+                margin: { top: 76, left: M, right: M, bottom: 50 },
+                styles: { font: 'helvetica', fontSize: 8.5, cellPadding: 4, overflow: 'linebreak', textColor: [30, 41, 59] },
+                headStyles: { fillColor: [11, 19, 41], textColor: 255, fontStyle: 'bold' },
+                alternateRowStyles: { fillColor: [241, 245, 249] }, columnStyles: anchos,
+                didDrawPage: encabezado
+            });
+            const n = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= n; i++) {
+                doc.setPage(i); doc.setDrawColor(203, 213, 225); doc.line(M, H - 36, W - M, H - 36);
+                doc.setFontSize(8); doc.setTextColor(100, 116, 139);
+                doc.text('Documento confidencial · Uso interno de Alicorp Intelligence', M, H - 22);
+                doc.text(`Página ${i} de ${n}`, W - M, H - 22, { align: 'right' });
+            }
+            doc.save(archivo);
+        }
+        const pdfMeta = () => `Generado por @${sesionUsuario.usuario} el ${pdfFechaHora(new Date().toISOString())} (hora de Perú).`;
+        async function conAvisoPdf(boton, trabajo) {
+            const textoOriginal = boton ? boton.textContent : '';
+            if (boton) { boton.disabled = true; boton.textContent = 'Generando…'; }
+            try { await trabajo(); }
+            catch (e) { console.error('[PDF]', e); alert('No se pudo generar el PDF: ' + (e && e.message ? e.message : 'error desconocido') + '\nRevisa tu conexión (la librería PDF se descarga al exportar).'); }
+            finally { if (boton) { boton.disabled = false; boton.textContent = textoOriginal; } }
+        }
+
+        // PDF 1: auditoría con los filtros activos (hasta 2000 registros)
+        function exportarAuditoriaPdf() {
+            return conAvisoPdf($('btnAudPdf'), async () => {
+                const registros = []; let total = 0;
+                for (let pagina = 1; pagina <= 10; pagina++) {
+                    const r = await fetch('/api/superadmin/auditoria_filtrada?' + audParams({ pagina, por_pagina: 200 }));
+                    const d = await r.json();
+                    if (!d.success) throw new Error(d.message || 'No se pudo consultar la auditoría');
+                    total = d.total; registros.push(...(d.registros || []));
+                    if (pagina >= d.paginas) break;
+                }
+                const f = [['Desde', 'audDesde'], ['Hasta', 'audHasta'], ['Colaborador', 'audColaborador'], ['Texto', 'audBuscar']].map(([n, id]) => [n, ($(id) && $(id).value || '').trim()]).filter(x => x[1]);
+                const accion = $('audAccion') && $('audAccion').value; if (accion) f.push(['Acción', (AUD_ETIQUETAS[accion] || [accion])[0]]);
+                await generarPdf({
+                    titulo: 'Auditoría de acciones administrativas', horizontal: true,
+                    lineas: [pdfMeta(), 'Filtros: ' + (f.length ? f.map(x => `${x[0]}: ${x[1]}`).join(' · ') : 'ninguno (todos los registros)'),
+                        `Registros incluidos: ${registros.length}${total > registros.length ? ` de ${total} (se muestran los más recientes; acota los filtros)` : ''}.`],
+                    columnas: ['Fecha', 'Usuario afectado', 'Acción', 'Ejecutado por', 'Motivo / detalle'],
+                    filas: registros.map(x => [pdfFechaHora(x.fecha), '@' + x.usuario_afectado, (AUD_ETIQUETAS[x.accion] || [x.accion])[0], '@' + x.realizado_por, x.motivo || '—']),
+                    archivo: `auditoria_${pdfHoy()}.pdf`, anchos: { 0: { cellWidth: 95 }, 1: { cellWidth: 110 }, 2: { cellWidth: 120 }, 3: { cellWidth: 110 } }
+                });
+            });
+        }
+
+        // PDF 2: historial de actividad de un colaborador
+        function exportarHistorialPdf(usuario, nombre) {
+            return conAvisoPdf($('btnHistPdf'), async () => {
+                const r = await fetch(`/api/actividad/historial?usuario=${encodeURIComponent(usuario)}&solicitante=${encodeURIComponent(sesionUsuario.usuario)}`);
+                const d = await r.json();
+                if (!r.ok || !d.success) throw new Error(d.message || 'No se pudo consultar el historial');
+                const h = d.historial || [];
+                if (!h.length) { alert('Este colaborador aún no tiene actividad registrada.'); return; }
+                const total = h.reduce((a, x) => a + (x.tiempo_segundos || 0), 0);
+                await generarPdf({
+                    titulo: `Historial de actividad · ${nombre} (@${usuario})`,
+                    lineas: [pdfMeta(), `Últimas ${h.length} jornadas registradas · Tiempo activo total: ${formatearTiempoTexto(total)} · Promedio por jornada: ${formatearTiempoTexto(Math.round(total / h.length))}.`,
+                        'Nota: la salida corresponde al último latido registrado, no a un cierre de sesión explícito.'],
+                    columnas: ['Fecha', 'Entrada', 'Salida (último latido)', 'Tiempo activo', 'Estado'],
+                    filas: h.map(x => [x.fecha, pdfHora(x.primer_ingreso), pdfHora(x.ultimo_latido), formatearTiempoTexto(x.tiempo_segundos || 0), x.fecha === (d.fecha_hoy || pdfHoy()) ? 'En curso' : 'Cerrada']),
+                    archivo: `historial_${pdfArchivo(usuario)}_${pdfHoy()}.pdf`
+                });
+            });
+        }
+
+        // PDF 3: lista de colaboradores (foto fija; sin biometría, claves ni llave de acceso)
+        function exportarColaboradoresPdf() {
+            return conAvisoPdf($('btnAdmPdf'), async () => {
+                const lista = admFiltrados();
+                if (!lista.length) { alert('No hay colaboradores para exportar con el filtro actual.'); return; }
+                const nombresFiltro = { todos: 'todos', superadmin: 'Super Admin', analista: 'Analistas', suspendido: 'Suspendidos', conectado: 'Conectados ahora' };
+                await generarPdf({
+                    titulo: 'Lista de colaboradores', horizontal: true,
+                    lineas: [pdfMeta(), `Filtro: ${nombresFiltro[admEstado.filtro]}${admEstado.texto.trim() ? ` · Búsqueda: "${admEstado.texto.trim()}"` : ''} · ${lista.length} de ${admEstado.usuarios.length} colaboradores.`, 'Foto fija al momento de la generación.'],
+                    columnas: ['Colaborador', 'Usuario', 'Rol', 'Estado', 'Correo', 'Última actividad'],
+                    filas: lista.map(u => [u.nombre_completo || u.usuario, '@' + u.usuario, u.rol === 'superadmin' ? 'Super Admin' : 'Analista',
+                        u.estado === 'suspendido' ? 'Suspendido' + (u.suspension && u.suspension.motivo ? ` (${u.suspension.motivo})` : '') : 'Activo', u.email || '—',
+                        u.conectado ? 'Conectado ahora' : u.ultimo_latido ? 'Hoy ' + pdfHora(u.ultimo_latido) : (admFechaCorta(u.ultima_actividad) || 'Sin actividad')]),
+                    archivo: `colaboradores_${pdfHoy()}.pdf`
+                });
+            });
+        }
+        if ($('btnAdmPdf')) $('btnAdmPdf').addEventListener('click', exportarColaboradoresPdf);
+        if ($('btnHistPdf')) $('btnHistPdf').addEventListener('click', () => { const h = window.histActual || { usuario: sesionUsuario.usuario, nombre: sesionUsuario.usuario }; exportarHistorialPdf(h.usuario, h.nombre); });
+
+        /* ===== ACTIVIDAD DEL EQUIPO (se consulta solo al abrir o al pulsar Actualizar) ===== */
+        const eq = { periodo: 'mes', cargado: false, seq: 0 };
+        const fmtDur = s => { s = Math.round(s || 0); const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60); return h ? `${h} h ${m} min` : `${m} min`; };
+        const fmtMin = m => m == null ? '—' : (m < 60 ? `${Math.round(m)} min` : `${(m / 60).toFixed(1)} h`);
+        const fmtN = (n, d = 1) => Number(n).toLocaleString('es-PE', { maximumFractionDigits: d });
+        const eqSeccion = (titulo, cuerpo) => `<div style="margin:18px 0 6px;"><h4 style="margin:0 0 8px;font-size:14px;color:var(--text-main);">${titulo}</h4>${cuerpo}</div>`;
+        const eqVacio = txt => `<div style="padding:12px;border:1px dashed var(--border);border-radius:8px;color:var(--text-muted);">⏳ Recopilando datos: ${txt}</div>`;
+        const eqTabla = (cab, filas) => `<div class="tabla-historial-wrap tabla-moderna-wrap" style="max-height:340px;"><table class="tabla-historial tabla-moderna"><thead><tr>${cab.map(c => `<th>${c}</th>`).join('')}</tr></thead><tbody>${filas.join('')}</tbody></table></div>`;
+        const eqBarra = (pct, color) => `<div style="background:rgba(148,163,184,.25);border-radius:6px;height:8px;min-width:80px;"><div style="width:${Math.max(2, Math.min(100, pct))}%;height:8px;border-radius:6px;background:${color || 'var(--accent)'};"></div></div>`;
+        const eqNombre = r => `<strong>${esc(r.nombre || r.usuario)}</strong><br><small>@${esc(r.usuario)}</small>`;
+
+        function eqFilasProyeccion(lista, unidad, minSem) {
+            return lista.map(p => {
+                if (p.estado !== 'ok') return `<tr><td>${eqNombre(p)}</td><td colspan="5" style="color:var(--text-muted);">Datos insuficientes (${p.semanas} de ${minSem} semanas)</td></tr>`;
+                const tend = p.pendiente_semanal > 0 ? '📈' : p.pendiente_semanal < 0 ? '📉' : '➡️';
+                const color = p.confianza === 'alta' ? '#10b981' : p.confianza === 'media' ? '#f59e0b' : '#ef4444';
+                return `<tr><td>${eqNombre(p)}</td><td>${fmtN(p.ultimo_mes)} ${unidad}</td><td><strong>${fmtN(p.proximo_mes)} ${unidad}</strong></td><td>${tend} ${fmtN(p.pendiente_semanal, 2)} / sem</td><td>${fmtN(p.r2, 2)}</td><td><span style="color:${color};font-weight:700;">${p.confianza}</span></td></tr>`;
+            });
+        }
+
+        function renderEquipo(d) {
+            const cab = ['Colaborador', 'Últimas 4 sem.', 'Próximo mes', 'Tendencia', 'R²', 'Confianza'];
+            let html = `<div style="font-size:12px;margin-bottom:4px;">Periodo: <strong>${esc(d.etiqueta)}</strong> (${esc(d.desde)} a ${esc(d.hasta)})</div>`;
+
+            // 1. Ranking de tiempo activo
+            const rk = d.ranking || [];
+            const maxSeg = Math.max(1, ...rk.map(r => r.segundos));
+            html += eqSeccion('⏱️ Tiempo activo por colaborador', rk.length ? eqTabla(['#', 'Colaborador', 'Tiempo activo', 'Días activos', 'Promedio/día', 'Constancia', ''],
+                rk.map((r, i) => `<tr><td>${i + 1}</td><td>${eqNombre(r)}</td><td><strong>${fmtDur(r.segundos)}</strong></td><td>${r.dias_activos}</td><td>${fmtDur(r.promedio_dia_seg)}</td><td>${fmtN(r.constancia_pct)}%</td><td style="width:140px;">${eqBarra(100 * r.segundos / maxSeg)}</td></tr>`))
+                : eqVacio('aún no hay actividad registrada en este periodo.'));
+
+            // 2. Horas de primer ingreso
+            const hp = d.horas_pico || [], maxH = Math.max(1, ...hp);
+            html += eqSeccion('🕘 Horas de mayor conexión (hora de primer ingreso de cada jornada)', hp.some(v => v > 0)
+                ? `<div style="display:flex;align-items:flex-end;gap:3px;height:90px;">${hp.map((v, h) => `<div title="${h}:00 · ${v} ingresos" style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;"><div style="width:100%;height:${Math.round(76 * v / maxH)}px;min-height:${v ? 2 : 0}px;background:var(--accent);border-radius:3px 3px 0 0;"></div><span style="font-size:9px;color:var(--text-muted);margin-top:2px;">${h % 3 === 0 ? h : ''}</span></div>`).join('')}</div>`
+                : eqVacio('sin ingresos en este periodo.'));
+
+            // 3. Acciones administrativas
+            const ac = d.acciones || [];
+            html += eqSeccion('🛡️ Acciones administrativas por Super Admin', ac.length ? eqTabla(['Super Admin', 'Total', 'Detalle'],
+                ac.map(a => `<tr><td>${eqNombre(a)}</td><td><strong>${a.total}</strong></td><td style="font-size:12px;">${Object.entries(a.por_accion).map(([k, v]) => `${esc((AUD_ETIQUETAS[k] || [k])[0])}: ${v}`).join(' · ')}</td></tr>`))
+                : eqVacio('sin acciones administrativas en este periodo.'));
+
+            // 4. Atención de tickets
+            const t = d.tickets || {};
+            let cuerpoT;
+            if (t.disponible === false) cuerpoT = eqVacio(esc(t.mensaje || 'registro de atención no disponible.'));
+            else if (!(t.filas || []).length) cuerpoT = eqVacio('aún no hay tickets atendidos desde que se activó el registro.');
+            else cuerpoT = eqTabla(['Colaborador', 'Atendidos', '1ª respuesta (prom.)', 'Resolución (prom.)', 'Resueltos en 24 h'],
+                t.filas.map(f => `<tr><td>${eqNombre(f)}</td><td><strong>${f.atendidos}</strong></td><td>${fmtMin(f.primera_resp_min)}</td><td>${fmtMin(f.resolucion_min)}</td><td>${f.pct_24h == null ? '—' : fmtN(f.pct_24h) + '%'}</td></tr>`));
+            const pend = t.pendientes ? `<div style="margin-bottom:8px;font-size:12px;">Pendientes ahora: <strong>${t.pendientes.incidencias}</strong> mensajes de clientes · <strong>${t.pendientes.fallas}</strong> fallas web sin resolver</div>` : '';
+            html += eqSeccion('🎫 Atención de tickets', pend + cuerpoT);
+
+            // 5. Proyección
+            const pH = d.proyeccion || [], pT = (t.proyeccion || []);
+            let cuerpoP = '';
+            cuerpoP += pH.length ? `<div style="font-size:12px;margin-bottom:4px;">Horas activas por mes</div>` + eqTabla(cab, eqFilasProyeccion(pH, 'h', d.min_semanas)) : eqVacio('aún no hay semanas completas de actividad.');
+            cuerpoP += `<div style="font-size:12px;margin:12px 0 4px;">Tickets atendidos por mes</div>`;
+            cuerpoP += pT.length ? eqTabla(cab, eqFilasProyeccion(pT, 'tickets', d.min_semanas)) : eqVacio(t.disponible === false ? 'falta aplicar la migración de atención de tickets.' : `se necesitan ${d.min_semanas} semanas de tickets atendidos para proyectar.`);
+            html += eqSeccion('🔮 Proyección del próximo mes (regresión lineal por colaborador)', cuerpoP);
+            $('eqContenido').innerHTML = html;
+        }
+
+        async function cargarEquipo() {
+            const cont = $('eqContenido'); if (!cont || !esSuperAdminActivo) return;
+            const mi = ++eq.seq;
+            cont.textContent = 'Calculando…';
+            const p = new URLSearchParams({ usuario: sesionUsuario.usuario, periodo: eq.periodo });
+            const ref = eq.periodo === 'anio' ? ($('eqAnio') && $('eqAnio').value) : ($('eqMes') && $('eqMes').value);
+            if (ref) p.set('ref', ref);
+            try {
+                const r = await fetch('/api/superadmin/equipo?' + p);
+                const d = await r.json();
+                if (mi !== eq.seq) return;                      // llegó una respuesta más nueva
+                if (!d.success) { cont.innerHTML = `<span style="color:#ef4444;">${esc(d.message || 'No se pudo cargar.')}</span>`; return; }
+                eq.cargado = true;
+                renderEquipo(d);
+            } catch (e) { if (mi === eq.seq) cont.innerHTML = '<span style="color:#ef4444;">Error de conexión.</span>'; }
+        }
+        function eqMarcar(grupoId, attr, valor) {
+            document.querySelectorAll(`#${grupoId} button`).forEach(b => {
+                const on = b.getAttribute(attr) === valor;
+                b.style.background = on ? 'var(--accent)' : ''; b.style.color = on ? '#fff' : ''; b.style.fontWeight = on ? '700' : '400';
+            });
+        }
+        (function () {
+            const hoyLima = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' });
+            if ($('eqMes')) $('eqMes').value = hoyLima.slice(0, 7);
+            if ($('eqAnio')) $('eqAnio').value = hoyLima.slice(0, 4);
+            eqMarcar('eqPeriodo', 'data-eq-periodo', 'mes');
+            document.querySelectorAll('#eqPeriodo button').forEach(b => b.addEventListener('click', () => {
+                eq.periodo = b.dataset.eqPeriodo; eqMarcar('eqPeriodo', 'data-eq-periodo', eq.periodo);
+                $('eqMes').style.display = eq.periodo === 'mes' ? '' : 'none'; $('eqAnio').style.display = eq.periodo === 'anio' ? '' : 'none';
+                cargarEquipo();
+            }));
+            ['eqMes', 'eqAnio'].forEach(id => $(id) && $(id).addEventListener('change', cargarEquipo));
+            if ($('btnEqActualizar')) $('btnEqActualizar').addEventListener('click', cargarEquipo);
+            if ($('detActividadEquipo')) $('detActividadEquipo').addEventListener('toggle', e => { if (e.target.open && !eq.cargado) cargarEquipo(); });
+            if ($('btnIrAuditoriaAdmin')) $('btnIrAuditoriaAdmin').addEventListener('click', () => mostrarVista('administracion'));
+        })();
 
         async function cargarPanelSuperAdminUsuarios() {
             const tbody = $('tablaUsuariosSuperadminBody');
@@ -4871,18 +5292,6 @@ function rfComparar() {
                     const btnVectorDisabled = u.tiene_biometria ? '' : 'disabled title="Sin biometría registrada"';
                     const esPropio = (u.usuario || '').toLowerCase() === (sesionUsuario.usuario || '').toLowerCase();
 
-                    let btnsAdmin = '';
-                    if (!esPropio) {
-                        if (!u.es_superadmin && !estaSuspendido) {
-                            btnsAdmin += ` <button type="button" class="btn-timer-historial" style="border-color:rgba(56,189,248,0.4);color:#38bdf8;" data-accion="ascender-rol" data-usuario="${esc(u.usuario)}" title="Ascender a Super Administrador">⬆️ Ascender</button>`;
-                        }
-                        if (estaSuspendido) {
-                            btnsAdmin += ` <button type="button" class="btn-timer-historial" style="border-color:rgba(16,185,129,0.4);color:#10b981;" data-accion="reactivar-usr" data-usuario="${esc(u.usuario)}" title="Reactivar cuenta">✅ Reactivar</button>`;
-                        } else {
-                            btnsAdmin += ` <button type="button" class="btn-timer-historial" style="border-color:rgba(239,68,68,0.4);color:#ef4444;" data-accion="suspender-usr" data-usuario="${esc(u.usuario)}" title="Suspender cuenta">🚫 Suspender</button>`;
-                        }
-                    }
-
                     return `
                         <tr>
                             <td>${estado}</td>
@@ -4894,7 +5303,6 @@ function rfComparar() {
                             <td style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
                                 <button type="button" class="btn-timer-historial" data-accion="ver-vector" data-usuario="${esc(u.usuario)}" data-nombre="${esc(u.nombre_completo || u.usuario)}" ${btnVectorDisabled}>🧬 Vector</button>
                                 <button type="button" class="btn-timer-historial" data-accion="ver-historial" data-usuario="${esc(u.usuario)}" data-nombre="${esc(u.nombre_completo || u.usuario)}">📊 Historial</button>
-                                ${btnsAdmin}
                             </td>
                         </tr>
                     `;
@@ -4904,20 +5312,6 @@ function rfComparar() {
             }
         }
 
-        // Administración básica de colaboradores
-        async function cargarAdministracion() {
-            const tbody = $('tablaAdministracionBody'); if (!tbody || !esSuperAdminActivo) return;
-            try {
-                const r = await fetch(`/api/superadmin/usuarios?usuario=${encodeURIComponent(sesionUsuario.usuario)}`);
-                const d = await r.json();
-                if (!r.ok || !d.success) { tbody.innerHTML = `<tr><td colspan="5">${esc(d.message || 'No se pudo cargar la lista.')}</td></tr>`; return; }
-                tbody.innerHTML = (d.usuarios || []).map(u => {
-                    const propio = String(u.usuario).toLowerCase() === String(sesionUsuario.usuario).toLowerCase();
-                    const superadmin = u.rol === 'superadmin'; const suspendido = u.estado === 'suspendido';
-                    return `<tr><td><strong>${esc(u.nombre_completo || u.usuario)}</strong><br><small>@${esc(u.usuario)}</small></td><td><span class="badge-role ${superadmin ? 'badge-superadmin' : 'badge-analista'}">${superadmin ? 'Super Admin' : 'Analista'}</span></td><td><span class="badge-role">${esc(suspendido ? 'Suspendido' : 'Activo')}</span></td><td>${esc(u.email || '—')}</td><td style="display:flex;gap:6px;flex-wrap:wrap;">${superadmin ? `<button class="btn-timer-historial" data-admin-action="degradar" data-usuario="${esc(u.usuario)}">Bajar a Analista</button>` : `<button class="btn-timer-historial" data-admin-action="ascender" data-usuario="${esc(u.usuario)}">Ascender</button>`}${propio && !suspendido ? '<button disabled class="btn-timer-historial">Suspender</button>' : suspendido ? `<button class="btn-timer-historial" data-admin-action="reactivar" data-usuario="${esc(u.usuario)}">Reactivar</button>` : `<button class="btn-timer-historial" data-admin-action="suspender" data-usuario="${esc(u.usuario)}">Suspender</button>`}<button class="btn-timer-historial" data-admin-action="email" data-usuario="${esc(u.usuario)}" data-email="${esc(u.email || '')}">Correo</button></td></tr>`;
-                }).join('');
-            } catch (e) { tbody.innerHTML = '<tr><td colspan="5">Error de conexión.</td></tr>'; }
-        }
         async function cargarSolicitudesClave() {
             const tbody = $('tablaSolicitudesClave'); if (!tbody || !esSuperAdminActivo) return;
             try {
@@ -5015,13 +5409,7 @@ function rfComparar() {
             const status = $('statusModalAprobarClave'); status.textContent='Verificando...';
             try { const r=await fetch('/api/superadmin/clave/aprobar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({usuario:sesionUsuario.usuario,id:window.solicitudClavePendiente,password:$('passwordAprobarClave').value})}); const d=await r.json(); status.textContent=d.message || ''; if(r.ok && d.success){ $('modalAprobarClave').classList.remove('open'); cargarSolicitudesClave(); const info=await fetch(`/api/seguridad/info_clave?usuario=${encodeURIComponent(sesionUsuario.usuario)}`); if(info.ok){const k=await info.json(); if(k.success && $('txtClaveActual')) $('txtClaveActual').value=k.clave_actual;} } } catch(err) { status.textContent='Error de conexión.'; }
         });
-        async function cargarAuditoriaIncidencias() {
-            const tbody = $('tablaAuditoriaIncBody'); if (!tbody || !esSuperAdminActivo) return;
-            try { const r = await fetch(`/api/superadmin/auditoria?usuario=${encodeURIComponent(sesionUsuario.usuario)}`); const d = await r.json();
-                if (!r.ok || !d.success) { tbody.innerHTML = `<tr><td colspan="5">${esc(d.message || 'No se pudo consultar auditoría.')}</td></tr>`; return; }
-                tbody.innerHTML = (d.registros || []).map(x => `<tr><td>${esc(x.fecha ? new Date(x.fecha).toLocaleString('es-PE') : '—')}</td><td>${esc(x.usuario_afectado || '—')}</td><td>${esc(x.accion || '—')}</td><td>${esc(x.realizado_por || '—')}</td><td>${esc(x.motivo || '—')}</td></tr>`).join('') || '<tr><td colspan="5">Sin movimientos registrados.</td></tr>';
-            } catch (e) { tbody.innerHTML = '<tr><td colspan="5">Error de conexión.</td></tr>'; }
-        }
+        function cargarAuditoriaIncidencias() { /* unificada en Administración */ }
         $('btnActualizarAuditoriaInc')?.addEventListener('click', cargarAuditoriaIncidencias);
         $('btnIncColaboradores')?.addEventListener('click', () => { if (!esSuperAdminActivo) return; const cont = document.querySelector('#vista-incidencias .contenido'); if (cont) cont.style.display = 'none'; if ($('panelAuditoriaColaboradoresInc')) $('panelAuditoriaColaboradoresInc').style.display = 'block'; cargarAuditoriaIncidencias(); });
         $('btnIncClientes')?.addEventListener('click', () => { const cont = document.querySelector('#vista-incidencias .contenido'); if (cont) cont.style.display = 'block'; if ($('panelAuditoriaColaboradoresInc')) $('panelAuditoriaColaboradoresInc').style.display = 'none'; });
@@ -5038,64 +5426,17 @@ function rfComparar() {
                 mostrarModalVectorBiometrico({ usuario, nombre_completo: nombre });
             } else if (accion === 'ver-historial') {
                 mostrarModalHistorial(usuario, nombre);
-            } else if (accion === 'ascender-rol') {
-                if (!confirm(`¿Confirmas ascender a @${usuario} al rol de Super Administrador?`)) return;
-                try {
-                    const r = await fetch('/api/superadmin/ascender_rol', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ usuario: sesionUsuario.usuario, objetivo: usuario })
-                    });
-                    const d = await r.json();
-                    mostrarAvisoAdminUsuarios(d.message || 'Operación completada', !!d.success);
-                    cargarPanelSuperAdminUsuarios();
-                    cargarAuditoriaSuperadmin();
-                } catch (err) {
-                    mostrarAvisoAdminUsuarios('Error de red al ascender rol.', false);
-                }
-            } else if (accion === 'suspender-usr') {
-                const motivo = prompt(`Indica el motivo de suspensión para @${usuario} (mínimo 4 caracteres):`, 'Incumplimiento de políticas de acceso');
-                if (motivo === null) return;
-                try {
-                    const r = await fetch('/api/superadmin/suspender', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ usuario: sesionUsuario.usuario, objetivo: usuario, motivo: motivo.trim() })
-                    });
-                    const d = await r.json();
-                    mostrarAvisoAdminUsuarios(d.message || 'Operación completada', !!d.success);
-                    cargarPanelSuperAdminUsuarios();
-                    cargarAuditoriaSuperadmin();
-                } catch (err) {
-                    mostrarAvisoAdminUsuarios('Error de red al suspender usuario.', false);
-                }
-            } else if (accion === 'reactivar-usr') {
-                if (!confirm(`¿Deseas reactivar el acceso de @${usuario}?`)) return;
-                try {
-                    const r = await fetch('/api/superadmin/reactivar', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ usuario: sesionUsuario.usuario, objetivo: usuario })
-                    });
-                    const d = await r.json();
-                    mostrarAvisoAdminUsuarios(d.message || 'Operación completada', !!d.success);
-                    cargarPanelSuperAdminUsuarios();
-                    cargarAuditoriaSuperadmin();
-                } catch (err) {
-                    mostrarAvisoAdminUsuarios('Error de red al reactivar usuario.', false);
-                }
             }
         });
 
         const btnRefAud = $('btnRefrescarAuditoria');
         if (btnRefAud) {
-            btnRefAud.addEventListener('click', cargarAuditoriaSuperadmin);
+            btnRefAud.addEventListener('click', () => cargarAuditoriaSuperadmin(1));
         }
 
         function iniciarRefrescoPanelSuperAdmin() {
             detenerRefrescoPanelSuperAdmin();
             cargarPanelSuperAdminUsuarios();
-            cargarAuditoriaSuperadmin();
             cargarSolicitudesClave();
             refrescarClaveSilencioso();
 
@@ -5108,7 +5449,6 @@ function rfComparar() {
             // Refresco de usuarios y auditoría cada 15 segundos
             intervaloPanelSuperAdmin = setInterval(() => {
                 cargarPanelSuperAdminUsuarios();
-                cargarAuditoriaSuperadmin();
             }, 15000);
         }
         function detenerRefrescoPanelSuperAdmin() {
@@ -5124,7 +5464,8 @@ function rfComparar() {
         function iniciarRefrescoAdministracion() {
             detenerRefrescoAdministracion();
             cargarAdministracion();
-            intervaloAdministracion = setInterval(cargarAdministracion, 5000);
+            cargarAuditoriaSuperadmin(1);
+            intervaloAdministracion = setInterval(cargarAdministracion, 30000);
         }
         function detenerRefrescoAdministracion() {
             if (intervaloAdministracion) {
