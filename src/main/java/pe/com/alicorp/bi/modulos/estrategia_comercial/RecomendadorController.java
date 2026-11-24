@@ -9,9 +9,9 @@ import java.util.Map;
 /**
  * Controlador REST de la sección Web "Estrategia Comercial y Reabastecimiento"
  * (dashboard_bi/dashboard.html#estrategia).
- * Valida roles activos en el servidor (analista / superadmin) y expone:
- *  - GET /api/recomendador/estrategias?tienda={nombre}
- *  - GET /api/recomendador/validacion
+ * Acceso EXCLUSIVO para Super Administradores activos en BD 3FN:
+ *  - GET /api/recomendador/estrategias?tienda={nombre}&usuario={superadmin}
+ *  - GET /api/recomendador/validacion?usuario={superadmin}
  */
 public class RecomendadorController {
 
@@ -19,10 +19,10 @@ public class RecomendadorController {
         EstrategiaDecisionService servicio = new EstrategiaDecisionService();
 
         app.get("/api/recomendador/estrategias", ctx -> {
-            if (!validarRolAnalistaOSuperAdmin(ctx, motorSeguridad)) {
+            if (!esSuperAdminAutorizado(ctx, motorSeguridad)) {
                 ctx.status(403).json(Map.of(
                         "success", false,
-                        "message", "Acceso restringido: requiere rol activo 'analista' o 'superadmin'."
+                        "message", "Acceso restringido: exclusivo para Super Administradores."
                 ));
                 return;
             }
@@ -31,10 +31,10 @@ public class RecomendadorController {
         });
 
         app.get("/api/recomendador/validacion", ctx -> {
-            if (!validarRolAnalistaOSuperAdmin(ctx, motorSeguridad)) {
+            if (!esSuperAdminAutorizado(ctx, motorSeguridad)) {
                 ctx.status(403).json(Map.of(
                         "success", false,
-                        "message", "Acceso restringido: requiere rol activo 'analista' o 'superadmin'."
+                        "message", "Acceso restringido: exclusivo para Super Administradores."
                 ));
                 return;
             }
@@ -42,7 +42,7 @@ public class RecomendadorController {
         });
     }
 
-    private static boolean validarRolAnalistaOSuperAdmin(Context ctx, ServicioSeguridadRelacional motorSeguridad) {
+    private static boolean esSuperAdminAutorizado(Context ctx, ServicioSeguridadRelacional motorSeguridad) {
         Object sesionUser = ctx.req().getSession(false) != null
                 ? ctx.req().getSession(false).getAttribute("usuario")
                 : null;
@@ -51,12 +51,8 @@ public class RecomendadorController {
             usuario = String.valueOf(sesionUser);
         }
         if (usuario == null || usuario.isBlank()) {
-            return true;
+            return false;
         }
-        Map<String, Object> perfil = motorSeguridad.obtenerPerfilUsuario3FN(usuario);
-        if (perfil == null) return false;
-        String rol = String.valueOf(perfil.getOrDefault("rol", "")).toLowerCase();
-        String estado = String.valueOf(perfil.getOrDefault("estado", "")).toLowerCase();
-        return "activo".equals(estado) && ("analista".equals(rol) || "superadmin".equals(rol));
+        return motorSeguridad.esSuperAdminActivo(usuario.trim());
     }
 }

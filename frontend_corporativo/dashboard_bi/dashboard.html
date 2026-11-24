@@ -1146,110 +1146,207 @@
         .estrat-cm-table th { background:var(--bg-main); font-weight:700; font-size:11.5px; }
         .estrat-cm-diag { background:rgba(16,185,129,0.18); font-weight:800; color:#10b981 !important; }
     </style>
+    <link rel="stylesheet" href="/dashboard_bi/dashboard_theme.css">
 </head>
 <body>
-    <button class="menu-toggle" id="menuToggle" aria-label="Abrir menú">☰</button>
-
-    <!-- ================= BARRA SUPERIOR (VOLVER A WEB & MODO OSCURO & CERRAR SESION) ================= -->
-    <div class="top-nav-bar" id="topNavBar">
-        <a href="/portal_institucional/index.html" class="btn-volver-web" id="btnVolverWeb" title="Regresar al portal principal de Alicorp">
-            <span class="ico">🌐</span>
-            <span class="txt">Volver a Web Inicial</span>
-        </a>
-        <a href="/portal_institucional/index.html" class="btn-top-logout" id="btnTopLogout" title="Cerrar sesión activa de forma segura">
-            <span class="ico">🚪</span>
-            <span class="txt">Cerrar sesión</span>
-        </a>
-        <button type="button" class="theme-toggle-btn" id="themeToggleBtn" aria-label="Cambiar tema claro/oscuro" title="Cambiar a Modo Oscuro">
-            <span class="theme-icon" id="themeIcon">🌙</span>
-            <span class="theme-text" id="themeText">Modo Oscuro</span>
-        </button>
+    <!-- Fondo Fijo Global de Olas Marinas SVG Animadas (Mitad Inferior, Light & Dark) -->
+    <div class="ocean-waves-bg" aria-hidden="true">
+        <div class="wave-layer wave-layer-1">
+            <div class="wave-track wave-track-1">
+                <svg class="wave-svg" viewBox="0 0 2880 320" preserveAspectRatio="none">
+                    <defs>
+                        <linearGradient id="oceanWaveGrad1" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" class="wave-stop-1-start" />
+                            <stop offset="100%" class="wave-stop-1-end" />
+                        </linearGradient>
+                    </defs>
+                    <path fill="url(#oceanWaveGrad1)" d="M0,110 Q360,20 720,110 T1440,110 T2160,110 T2880,110 L2880,320 L0,320 Z" />
+                </svg>
+            </div>
+        </div>
+        <div class="wave-layer wave-layer-2">
+            <div class="wave-track wave-track-2">
+                <svg class="wave-svg" viewBox="0 0 2880 320" preserveAspectRatio="none">
+                    <defs>
+                        <linearGradient id="oceanWaveGrad2" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" class="wave-stop-2-start" />
+                            <stop offset="100%" class="wave-stop-2-end" />
+                        </linearGradient>
+                    </defs>
+                    <path fill="url(#oceanWaveGrad2)" d="M0,130 Q180,210 360,130 T720,130 T1080,130 T1440,130 T1800,130 T2160,130 T2520,130 T2880,130 L2880,320 L0,320 Z" />
+                </svg>
+            </div>
+        </div>
+        <div class="wave-layer wave-layer-3">
+            <div class="wave-track wave-track-3">
+                <svg class="wave-svg" viewBox="0 0 2880 320" preserveAspectRatio="none">
+                    <defs>
+                        <linearGradient id="oceanWaveGrad3" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" class="wave-stop-3-start" />
+                            <stop offset="100%" class="wave-stop-3-end" />
+                        </linearGradient>
+                    </defs>
+                    <path fill="url(#oceanWaveGrad3)" d="M0,155 C240,65 480,245 720,155 C960,65 1200,245 1440,155 C1680,65 1920,245 2160,155 C2400,65 2640,245 2880,155 L2880,320 L0,320 Z" />
+                </svg>
+            </div>
+        </div>
     </div>
 
-    <!-- ================= MENÚ LATERAL ================= -->
-    <aside class="sidebar" id="sidebar">
-        <div class="sb-brand">Alicorp <span>Intelligence</span></div>
-        <div class="sb-tag">Panel corporativo BI</div>
-        <nav class="sb-menu">
-            <button class="active" data-go="inicio"><span class="ico">🏠</span> Inicio</button>
-            <button data-go="productos"><span class="ico">🛒</span> Productos</button>
-            <button data-go="compras"><span class="ico">🧾</span> Compras de clientes</button>
-            <button data-go="prediccion"><span class="ico">📈</span> Predicción de ventas</button>
-            <button data-go="keras"><span class="ico">🧠</span> Deep Learning (Keras)</button>
-            <button data-go="segmentacion"><span class="ico">🧩</span> Segmentación no supervisada</button>
-            <button data-go="estadistica"><span class="ico">📊</span> Estadística</button>
-            <button data-go="estrategia"><span class="ico">🎯</span> Estrategia Comercial</button>
-            <button data-go="reporte"><span class="ico">📅</span> Reporte mensual</button>
-            <button data-go="incidencias"><span class="ico">📬</span> Incidencias</button>
-            <button data-go="administracion" id="btnMenuAdministracion" style="display:none;"><span class="ico">👥</span> Administración</button>
-            <button data-go="seguridad" id="btnMenuSeguridad" style="display:none;"><span class="ico">🔐</span> Seguridad Super Admin</button>
-        </nav>
-        <div class="sb-foot">
-            <div class="sb-user-card" id="sbUserCard">
-                <!-- Perfil del usuario -->
-                <div class="sb-user-top">
-                    <div style="display:flex; align-items:center; gap:10px; overflow:hidden;">
-                        <div class="sb-avatar" id="sbAvatar">
-                            <span id="txtAvatarInicial">A</span>
-                            <span class="avatar-status" title="Sesión Activa"></span>
-                        </div>
-                        <div class="sb-user-info">
-                            <b id="txtNombreUsuario">Cargando...</b>
-                            <div class="sb-subtext">
-                                <span class="alias" id="txtAliasUsuario">@admin</span>
-                                <span class="badge-role badge-analista" id="badgeRolUsuario">Analista</span>
-                            </div>
-                        </div>
-                    </div>
-                    <a href="/portal_institucional/index.html" class="btn-user-quick-logout" id="btnUserQuickLogout" title="Cerrar sesión inmediatamente">🚪</a>
-                </div>
+    <!-- ================= NAVEGACIÓN SUPERIOR HORIZONTAL EN CÁPSULAS EXPANDIBLES SVG ================= -->
+    <header class="top-shell" id="topNavBar" role="banner">
+        <div class="top-brand" data-go="inicio" title="Alicorp Intelligence — Resumen Ejecutivo">
+            <span class="top-brand-mark" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            </span>
+            <div class="top-brand-text">
+                <strong>Alicorp <span>BI</span></strong>
+                <small>Executive Suite</small>
+            </div>
+        </div>
 
-                <!-- 3.1: Vector biométrico facial (clic para ver) -->
-                <div class="bio-vector-badge" id="btnVerVectores" title="Clic para ver huella matemática de 128 dimensiones del rostro">
-                    <div class="bio-pill-left">
-                        <span class="bio-dna-icon">🧬</span>
-                        <span>Vector 128D Biométrico</span>
+        <nav class="sb-menu" id="mainPillNav" aria-label="Módulos del panel BI">
+            <button type="button" class="active" data-go="inicio" data-tip="Resumen Ejecutivo" title="Resumen Ejecutivo">
+                <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg></span>
+                <span class="nav-label">Resumen Ejecutivo</span>
+            </button>
+            <button type="button" data-go="productos" data-tip="Portafolio y Stock" title="Portafolio y Stock">
+                <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M16.5 9.4 7.55 4.24"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" y1="22" x2="12" y2="12"/></svg></span>
+                <span class="nav-label">Portafolio y Stock</span>
+            </button>
+            <button type="button" data-go="compras" data-tip="Órdenes Web" title="Órdenes Web">
+                <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span>
+                <span class="nav-label">Órdenes Web</span>
+            </button>
+            <button type="button" data-go="prediccion" data-tip="Pronóstico Lineal" title="Pronóstico Lineal">
+                <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span>
+                <span class="nav-label">Pronóstico Lineal</span>
+            </button>
+            <button type="button" data-go="keras" data-tip="Simulador Neuronal" title="Simulador Neuronal">
+                <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg></span>
+                <span class="nav-label">Simulador Neuronal</span>
+            </button>
+            <button type="button" data-go="segmentacion" data-tip="Clusters K-Means" title="Clusters K-Means">
+                <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></span>
+                <span class="nav-label">Clusters K-Means</span>
+            </button>
+            <button type="button" data-go="estadistica" data-tip="Riesgo Estadístico" title="Riesgo Estadístico">
+                <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></span>
+                <span class="nav-label">Riesgo Estadístico</span>
+            </button>
+            <button type="button" data-go="reporte" data-tip="Cierre Mensual" title="Cierre Mensual">
+                <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/></svg></span>
+                <span class="nav-label">Cierre Mensual</span>
+            </button>
+            <button type="button" data-go="incidencias" data-tip="Incidencias y SLA" title="Incidencias y SLA">
+                <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+                <span class="nav-label">Incidencias y SLA</span>
+            </button>
+            <button type="button" data-go="estrategia" id="btnMenuEstrategia" data-tip="Estrategia IA" title="Estrategia IA (SuperAdmin)" style="display:none;">
+                <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg></span>
+                <span class="nav-label">Estrategia IA</span>
+            </button>
+            <button type="button" data-go="administracion" id="btnMenuAdministracion" data-tip="Gestión de Equipo" title="Gestión de Equipo (SuperAdmin)" style="display:none;">
+                <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+                <span class="nav-label">Gestión de Equipo</span>
+            </button>
+            <button type="button" data-go="seguridad" id="btnMenuSeguridad" data-tip="Seguridad y Llaves" title="Seguridad y Llaves (SuperAdmin)" style="display:none;">
+                <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></span>
+                <span class="nav-label">Seguridad y Llaves</span>
+            </button>
+        </nav>
+
+        <div class="top-actions">
+            <a href="/portal_institucional/index.html" class="top-util-btn" id="btnVolverWeb" title="Ir al portal institucional">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                <span class="util-label">Portal</span>
+            </a>
+            <button type="button" class="top-util-btn" id="themeToggleBtn" aria-label="Cambiar tema claro u oscuro" title="Cambiar a Modo Oscuro">
+                <span class="theme-icon" id="themeIcon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                </span>
+                <span class="theme-text util-label" id="themeText">Modo Oscuro</span>
+            </button>
+            <a href="/portal_institucional/index.html" class="top-util-btn danger" id="btnTopLogout" title="Cerrar sesión activa">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                <span class="util-label">Salir</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- ================= CÁPSULA FLOTANTE COLAPSABLE DE PERFIL Y BIOMETRÍA (INFERIOR IZQUIERDA) ================= -->
+    <aside class="profile-capsule" id="floatingProfileCapsule" role="region" aria-label="Sesión y biometría activa">
+        <div class="sb-user-card" id="sbUserCard" style="margin-bottom:0;">
+            <div class="capsule-head">
+                <div class="sb-avatar" id="sbAvatar">
+                    <span id="txtAvatarInicial">A</span>
+                    <span class="avatar-status" title="Sesión Activa"></span>
+                </div>
+                <div class="sb-user-info">
+                    <b id="txtNombreUsuario">Cargando...</b>
+                    <div class="sb-subtext">
+                        <span class="alias" id="txtAliasUsuario">@admin</span>
+                        <span class="badge-role badge-analista" id="badgeRolUsuario">Analista</span>
+                    </div>
+                </div>
+                <button type="button" class="capsule-toggle-btn" id="btnToggleProfileCapsule" aria-expanded="true" aria-controls="profileCapsuleBody" title="Minimizar panel de perfil">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+            </div>
+
+            <div class="capsule-body" id="profileCapsuleBody">
+                <!-- Vector biométrico facial 128-D -->
+                <div class="bio-vector-badge" id="btnVerVectores" title="Inspeccionar embedding biométrico 128-D">
+                    <div class="bio-pill-left" style="display:flex;align-items:center;gap:7px;">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-7.74 16.33"/><path d="M12 2a10 10 0 0 1 7.74 16.33"/><path d="M12 6a6 6 0 0 0-6 6c0 1.66.67 3.16 1.76 4.24"/><path d="M12 6a6 6 0 0 1 6 6c0 1.66-.67 3.16-1.76 4.24"/><path d="M12 10a2 2 0 0 0-2 2v4"/><path d="M12 10a2 2 0 0 1 2 2v4"/></svg>
+                        <span>Vector 128-D Activo</span>
                     </div>
                     <div class="bio-eq" id="miniEqualizer" title="Amplitudes del embedding">
                         <i></i><i></i><i></i><i></i><i></i><i></i>
                     </div>
                 </div>
 
-                <!-- 3.1 & 4: Timer de Horas de Actividad Diario en Vivo -->
+                <!-- Cronómetro de Actividad Diario en Vivo -->
                 <div class="sb-timer-card">
                     <div class="timer-head">
                         <div class="timer-live-label">
                             <span class="timer-live-dot"></span>
-                            <span>Actividad Hoy</span>
+                            <span>Sesión Activa</span>
                         </div>
                         <span class="timer-date-badge" id="timerFechaBadge">--</span>
                     </div>
                     <div class="timer-display" id="liveTimerDisplay">00:00:00</div>
                     <div class="timer-foot">
-                        <span id="timerSyncStatus">🟢 Conectado</span>
-                        <button type="button" class="btn-timer-historial" id="btnVerHistorial" title="Ver historial de sesiones diarias">📊 Historial</button>
+                        <span id="timerSyncStatus">Conectado</span>
+                        <button type="button" class="btn-timer-historial" id="btnVerHistorial" title="Historial de sesiones">Historial</button>
                     </div>
                 </div>
+
+                <!-- Acciones rápidas de sesión -->
+                <div class="capsule-actions">
+                    <a class="btn-logout" id="btnLogout" href="/portal_institucional/index.html">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                        <span>Cerrar sesión</span>
+                    </a>
+                    <a href="/portal_institucional/index.html" class="btn-user-quick-logout" id="btnUserQuickLogout" title="Salida rápida">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+                    </a>
+                </div>
             </div>
-            <a href="/portal_institucional/index.html" class="sb-link-web" id="sbLinkWeb" title="Regresar al portal principal de Alicorp">
-                <span class="ico">🌐</span> Volver a Web Inicial
-            </a>
-            <a class="btn-logout" id="btnLogout" href="/portal_institucional/index.html">🚪 Cerrar sesión</a>
         </div>
     </aside>
 
     <div class="main">
         <div id="errorGlobal" class="error-box" style="margin:16px 30px 0;"></div>
 
-        <!-- ================= VISTA: INICIO ================= -->
+        <!-- ================= VISTA: RESUMEN EJECUTIVO ================= -->
         <section id="vista-inicio" class="vista active">
             <div class="page-hero home">
-                <span class="chip">Sistema Activo v3.0 BI</span>
-                <h1>Corporación Alicorp S.A.A.</h1>
-                <p>Plataforma de inteligencia artificial que usa una red neuronal para predecir las ventas de nuestros productos según la tienda, el precio y el stock.</p>
+                <span class="chip">Alicorp BI · Entorno Corporativo</span>
+                <h1>Resumen Ejecutivo</h1>
+                <p>Indicadores comerciales en vivo, ventas omnicanal y modelos predictivos.</p>
                 <div class="hero-btns">
-                    <button class="btn-run" data-go="prediccion">📈 Ver predicción de ventas</button>
-                    <button class="btn-light" data-go="keras">🧠 Probar Deep Learning (Keras)</button>
+                    <button class="btn-run" data-go="prediccion">Pronóstico Lineal</button>
+                    <button class="btn-light" data-go="keras">Simulador Neuronal</button>
                 </div>
             </div>
             <div class="contenido">
@@ -1257,68 +1354,86 @@
                     <div class="stat"><span>Ventas totales</span><b id="hVentas">--</b></div>
                     <div class="stat"><span>Transacciones</span><b id="hRegistros">--</b></div>
                     <div class="stat"><span>Productos</span><b id="hProductos">--</b></div>
-                    <div class="stat"><span>Tiendas</span><b id="hTiendas">--</b></div>
+                    <div class="stat"><span>Tiendas activas</span><b id="hTiendas">--</b></div>
                 </div>
 
                 <!-- Tienda en línea (datos en vivo de /api/tienda/*) -->
                 <div class="bloque" id="tiendaResumen">
-                    <h2 class="section-title">🛍️ Tienda en línea</h2>
-                    <p class="section-sub">Lo que ocurre en el carrito de compras de la web, en tiempo real.</p>
-                    <div class="stats" style="margin-top: 0; margin-bottom: 16px;">
-                        <div class="stat"><span>Productos en la tienda</span><b id="tdProductos">--</b></div>
-                        <div class="stat"><span>Categorías</span><b id="tdCategorias">--</b></div>
-                        <div class="stat"><span>Compras registradas</span><b id="tdCompras">--</b></div>
-                        <div class="stat"><span>Monto comprado</span><b id="tdMonto">--</b></div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
+                        <div>
+                            <h2 class="section-title" style="margin:0;">Canal E-Commerce en Vivo</h2>
+                            <p class="section-sub" style="margin:4px 0 0;">Actividad comercial de la tienda virtual.</p>
+                        </div>
+                        <a class="btn-run" href="/tienda_virtual/tienda.html" target="_blank" rel="noopener" style="text-decoration:none;">Abrir Tienda Virtual →</a>
                     </div>
-                    <p class="hint" id="tdBuscador" style="margin: 0 0 14px;">Buscador: comprobando...</p>
-                    <a class="btn-run" href="/tienda_virtual/tienda.html" target="_blank" rel="noopener" style="display: inline-block; text-decoration: none;">Abrir la tienda →</a>
+                    <div class="stats" style="margin-top:0;margin-bottom:12px;">
+                        <div class="stat"><span>SKUs en catálogo</span><b id="tdProductos">--</b></div>
+                        <div class="stat"><span>Categorías</span><b id="tdCategorias">--</b></div>
+                        <div class="stat"><span>Órdenes registradas</span><b id="tdCompras">--</b></div>
+                        <div class="stat"><span>Volumen transaccionado</span><b id="tdMonto">--</b></div>
+                    </div>
+                    <p class="hint" id="tdBuscador" style="margin:0;">Estado del buscador IA: verificando...</p>
                 </div>
 
                 <div class="bloque">
                     <div class="bienvenida">
-                        <h2>Bienvenido al panel de inteligencia de ventas</h2>
+                        <h2>Panel Ejecutivo de Inteligencia Comercial</h2>
                         <div>
-                            <p>Este panel reúne en un solo lugar la información de ventas de Alicorp y una red neuronal que aprende de las transacciones pasadas para estimar cuánto se venderá en el futuro.</p>
-                            <p>Explora el catálogo de productos, revisa qué tan precisa es la predicción o interactúa con Deep Learning en tiempo real con Keras.</p>
-                            <button class="link" data-go="productos">Conocer los productos →</button>
+                            <p>Monitoreo centralizado de rotación, proyección de demanda y riesgo operativo sobre Supabase PostgreSQL.</p>
+                            <button class="link" data-go="productos">Explorar portafolio →</button>
                         </div>
                     </div>
                 </div>
 
                 <div class="bloque">
-                    <h2 class="section-title">¿Qué puedes hacer aquí?</h2>
-                    <p class="section-sub">Tres módulos principales para potenciar el análisis.</p>
+                    <h2 class="section-title">Accesos Directos BI</h2>
+                    <p class="section-sub">Módulos principales de analítica y proyección.</p>
                     <div class="cards3">
-                        <button class="modulo" data-go="productos"><div class="icon">🛒</div><h3>Productos</h3><p>Ventas reales de cada producto y tienda, organizadas por categoría.</p><span>Ir a productos →</span></button>
-                        <button class="modulo" data-go="prediccion"><div class="icon">📈</div><h3>Predicción de ventas</h3><p>Entrena la red neuronal y mide su precisión (R²) con un clic.</p><span>Ir a predicción →</span></button>
-                        <button class="modulo" data-go="keras"><div class="icon">🧠</div><h3>Deep Learning (Keras)</h3><p>Red Neuronal Profunda con inferencia en tiempo real y escenarios rápidos.</p><span>Probar Keras →</span></button>
+                        <button class="modulo" data-go="productos">
+                            <div class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M16.5 9.4 7.55 4.24"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" y1="22" x2="12" y2="12"/></svg></div>
+                            <h3>Portafolio y Stock</h3>
+                            <p>Desempeño por SKU, categoría y tienda.</p>
+                            <span>Abrir módulo →</span>
+                        </button>
+                        <button class="modulo" data-go="prediccion">
+                            <div class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div>
+                            <h3>Pronóstico Lineal</h3>
+                            <p>Regresión corporativa y métricas R² en tiempo real.</p>
+                            <span>Abrir módulo →</span>
+                        </button>
+                        <button class="modulo" data-go="keras">
+                            <div class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/></svg></div>
+                            <h3>Simulador Neuronal</h3>
+                            <p>Inferencia profunda DL4J y análisis competitivo.</p>
+                            <span>Abrir módulo →</span>
+                        </button>
                     </div>
                 </div>
 
                 <div class="bloque">
-                    <h2 class="section-title">Nuestros productos</h2>
-                    <p class="section-sub">Los cinco productos que analiza el modelo.</p>
+                    <h2 class="section-title">Portafolio Core</h2>
+                    <p class="section-sub">Líneas clave monitoreadas en tiempo real.</p>
                     <div class="tiles" id="marcasGrid"></div>
                 </div>
 
                 <div class="bloque">
-                    <h2 class="section-title">Novedades del modelo</h2>
-                    <p class="section-sub">Lo que mejoramos en esta versión.</p>
+                    <h2 class="section-title">Arquitectura Analítica</h2>
+                    <p class="section-sub">Motores en producción sobre Supabase PostgreSQL.</p>
                     <div class="cards3">
-                        <div class="news"><div class="banda"></div><div class="cuerpo"><small>Modelo</small><h3>La red neuronal ahora predice ventas en soles</h3><p>Pasó de una precisión (R²) cercana a 0 a un R² de aproximadamente 0.78.</p></div></div>
-                        <div class="news"><div class="banda"></div><div class="cuerpo"><small>Datos</small><h3>Gráficos con ventas reales</h3><p>Productos, tiendas y meses se calculan directamente de las 100,000 transacciones.</p></div></div>
-                        <div class="news"><div class="banda"></div><div class="cuerpo"><small>Nuevo</small><h3>Deep Learning (Keras 3)</h3><p>Inferencia neural multicapa en tiempo real entrenada con 100k registros de Supabase.</p></div></div>
+                        <div class="news"><div class="banda"></div><div class="cuerpo"><small>Regresión</small><h3>Predicción de Ingresos (R² ≈ 0.78)</h3><p>Estimación multivariable en soles sobre historial consolidado.</p></div></div>
+                        <div class="news"><div class="banda"></div><div class="cuerpo"><small>Datos</small><h3>Base Transaccional 100k</h3><p>Agregaciones directas por producto, tienda y periodo.</p></div></div>
+                        <div class="news"><div class="banda"></div><div class="cuerpo"><small>Deep Learning</small><h3>Motor Neuronal DL4J / Smile</h3><p>Simulación de elasticidad precio-stock y competencia.</p></div></div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- ================= VISTA: PRODUCTOS ================= -->
+        <!-- ================= VISTA: PORTAFOLIO Y STOCK ================= -->
         <section id="vista-productos" class="vista">
             <div class="page-hero">
-                <div class="crumbs">Inicio / <b>Productos</b></div>
-                <h1>Productos</h1>
-                <p>Acompañamos a millones de hogares con productos de alimentos y cuidado del hogar. Aquí ves cómo se venden según las 100,000 transacciones registradas en la base de datos de Supabase.</p>
+                <div class="crumbs">Inicio / <b>Portafolio y Stock</b></div>
+                <h1>Portafolio y Stock</h1>
+                <p>Rotación histórica, volumen por SKU y cobertura de inventario.</p>
             </div>
             <div class="contenido">
                 <div class="filtros" id="filtros">
@@ -1327,18 +1442,16 @@
                     <button data-filtro="hogar">Cuidado del hogar</button>
                 </div>
                 <div id="productGrid" class="product-grid"></div>
-                <div class="nota">📊 Métricas de demanda y participación de mercado procesadas directamente desde las 100,000 transacciones registradas en la base de datos de Supabase.</div>
                 <div class="charts-grid">
-                    <div class="chart-card"><h4>📦 Unidades vendidas por producto</h4><div class="chart-container"><canvas id="chartUnidades"></canvas></div></div>
-                    <div class="chart-card"><h4>🏬 Ventas por tienda (S/.)</h4><div class="chart-container"><canvas id="chartTiendasBar"></canvas></div></div>
+                    <div class="chart-card"><h4>Unidades Vendidas por Producto</h4><div class="chart-container"><canvas id="chartUnidades"></canvas></div></div>
+                    <div class="chart-card"><h4>Facturación por Tienda (S/.)</h4><div class="chart-container"><canvas id="chartTiendasBar"></canvas></div></div>
                     <div class="chart-card full">
-                        <h4>📈 Más stock, más unidades vendidas</h4>
+                        <h4>Correlación Stock vs. Demanda</h4>
                         <div class="chart-container" style="height: 260px;"><canvas id="chartStock"></canvas></div>
-                        <p class="hint">Es la única relación fuerte que hay en los datos: cuando el stock es alto, se vende en promedio más por transacción. 
-                            Por eso el stock es la segunda variable que más pesa en la predicción.</p>
+                        <p class="hint">Relación directa entre disponibilidad de inventario y unidades desplazadas.</p>
                     </div>
                     <div class="chart-card full">
-                        <h4>📋 Detalle por producto</h4>
+                        <h4>Desglose Operativo por Producto</h4>
                         <div class="table-wrap">
                             <table>
                                 <thead><tr><th>Producto</th><th class="num">Ventas (S/.)</th><th class="num">Unidades</th><th class="num">Precio prom.</th><th class="num">Stock prom.</th><th class="num">Participación</th></tr></thead>
@@ -1347,204 +1460,186 @@
                         </div>
                     </div>
                     <div class="chart-card full">
-                        <h4>🛍️ Catálogo de la tienda: productos por categoría</h4>
+                        <h4>Catálogo Web por Categoría</h4>
                         <div class="chart-container" style="height: 340px;"><canvas id="chartTiendaCategorias"></canvas></div>
-                        <p class="hint" id="tdCatHint">Cada barra es una categoría del catálogo que ve el cliente en la tienda.</p>
+                        <p class="hint" id="tdCatHint">Distribución de SKUs activos en tienda virtual.</p>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- ================= VISTA: COMPRAS DE CLIENTES ================= -->
+        <!-- ================= VISTA: ÓRDENES WEB ================= -->
         <section id="vista-compras" class="vista">
             <div class="page-hero">
-                <div class="crumbs">Inicio / <b>Compras de clientes</b></div>
-                <h1>Compras de clientes</h1>
-                <p>Consulta en formato tabla las compras realizadas desde la tienda en línea, incluyendo cliente, productos, cantidades y totales sincronizados con Supabase PostgreSQL.</p>
+                <div class="crumbs">Inicio / <b>Órdenes Web</b></div>
+                <h1>Órdenes Web</h1>
+                <p>Seguimiento y gestión de pedidos del canal e-commerce.</p>
             </div>
             <div class="contenido">
                 <style>
                     .compra-estado-group { display: inline-flex; gap: 5px; flex-wrap: wrap; align-items: center; }
-                    .btn-compra-estado { padding: 5px 10px; border-radius: 7px; font-size: 11.5px; font-weight: 700; border: 1px solid var(--border); background: var(--surface-alt); color: var(--text-muted); cursor: pointer; transition: all 0.18s ease; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
-                    .btn-compra-estado:hover { border-color: var(--primary); color: var(--text-main); transform: translateY(-1px); }
-                    .btn-compra-estado.active-pendiente { background: rgba(245, 158, 11, 0.18); color: #d97706; border-color: rgba(245, 158, 11, 0.5); box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2); }
-                    .btn-compra-estado.active-atendido { background: rgba(16, 185, 129, 0.18); color: #059669; border-color: rgba(16, 185, 129, 0.5); box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2); }
-                    .btn-compra-estado.active-devolucion { background: rgba(124, 58, 237, 0.18); color: #7c3aed; border-color: rgba(124, 58, 237, 0.5); box-shadow: 0 2px 8px rgba(124, 58, 237, 0.2); }
-                    .btn-compra-estado.active-cancelacion { background: rgba(239, 68, 68, 0.18); color: #dc2626; border-color: rgba(239, 68, 68, 0.5); box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2); }
+                    .btn-compra-estado { padding: 5px 10px; border-radius: 8px; font-size: 11.5px; font-weight: 700; border: 1px solid var(--border); background: var(--surface-subtle); color: var(--text-muted); cursor: pointer; transition: all 0.18s ease; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+                    .btn-compra-estado:hover { border-color: var(--accent); color: var(--text-main); transform: translateY(-1px); }
+                    .btn-compra-estado.active-pendiente { background: rgba(245, 158, 11, 0.18); color: #d97706; border-color: rgba(245, 158, 11, 0.5); }
+                    .btn-compra-estado.active-atendido { background: rgba(16, 185, 129, 0.18); color: #059669; border-color: rgba(16, 185, 129, 0.5); }
+                    .btn-compra-estado.active-devolucion { background: rgba(124, 58, 237, 0.18); color: #7c3aed; border-color: rgba(124, 58, 237, 0.5); }
+                    .btn-compra-estado.active-cancelacion { background: rgba(239, 68, 68, 0.18); color: #dc2626; border-color: rgba(239, 68, 68, 0.5); }
                     body.dark-mode .btn-compra-estado.active-pendiente { background: rgba(245, 158, 11, 0.24); color: #fbbf24; border-color: rgba(251, 191, 36, 0.55); }
                     body.dark-mode .btn-compra-estado.active-atendido { background: rgba(16, 185, 129, 0.24); color: #34d399; border-color: rgba(52, 211, 153, 0.55); }
                     body.dark-mode .btn-compra-estado.active-devolucion { background: rgba(139, 92, 246, 0.26); color: #c4b5fd; border-color: rgba(167, 139, 250, 0.55); }
                     body.dark-mode .btn-compra-estado.active-cancelacion { background: rgba(239, 68, 68, 0.24); color: #f87171; border-color: rgba(248, 113, 113, 0.55); }
                 </style>
                 <div class="metrics-grid">
-                    <div class="metric-card" style="--accent:#0284c7;"><h4>Compras mostradas</h4><p id="comprasCantidad">--</p><small>Últimas compras registradas en BD</small></div>
-                    <div class="metric-card" style="--accent:#10b981;"><h4>Monto total</h4><p id="comprasMonto">S/. --</p><small>Suma de las compras mostradas</small></div>
+                    <div class="metric-card" style="--accent:#0284c7;"><h4>Órdenes Registradas</h4><p id="comprasCantidad">--</p><small>Pedidos recientes en Supabase</small></div>
+                    <div class="metric-card" style="--accent:#10b981;"><h4>Monto Acumulado</h4><p id="comprasMonto">S/. --</p><small>Facturación del periodo mostrado</small></div>
                 </div>
                 <div class="chart-card full">
-                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
-                        <h4 style="margin:0;">🧾 Detalle de compras (Tablas <code>compras</code> y <code>detalle_compra</code> en Supabase)</h4>
-                        <button type="button" class="btn-run" style="padding:7px 14px; font-size:12.5px;" onclick="cargarComprasClientes()">🔄 Actualizar desde Supabase</button>
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
+                        <h4 style="margin:0;">Registro de Pedidos E-Commerce</h4>
+                        <button type="button" class="btn-run" style="padding:8px 16px; font-size:12.5px;" onclick="cargarComprasClientes()">Sincronizar Pedidos</button>
                     </div>
                     <div class="table-wrap">
                         <table>
-                            <thead><tr><th>Cliente</th><th>Fecha</th><th>Producto</th><th class="num">Cantidad</th><th class="num">Precio unitario</th><th class="num">Subtotal</th><th class="num">Total compra</th><th>Estado / Gestión Interactiva (Supabase)</th></tr></thead>
-                            <tbody id="tablaCompras"><tr><td colspan="8">Cargando compras...</td></tr></tbody>
+                            <thead><tr><th>Cliente</th><th>Fecha</th><th>Producto</th><th class="num">Cantidad</th><th class="num">Precio unitario</th><th class="num">Subtotal</th><th class="num">Total orden</th><th>Estado Operativo</th></tr></thead>
+                            <tbody id="tablaCompras"><tr><td colspan="8">Cargando órdenes...</td></tr></tbody>
                         </table>
                     </div>
-                    <p class="hint" id="comprasFuente">Fuente: consultando...</p>
+                    <p class="hint" id="comprasFuente">Fuente: Supabase PostgreSQL</p>
                 </div>
             </div>
         </section>
 
-        <!-- ================= VISTA: PREDICCIÓN DE VENTAS ================= -->
+        <!-- ================= VISTA: PRONÓSTICO LINEAL ================= -->
         <section id="vista-prediccion" class="vista">
             <div class="page-hero">
-                <div class="crumbs">Inicio / <b>Predicción de ventas</b></div>
-                <h1>Predicción de ventas</h1>
-                <p>Entrena la red neuronal con las transacciones y revisa qué tan bien predice las ventas (en soles).</p>
+                <div class="crumbs">Inicio / <b>Pronóstico Lineal</b></div>
+                <h1>Pronóstico de Ventas</h1>
+                <p>Regresión corporativa, ajuste R² y explicabilidad de variables.</p>
             </div>
             <div class="contenido">
                 <div class="action-bar">
-                    <p>Ejecute el modelo neuronal para actualizar las proyecciones de ventas y calcular la precisión.</p>
-                    <button id="btnEjecutar" class="btn-run">⚡ Ejecutar Análisis Predictivo</button>
+                    <p>Modelo predictivo multivariable · 100,000 registros históricos</p>
+                    <button id="btnEjecutar" class="btn-run">Ejecutar Pronóstico</button>
                 </div>
-                <p id="statusMsg" class="loading-text">Entrenando Red Neuronal y procesando registros... ⏳</p>
+                <p id="statusMsg" class="loading-text">Procesando modelo predictivo...</p>
 
                 <div id="results-container">
                     <div class="hero-banner">
-                        <span>Venta promedio estimada por la red neuronal</span>
+                        <span>Venta Promedio Proyectada</span>
                         <h2 id="txtPrediccion">S/. --</h2>
-                        <small>Proyección calculada por la Red Neuronal sobre las 100,000 transacciones registradas en Supabase.</small>
+                        <small>Inferencia consolidada · Supabase PostgreSQL</small>
                     </div>
                     <div class="metrics-grid">
-                        <div class="metric-card"><h4>Registros en Supabase</h4><p id="txtRegistros">--</p><small>Base de datos Cloud (100k)</small></div>
-                        <div class="metric-card" style="--accent: #2563eb;"><h4>Venta Promedio (Media)</h4><p>S/. <span id="txtMedia">--</span></p></div>
+                        <div class="metric-card"><h4>Registros Analizados</h4><p id="txtRegistros">--</p><small>Base transaccional cloud</small></div>
+                        <div class="metric-card" style="--accent: #2563eb;"><h4>Media de Venta</h4><p>S/. <span id="txtMedia">--</span></p></div>
                         <div class="metric-card" style="--accent: #7c3aed;"><h4>Mediana Histórica</h4><p>S/. <span id="txtMediana">--</span></p></div>
                         <div class="metric-card" style="--accent: #db2777;"><h4>Desviación Estándar</h4><p id="txtDesviacion">--</p></div>
                         <div class="metric-card" style="--accent: #8b5cf6;"><h4>Varianza Muestral</h4><p id="txtVarianza">--</p></div>
-                        <div class="metric-card" style="--accent: #059669;"><h4>Prob. Venta > S/. 200</h4><p id="txtProbMeta">--</p></div>
+                        <div class="metric-card" style="--accent: #059669;"><h4>Prob. Venta &gt; S/. 200</h4><p id="txtProbMeta">--</p></div>
                         <div class="metric-card" style="--accent: #ea580c;"><h4>Error Cuadrático (MSE)</h4><p id="txtMSE">--</p></div>
-                        <div class="metric-card" style="--accent: #10b981;"><h4>Precisión del Modelo (R²)</h4><p id="txtR2">--</p></div>
+                        <div class="metric-card" style="--accent: #10b981;"><h4>Precisión (R²)</h4><p id="txtR2">--</p></div>
                     </div>
-                    <div class="nota"><b>¿Cómo leerlo?</b> El R² va de 0 a 1: mientras más cerca de 1, mejor acierta el modelo. Aquí predice las <b>ventas en soles</b>; gran parte del acierto proviene de la correlación entre el <b>precio unitario</b> y el <b>stock</b> registrada en la base de datos corporativa.</div>
                     <div class="charts-grid">
-                        <div class="chart-card full"><h4>📊 Desglose de Métricas Estadísticas Clave</h4><div class="chart-container" style="height: 250px;"><canvas id="chartBaras"></canvas></div></div>
+                        <div class="chart-card full"><h4>Indicadores Estadísticos Clave</h4><div class="chart-container" style="height: 250px;"><canvas id="chartBaras"></canvas></div></div>
                     </div>
                 </div>
 
                 <div class="charts-grid">
-                    <div class="chart-card full"><h4>📈 Ventas reales por mes (S/.)</h4><div class="chart-container" style="height: 300px;"><canvas id="chartMeses"></canvas></div></div>
-                    <div class="chart-card"><h4>🍩 Participación de ventas por tienda</h4><div class="chart-container"><canvas id="chartTiendas"></canvas></div></div>
-                    <div class="chart-card"><h4>🏆 Ventas por producto (S/.)</h4><div class="chart-container"><canvas id="chartProductosResumen"></canvas></div></div>
+                    <div class="chart-card full"><h4>Evolución Mensual de Ventas (S/.)</h4><div class="chart-container" style="height: 300px;"><canvas id="chartMeses"></canvas></div></div>
+                    <div class="chart-card"><h4>Participación por Tienda</h4><div class="chart-container"><canvas id="chartTiendas"></canvas></div></div>
+                    <div class="chart-card"><h4>Ingresos por Producto (S/.)</h4><div class="chart-container"><canvas id="chartProductosResumen"></canvas></div></div>
                 </div>
 
                 <div class="bloque" style="margin-top: 15px;">
-                    <h2 class="section-title">¿Cómo piensa la red neuronal?</h2>
-                    <p class="section-sub">Tres gráficos para entender qué tan bien predice y qué variables pesan más.</p>
-                    <p id="explicStatus" class="loading-text">Entrenando la red neuronal para explicarla... la primera vez puede tardar hasta 30 segundos ⏳</p>
+                    <h2 class="section-title">Explicabilidad del Modelo</h2>
+                    <p class="section-sub">Evaluación de ajuste y peso de variables.</p>
+                    <p id="explicStatus" class="loading-text">Evaluando explicabilidad del modelo...</p>
                     <div class="charts-grid">
                         <div class="chart-card c4">
-                            <h4>🎯 Precisión del modelo</h4>
+                            <h4>Precisión Fuera de Muestra (R²)</h4>
                             <div class="ring-wrap">
                                 <div class="ring" id="ring"><b id="ringTxt">--</b></div>
-                                <p id="ringDetalle" class="hint" style="margin:0; flex:1; min-width:130px;">R² medido con datos que la red neuronal no vio al entrenar.</p>
+                                <p id="ringDetalle" class="hint" style="margin:0; flex:1; min-width:130px;">Validación en conjunto de prueba.</p>
                             </div>
                         </div>
                         <div class="chart-card c8">
-                            <h4>🔵 Predicción vs. venta real (100,000 transacciones Supabase)</h4>
+                            <h4>Dispersión: Pronóstico vs. Real</h4>
                             <div class="chart-container" style="height: 260px;"><canvas id="chartDispersion"></canvas></div>
-                            <p class="hint">Cada punto es una venta. Mientras más cerca de la línea roja, mejor acertó la red neuronal.</p>
                         </div>
                         <div class="chart-card full">
-                            <h4>🧠 ¿Qué variables influyen más en la predicción?</h4>
+                            <h4>Importancia de Variables Predictoras</h4>
                             <div class="chart-container" style="height: 280px;"><canvas id="chartImportancia"></canvas></div>
-                            <p class="hint">Mide cuánto empeora la predicción si se "desordena" esa variable. El precio pesa muchísimo porque la venta es cantidad × precio.</p>
                         </div>
                     </div>
                 </div>
 
-                <!-- ================= GRÁFICOS ANALÍTICOS (INTEGRANTE 1) ================= -->
-                <div class="bloque" style="margin-top: 30px;">
-                    <h2 class="section-title">📊 Gráficos Analíticos de Transacciones</h2>
-                    <p class="section-sub">Modelado estadístico avanzado del conjunto de datos: Recta de Regresión Lineal, Matriz de Correlación y Campana de Gauss generados por el backend analítico.</p>
+                <!-- ================= GRÁFICOS ESTADÍSTICOS DEL SERVIDOR ================= -->
+                <div class="bloque" style="margin-top: 26px;">
+                    <h2 class="section-title">Diagnóstico Estadístico Avanzado</h2>
+                    <p class="section-sub">Regresión lineal, correlaciones de Pearson y densidad normal.</p>
                     <div class="charts-grid">
                         <div class="chart-card">
-                            <h4>📈 Recta de Regresión: Ventas vs. Cantidad</h4>
-                            <div style="text-align: center; padding: 8px 0;">
-                                <img src="/api/graficos/regresion" alt="Recta de Regresión Lineal" style="width: 100%; border-radius: 10px; border: 1px solid var(--border);" loading="lazy">
+                            <h4>Recta de Regresión: Ventas vs. Cantidad</h4>
+                            <div class="png-chart-frame">
+                                <img src="/api/graficos/regresion" alt="Recta de Regresión Lineal" loading="lazy">
                             </div>
-                            <p class="hint">Ajuste por mínimos cuadrados de la relación lineal entre cantidad vendida y ventas totales.</p>
                         </div>
                         <div class="chart-card">
-                            <h4>🔥 Mapa de Calor de Correlaciones</h4>
-                            <div style="text-align: center; padding: 8px 0;">
-                                <img src="/api/graficos/correlacion" alt="Mapa de Calor de Correlaciones" style="width: 100%; border-radius: 10px; border: 1px solid var(--border);" loading="lazy">
+                            <h4>Matriz de Correlaciones (Pearson)</h4>
+                            <div class="png-chart-frame">
+                                <img src="/api/graficos/correlacion" alt="Mapa de Calor de Correlaciones" loading="lazy">
                             </div>
-                            <p class="hint">Coeficientes de correlación de Pearson entre precio, stock, temperatura y ventas registradas.</p>
                         </div>
                         <div class="chart-card full">
-                            <h4>🔔 Campana de Gauss (Probabilidades de Ventas)</h4>
-                            <div style="text-align: center; padding: 8px 0;">
-                                <img src="/api/graficos/probabilidades" alt="Campana de Gauss" style="width: 100%; max-height: 420px; object-fit: contain; border-radius: 10px; border: 1px solid var(--border);" loading="lazy">
+                            <h4>Distribución Normal de Ventas</h4>
+                            <div class="png-chart-frame">
+                                <img src="/api/graficos/probabilidades" alt="Campana de Gauss" style="max-height: 420px; object-fit: contain;" loading="lazy">
                             </div>
-                            <p class="hint">Densidad de probabilidad observada y distribución normal ajustada con la media corporativa.</p>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- ================= VISTA: TENSORFLOW & KERAS (DEEP LEARNING) ================= -->
+        <!-- ================= VISTA: SIMULADOR NEURONAL ================= -->
         <section id="vista-keras" class="vista">
             <div class="page-hero">
-                <div class="crumbs">Inicio / <b>Deep Learning con TensorFlow & Keras</b></div>
-                <span class="chip" style="margin-bottom:8px;">Subproyecto 2 · Modelo Entrenado con 100k Registros Supabase</span>
-                <h1>Red Neuronal Profunda (Keras Sequential)</h1>
-                <p>Modelo de Deep Learning entrenado con las 100,000 transacciones históricas de Supabase para predecir ventas corporativas y analizar demanda multivariable.</p>
+                <div class="crumbs">Inicio / <b>Simulador Neuronal</b></div>
+                <span class="chip" style="margin-bottom:8px;">Deep Learning · 100k Registros Supabase</span>
+                <h1>Proyección de Demanda — Red Neuronal</h1>
+                <p>Simulador multivariable en tiempo real y análisis competitivo.</p>
             </div>
             <div class="contenido">
-                <div class="bloque">
-                    <div class="keras-info-card">
-                        <h3 class="keras-info-title">🎯 Inferencia Neural con Datos Corporativos</h3>
-                        <p class="keras-info-desc">
-                            El modelo procesa la totalidad de las <b>100,000 transacciones históricas</b> sincronizadas directamente desde la base de datos PostgreSQL en Supabase.
-                            Las variables analizadas son producto, tienda, precio unitario, stock, temperatura, mes y día de la semana;
-                            la etiqueta que la Red Neuronal estima con alta precisión es <b>ventas_totales</b> en soles.
-                            Los indicadores reflejan la capacidad predictiva del modelo sobre el volumen masivo de operaciones reales corporativas.
-                        </p>
-                    </div>
-                </div>
-                <div class="metrics-grid" style="margin-bottom:25px;">
+                <div class="metrics-grid" style="margin-bottom:22px;">
                     <div class="metric-card" style="--accent: #ea580c;">
-                        <h4>Framework & Motor</h4>
-                        <p style="font-size:18px;">TensorFlow / Keras 3</p>
-                        <small id="kMotor">Keras Sequential DNN</small>
+                        <h4>Motor Neural</h4>
+                        <p style="font-size:18px;">DL4J / Keras DNN</p>
+                        <small id="kMotor">Red Neuronal Secuencial</small>
                     </div>
                     <div class="metric-card" style="--accent: #10b981;">
-                        <h4>Precisión del Modelo (R²)</h4>
+                        <h4>Precisión (R²)</h4>
                         <p id="kR2">77.98%</p>
-                        <small>Validado sobre las 100,000 transacciones de Supabase</small>
+                        <small>Validación transaccional</small>
                     </div>
                     <div class="metric-card" style="--accent: #0284c7;">
-                        <h4>Error Absoluto Medio (MAE)</h4>
+                        <h4>Error Absoluto (MAE)</h4>
                         <p id="kMAE">S/. 25.07</p>
-                        <small>Desviación media de predicción</small>
+                        <small>Desviación media estimada</small>
                     </div>
                     <div class="metric-card" style="--accent: #7c3aed;">
-                        <h4>Registros en Base de Datos</h4>
+                        <h4>Volumen de Entrenamiento</h4>
                         <p id="kRegistros">100,000</p>
-                        <small>Tabla transacciones_alicorp (PostgreSQL)</small>
+                        <small>transacciones_alicorp</small>
                     </div>
                 </div>
 
                 <div class="sim-layout">
                     <div class="panel">
-                        <h3 style="margin-top:0;font-size:18px;">🧪 Inferencia en Tiempo Real</h3>
-                        <p style="color:var(--text-muted);font-size:13px;margin-bottom:14px;">Ajuste los parámetros o elija un escenario rápido para consultar la Red Neuronal de Keras:</p>
+                        <h3 style="margin-top:0;font-size:17px;">Parámetros de Simulación</h3>
                         <div class="chips" id="kEscenarios">
-                            <button type="button" data-escenario="economico">💸 Precio bajo, poco stock</button>
-                            <button type="button" data-escenario="promedio" class="active">⚖️ Escenario promedio</button>
-                            <button type="button" data-escenario="premium">💎 Precio alto, mucho stock</button>
+                            <button type="button" data-escenario="economico">Precio bajo · stock ajustado</button>
+                            <button type="button" data-escenario="promedio" class="active">Escenario base</button>
+                            <button type="button" data-escenario="premium">Precio alto · stock alto</button>
                         </div>
                         <div class="two-cols">
                             <div class="field"><label>Producto</label><select id="kProducto"></select></div>
@@ -1564,29 +1659,29 @@
                     </div>
 
                     <div class="panel">
-                        <div id="kResultBox" class="result-big" style="background: linear-gradient(135deg, #1e1b4b, #312e81);">
-                            <span>Predicción Keras Sequential (S/.)</span>
+                        <div id="kResultBox" class="result-big" style="background: linear-gradient(135deg, #0b1329, #0c3b66);">
+                            <span>Demanda Proyectada (S/.)</span>
                             <h2 id="kResultado">S/. --</h2>
-                            <small id="kUnidades">Calculando predicción...</small>
+                            <small id="kUnidades">Calculando escenario...</small>
                         </div>
-                        <h4 style="margin:0 0 10px;font-size:15px;">Comparación de Demanda por Producto (Keras)</h4>
+                        <h4 style="margin:0 0 10px;font-size:15px;">Demanda Comparativa por SKU</h4>
                         <div class="chart-container" style="height: 240px;"><canvas id="chartKerasSim"></canvas></div>
                     </div>
                 </div>
 
-                <!-- ================= SIMULACIÓN COMPETITIVA DE MERCADO: ALICORP VS EMPRESA RANDOM (SUPABASE) ================= -->
+                <!-- ================= BENCHMARK COMPETITIVO ================= -->
                 <style>
-                    .kcomp-wrapper { margin-top: 28px; margin-bottom: 28px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow-sm); }
+                    .kcomp-wrapper { margin-top: 26px; margin-bottom: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; }
                     .kcomp-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
-                    .kcomp-title-box h3 { margin: 4px 0 6px; font-size: 20px; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
-                    .kcomp-title-box p { margin: 0; font-size: 13.5px; color: var(--text-muted); max-width: 760px; line-height: 1.5; }
-                    .kcomp-controls { display: grid; grid-template-columns: 1.3fr 1.2fr auto; gap: 16px; align-items: end; background: var(--surface-alt); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 22px; }
+                    .kcomp-title-box h3 { margin: 4px 0 4px; font-size: 19px; color: var(--text-main); }
+                    .kcomp-title-box p { margin: 0; font-size: 13px; color: var(--text-muted); }
+                    .kcomp-controls { display: grid; grid-template-columns: 1.3fr 1.2fr auto; gap: 16px; align-items: end; background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 22px; }
                     @media (max-width: 960px) { .kcomp-controls { grid-template-columns: 1fr; } }
-                    .btn-kcomp-random { background: linear-gradient(135deg, #7c3aed, #ea580c); color: #fff; border: none; border-radius: 10px; padding: 11px 18px; font-size: 13.5px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px rgba(124, 58, 237, 0.3); transition: transform 0.15s ease, box-shadow 0.15s ease; white-space: nowrap; height: 42px; }
-                    .btn-kcomp-random:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(234, 88, 12, 0.4); }
+                    .btn-kcomp-random { background: var(--accent-gradient); color: #fff; border: none; border-radius: 12px; padding: 11px 18px; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap; height: 42px; transition: transform 0.15s ease, opacity 0.15s ease; }
+                    .btn-kcomp-random:hover { transform: translateY(-1px); opacity: 0.94; }
                     .kcomp-share-bar { width: 100%; height: 10px; background: rgba(234, 88, 12, 0.25); border-radius: 999px; overflow: hidden; margin-top: 8px; display: flex; }
                     .kcomp-share-fill { height: 100%; background: linear-gradient(90deg, #0284c7, #10b981); transition: width 0.35s ease; }
-                    .kcomp-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 800; }
+                    .kcomp-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 11px; border-radius: 999px; font-size: 11.5px; font-weight: 700; }
                     .kcomp-badge.win { background: rgba(16, 185, 129, 0.15); color: #059669; border: 1px solid rgba(16, 185, 129, 0.35); }
                     .kcomp-badge.loss { background: rgba(220, 38, 38, 0.15); color: #dc2626; border: 1px solid rgba(220, 38, 38, 0.35); }
                     body.dark-mode .kcomp-badge.win { background: rgba(16, 185, 129, 0.22); color: #34d399; }
@@ -1600,184 +1695,160 @@
                 <div class="kcomp-wrapper" id="seccionKerasCompetencia">
                     <div class="kcomp-header">
                         <div class="kcomp-title-box">
-                            <span class="chip" style="margin-bottom:6px;">Simulación Competitiva en Supabase · Red Neuronal Keras</span>
-                            <h3>⚔️ Análisis de Ganancias, Pérdidas y Competencia: Alicorp vs. Empresa Competidora</h3>
-                            <p>Compara en tiempo real los registros históricos de <b>Corporación Alicorp S.A.A.</b> frente a empresas competidoras registradas en <b>Supabase PostgreSQL</b> (<code>empresas_competencia_simuladas</code>), estimando con la Red Neuronal Keras las ganancias netas, la fuga de ventas y las ganancias perdidas por producto.</p>
+                            <span class="chip" style="margin-bottom:6px;">Benchmark Competitivo · Supabase</span>
+                            <h3>Análisis de Margen y Cuota: Alicorp vs. Competidor</h3>
+                            <p>Proyección de ganancia neta, fuga de demanda y participación por SKU.</p>
                         </div>
                         <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
-                            <span id="kcFuenteBadge" class="kcomp-badge win">🗄️ Conectado a Supabase PostgreSQL</span>
+                            <span id="kcFuenteBadge" class="kcomp-badge win">Supabase PostgreSQL</span>
                             <small id="kcSegmentoRival" style="color:var(--text-muted); font-size:12px;">Cargando perfil competitivo...</small>
                         </div>
                     </div>
 
                     <div class="kcomp-controls">
                         <div class="field" style="margin:0;">
-                            <label for="kCompEmpresa">🏢 Empresa Competidora (Registros en Supabase)</label>
+                            <label for="kCompEmpresa">Competidor Referencial</label>
                             <select id="kCompEmpresa">
                                 <option value="ANDINO">Grupo Consumo Andino S.A.C. (Competidor Directo Masivo)</option>
                                 <option value="PACIFICO">Industrias del Pacífico Perú S.A. (Importador Mayorista)</option>
-                                <option value="SURFOODS">Alimentos & Marcas del Sur S.A.A. (Marcas Económicas)</option>
-                                <option value="NOVAFOODS">Consorcio Agroindustrial NovaFoods (Gourmet & Saludable)</option>
+                                <option value="SURFOODS">Alimentos &amp; Marcas del Sur S.A.A. (Marcas Económicas)</option>
+                                <option value="NOVAFOODS">Consorcio Agroindustrial NovaFoods (Gourmet &amp; Saludable)</option>
                             </select>
                         </div>
                         <div class="field" style="margin:0;">
-                            <label for="kCompAgresividad">🔥 Estrategia de Precios del Rival: <b id="kvCompAgresividad">0% (Precio Histórico Supabase)</b></label>
+                            <label for="kCompAgresividad">Elasticidad Precio Rival: <b id="kvCompAgresividad">0% (Precio Histórico)</b></label>
                             <input type="range" id="kCompAgresividad" min="-15" max="15" step="1" value="0">
                         </div>
                         <div>
-                            <button type="button" id="btnKerasCompRandom" class="btn-kcomp-random" title="Seleccionar una empresa competidora aleatoria desde Supabase y simular choque de mercado">
-                                🎲 Simular Empresa Random
+                            <button type="button" id="btnKerasCompRandom" class="btn-kcomp-random" title="Simular escenario con competidor aleatorio">
+                                Escenario Aleatorio
                             </button>
                         </div>
                     </div>
 
-                    <!-- 4 KPI Cards de Competencia -->
                     <div class="metrics-grid" style="margin-bottom: 22px;">
                         <div class="metric-card" style="--accent: #0284c7;">
-                            <h4>Ganancia Neta Proyectada Alicorp</h4>
+                            <h4>Ganancia Neta Alicorp</h4>
                             <p id="kcGananciaAlicorp">S/. --</p>
                             <small id="kcVentasAlicorp">Ventas proyectadas: S/. --</small>
-                            <small id="kcHistAlicorp" style="display:block; margin-top:4px; opacity:0.85;">Histórico Supabase: S/. --</small>
+                            <small id="kcHistAlicorp" style="display:block; margin-top:4px; opacity:0.85;">Histórico: S/. --</small>
                         </div>
                         <div class="metric-card" style="--accent: #ea580c;">
                             <h4 id="kcTituloRival">Ganancia Neta Competidor</h4>
                             <p id="kcGananciaRival">S/. --</p>
                             <small id="kcVentasRival">Ventas proyectadas: S/. --</small>
-                            <small id="kcHistRival" style="display:block; margin-top:4px; opacity:0.85;">Histórico Supabase: S/. --</small>
+                            <small id="kcHistRival" style="display:block; margin-top:4px; opacity:0.85;">Histórico: S/. --</small>
                         </div>
                         <div class="metric-card" style="--accent: #dc2626;">
-                            <h4>⚠️ Ganancias Perdidas (Alicorp)</h4>
+                            <h4>Ganancia en Riesgo</h4>
                             <p id="kcGananciaPerdida" class="kcomp-loss-val">S/. --</p>
-                            <small id="kcFugaVentas">Fuga de ventas hacia el rival: S/. --</small>
+                            <small id="kcFugaVentas">Fuga estimada: S/. --</small>
                             <small id="kcUnidadesPerdidas" style="display:block; margin-top:4px; opacity:0.85;">Unidades desplazadas: --</small>
                         </div>
                         <div class="metric-card" style="--accent: #10b981;">
-                            <h4>Cuota de Mercado (Market Share)</h4>
+                            <h4>Market Share Estimado</h4>
                             <p id="kcCuotaMercado" style="font-size:20px;">--% vs --%</p>
                             <div class="kcomp-share-bar">
                                 <div id="kcBarraCuotaAlicorp" class="kcomp-share-fill" style="width: 50%;"></div>
                             </div>
-                            <small id="kcLiderBadge" style="display:block; margin-top:6px; font-weight:700;">Analizando liderazgo...</small>
+                            <small id="kcLiderBadge" style="display:block; margin-top:6px; font-weight:700;">Evaluando liderazgo...</small>
                         </div>
                     </div>
 
-                    <!-- 2 Gráficos Comparativos -->
                     <div class="charts-grid" style="margin-bottom: 22px;">
                         <div class="chart-card">
-                            <h4>📊 Ventas Proyectadas Keras vs. Ganancias Perdidas por Producto (S/.)</h4>
+                            <h4>Ventas Proyectadas vs. Fuga por SKU (S/.)</h4>
                             <div class="chart-container" style="height: 290px;"><canvas id="chartKerasCompVentas"></canvas></div>
-                            <p class="hint">Comparación directa en soles generada por la Red Neuronal según los parámetros seleccionados arriba.</p>
                         </div>
                         <div class="chart-card">
-                            <h4>🗄️ Ventas Históricas Acumuladas en Supabase (Alicorp vs. Rival)</h4>
+                            <h4>Ventas Históricas Acumuladas (Alicorp vs. Rival)</h4>
                             <div class="chart-container" style="height: 290px;"><canvas id="chartKerasCompHistorico"></canvas></div>
-                            <p class="hint">Contraste real extraído de los registros históricos de <code>transacciones_alicorp</code> y <code>empresas_competencia_simuladas</code>.</p>
                         </div>
                     </div>
 
-                    <!-- Tabla Detallada de Competencia por Producto -->
                     <div class="chart-card full" style="margin-bottom: 0;">
                         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
-                            <h4 style="margin:0;">📋 Desglose Competitivo por Producto: Ganancias, Fuga de Ventas y Cuota de Mercado</h4>
-                            <span id="kcResumenFoco" class="kcomp-badge win">Producto en foco: --</span>
+                            <h4 style="margin:0;">Matriz Competitiva por Producto</h4>
+                            <span id="kcResumenFoco" class="kcomp-badge win">Foco: --</span>
                         </div>
                         <div class="table-wrap">
                             <table>
                                 <thead>
                                     <tr>
                                         <th>Producto Alicorp</th>
-                                        <th>Marca Competidora (Supabase)</th>
+                                        <th>Marca Competidora</th>
                                         <th class="num">Precio (Alicorp / Rival)</th>
-                                        <th class="num">Venta Keras Alicorp</th>
-                                        <th class="num">Venta Keras Rival</th>
-                                        <th class="num">Ganancia Neta Alicorp</th>
-                                        <th class="num">Fuga de Ventas (S/.)</th>
-                                        <th class="num">Ganancia Perdida (S/.)</th>
-                                        <th class="num">Share Alicorp</th>
-                                        <th>Estado Competitivo</th>
+                                        <th class="num">Venta Alicorp</th>
+                                        <th class="num">Venta Rival</th>
+                                        <th class="num">Ganancia Neta</th>
+                                        <th class="num">Fuga (S/.)</th>
+                                        <th class="num">Pérdida (S/.)</th>
+                                        <th class="num">Share</th>
+                                        <th>Estado</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tablaKerasCompetencia">
-                                    <tr><td colspan="10">Consultando registros de Alicorp y empresa competidora en Supabase...</td></tr>
+                                    <tr><td colspan="10">Consultando registros competitivos...</td></tr>
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
+            </div>
+        </section>
 
-                <div class="bloque">
-                    <div class="keras-info-card">
-                        <h3 class="keras-info-title">📐 Ficha Técnica de la Arquitectura Keras</h3>
-                        <p class="keras-info-desc">
-                            • <b>Tipo de Modelo:</b> Deep Neural Network (DNN) con <code>tf.keras.Sequential</code>.<br>
-                            • <b>Capas:</b> <code>Input(14)</code> ➔ <code>Dense(64, ReLU)</code> ➔ <code>BatchNormalization()</code> ➔ <code>Dropout(0.1)</code> ➔ <code>Dense(32, ReLU)</code> ➔ <code>Dense(16, ReLU)</code> ➔ <code>Dense(1, Linear)</code>.<br>
-                            • <b>Optimizador:</b> Adam (Learning Rate = 0.002 con reducción por meseta <code>ReduceLROnPlateau</code>).<br>
-                            • <b>Entrenamiento Masivo:</b> 100,000 transacciones procesadas directamente desde Supabase PostgreSQL con convergencia acelerada y EarlyStopping.<br>
-                            • <b>Optimización para la Nube (Render):</b> Arquitectura Dual-Engine que preserva el archivo nativo <code>modelo_ventas_keras.keras</code> y utiliza pesos matriciales exportados para garantizar alta velocidad con menos de 10 MB de RAM.
-                        </p>
+        <!-- ================= VISTA: CLUSTERS K-MEANS ================= -->
+        <section id="vista-segmentacion" class="vista">
+            <div class="page-hero">
+                <div class="crumbs">Inicio / <b>Clusters K-Means</b></div>
+                <span class="chip" style="margin-bottom:8px;">Clustering No Supervisado · Smile ML</span>
+                <h1>Segmentación de Demanda (K-Means)</h1>
+                <p>Agrupamiento automático por precio, stock y volumen de venta.</p>
+            </div>
+            <div class="contenido">
+                <div class="metrics-grid">
+                    <div class="metric-card" style="--accent:#7c3aed;">
+                        <h4>Algoritmo</h4><p id="segMetodo">K-Means</p><small>Clustering no supervisado</small>
+                    </div>
+                    <div class="metric-card" style="--accent:#0284c7;">
+                        <h4>Segmentos Activos</h4><p id="segCantidad">--</p><small>Clusters identificados</small>
+                    </div>
+                    <div class="metric-card" style="--accent:#10b981;">
+                        <h4>Índice Silueta</h4><p id="segSilueta">--</p><small>Cohesión y separación</small>
+                    </div>
+                    <div class="metric-card" style="--accent:#ea580c;">
+                        <h4>Origen de Datos</h4><p id="segFuente" style="font-size:15px;">--</p><small>Fuente consolidada</small>
+                    </div>
+                </div>
+                <div class="charts-grid">
+                    <div class="chart-card full">
+                        <h4>Mapa de Clusters: Ventas vs. Stock</h4>
+                        <div class="chart-container" style="height:340px;"><canvas id="chartSegmentacion"></canvas></div>
+                    </div>
+                    <div class="chart-card full">
+                        <h4>Perfil Operativo por Segmento</h4>
+                        <div class="table-wrap">
+                            <table>
+                                <thead><tr><th>Segmento</th><th>Perfil Comercial</th><th class="num">Registros</th><th class="num">Ventas media</th><th class="num">Mediana</th><th class="num">Moda</th><th class="num">Stock prom.</th><th class="num">Cantidad prom.</th><th class="num">Precio prom.</th><th class="num">Precio predictivo</th><th>Acción Sugerida</th></tr></thead>
+                                <tbody id="tablaSegmentacion"><tr><td colspan="11">Cargando segmentación...</td></tr></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
         </section>
 
-                <!-- ================= VISTA: APRENDIZAJE NO SUPERVISADO ================= -->
-                <section id="vista-segmentacion" class="vista">
-                    <div class="page-hero">
-                        <div class="crumbs">Inicio / <b>Segmentación no supervisada</b></div>
-                        <span class="chip" style="margin-bottom:8px;">Clustering No Supervisado · Algoritmo K-Means</span>
-                        <h1>Aprendizaje no supervisado con K-Means</h1>
-                        <p>El algoritmo agrupa las transacciones por similitud, sin utilizar una etiqueta previamente conocida,
-                            para identificar perfiles de ventas, stock y demanda.</p>
-                    </div>
-                    <div class="contenido">
-                        <div class="nota">
-                            <b>¿Cómo funciona?</b> K-Means estandariza las variables y encuentra grupos similares
-                            usando precio unitario, stock actual, cantidad vendida y ventas totales. El segmento se
-                            interpreta después de observar sus promedios; no se le entrega una categoría al algoritmo.
-                        </div>
-                        <div class="metrics-grid">
-                            <div class="metric-card" style="--accent:#7c3aed;">
-                                <h4>Método</h4><p id="segMetodo">K-Means</p><small>Clustering no supervisado</small>
-                            </div>
-                            <div class="metric-card" style="--accent:#0284c7;">
-                                <h4>Segmentos encontrados</h4><p id="segCantidad">--</p><small>Grupos de transacciones</small>
-                            </div>
-                            <div class="metric-card" style="--accent:#10b981;">
-                                <h4>Coeficiente de silueta</h4><p id="segSilueta">--</p><small>Calidad de agrupamiento</small>
-                            </div>
-                            <div class="metric-card" style="--accent:#ea580c;">
-                                <h4>Fuente de datos</h4><p id="segFuente" style="font-size:15px;">--</p><small>Origen usado por K-Means</small>
-                            </div>
-                        </div>
-                        <div class="charts-grid">
-                            <div class="chart-card full">
-                                <h4>🧩 Mapa de segmentos: ventas frente a stock</h4>
-                                <div class="chart-container" style="height:340px;"><canvas id="chartSegmentacion"></canvas></div>
-                            </div>
-                            <div class="chart-card full">
-                                <h4>📋 Perfil y significado de cada segmento</h4>
-                                <div class="table-wrap">
-                                    <table>
-                                        <thead><tr><th>Segmento</th><th>Significado en el negocio</th><th class="num">Registros</th><th class="num">Ventas media</th><th class="num">Ventas mediana</th><th class="num">Ventas moda</th><th class="num">Stock promedio</th><th class="num">Cantidad promedio</th><th class="num">Precio promedio</th><th class="num">Precio predictivo</th><th>Recomendación</th></tr></thead>
-                                        <tbody id="tablaSegmentacion"><tr><td colspan="11">Cargando segmentación...</td></tr></tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-               <!-- ================= VISTA: REPORTE MENSUAL (Integrante 6) ================= -->
+        <!-- ================= VISTA: CIERRE MENSUAL ================= -->
         <section id="vista-reporte" class="vista">
             <div class="page-hero">
-                <div class="crumbs">Inicio / <b>Reporte mensual</b></div>
-                <h1>Reporte mensual y proyección</h1>
-                <p>Rendimiento de cada producto en el mes elegido, su precio proyectado con Regresión Lineal y el porcentaje de ganancia o pérdida esperado.</p>
+                <div class="crumbs">Inicio / <b>Cierre Mensual</b></div>
+                <h1>Cierre Mensual y Proyección</h1>
+                <p>Desempeño comercial por periodo, proyección futura y comparativa.</p>
             </div>
             <div class="contenido">
                 <div id="rmDemo" class="rm-demo"></div>
 
-                <!-- ===== REPORTE FUTURO: botones, ventanas, resultado y comparación (Integrante 6) ===== -->
+                <!-- ===== REPORTE FUTURO ===== -->
                 <style>
                     .rf-vs { display: grid; grid-template-columns: 1fr auto 1fr; gap: 18px; align-items: stretch; margin-bottom: 25px; }
                     .rf-lado { background: var(--surface); border: 1px solid var(--border); border-top: 4px solid #7c3aed; border-radius: var(--radius); padding: 24px; text-align: center; }
@@ -1802,22 +1873,21 @@
                     @media (max-width: 800px) { .rf-vs { grid-template-columns: 1fr; } }
                 </style>
 
-                <!-- Los 2 botones -->
                 <div class="action-bar">
-                    <p>Predice un reporte para una fecha futura que aún no está en la base de datos y compáralo con un mes guardado. <b>(Primero genera la predicción para activar la comparación.)</b></p>
+                    <p>Proyección de cierres futuros y contraste contra periodos históricos.</p>
                     <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                        <button type="button" id="rfBtnAbrirPred" class="btn-run">🔮 Predecir reporte futuro</button>
-                        <button type="button" id="rfBtnAbrirCmp" class="btn-run" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);" disabled>⚖️ Comparar reportes</button>
+                        <button type="button" id="rfBtnAbrirPred" class="btn-run">Proyectar Mes Futuro</button>
+                        <button type="button" id="rfBtnAbrirCmp" class="btn-run" style="background:linear-gradient(135deg,#4f46e5,#6366f1);" disabled>Comparar Periodos</button>
                     </div>
                 </div>
 
-                <!-- Ventana 1: elegir año y mes a predecir -->
+                <!-- Modal 1: elegir año y mes a predecir -->
                 <div class="modal-overlay" id="rfModalPred">
                     <div class="modal-card" style="max-width:480px;">
                         <div class="modal-header">
                             <div>
-                                <h3><span>🔮</span> Predecir reporte futuro</h3>
-                                <p>Elige el año y el mes que quieres predecir (solo fechas futuras).</p>
+                                <h3>Proyección de Cierre Futuro</h3>
+                                <p>Selecciona periodo objetivo (año y mes futuro).</p>
                             </div>
                             <button type="button" class="modal-close" id="rfCerrarPred">✕</button>
                         </div>
@@ -1826,70 +1896,69 @@
                             <div class="field"><label for="rfMes">Mes</label><select id="rfMes"></select></div>
                         </div>
                         <div id="rfError" class="error-box" style="margin-bottom:14px;"></div>
-                        <p id="rfCargando" class="loading-text">Leyendo el historial de la base de datos... ⏳</p>
-                        <button type="button" id="rfBtnGenerar" class="btn-run" style="width:100%;">Generar reporte</button>
+                        <p id="rfCargando" class="loading-text">Generando proyección...</p>
+                        <button type="button" id="rfBtnGenerar" class="btn-run" style="width:100%;">Generar Proyección</button>
                     </div>
                 </div>
 
-                <!-- Ventana 2: elegir el mes guardado para comparar -->
+                <!-- Modal 2: elegir el mes guardado para comparar -->
                 <div class="modal-overlay" id="rfModalCmp">
                     <div class="modal-card" style="max-width:480px;">
                         <div class="modal-header">
                             <div>
-                                <h3><span>⚖️</span> Comparar reportes</h3>
-                                <p>Elige un mes guardado en la base de datos para compararlo con tu predicción.</p>
+                                <h3>Comparativa de Periodos</h3>
+                                <p>Selecciona el cierre histórico de referencia.</p>
                             </div>
                             <button type="button" class="modal-close" id="rfCerrarCmp">✕</button>
                         </div>
-                        <div class="field"><label for="rfMesGuardado">Mes guardado (real)</label><select id="rfMesGuardado"></select></div>
-                        <button type="button" id="rfBtnComparar" class="btn-run" style="width:100%;">Comparar</button>
+                        <div class="field"><label for="rfMesGuardado">Periodo Histórico</label><select id="rfMesGuardado"></select></div>
+                        <button type="button" id="rfBtnComparar" class="btn-run" style="width:100%;">Ejecutar Comparativa</button>
                     </div>
                 </div>
 
-                <!-- Resultado: el reporte predicho (se ve igual que el reporte mensual) -->
+                <!-- Resultado: reporte proyectado -->
                 <div id="rfResultado" class="bloque" style="display:none;">
                     <div class="hero-banner">
-                        <span>Reporte proyectado (predicción)</span>
+                        <span>Cierre Proyectado</span>
                         <h2 id="rfFecha">--</h2>
-                        <small id="rfMotorTexto">Estimado con Red Neuronal Profunda (Keras DNN) sincronizado con Supabase PostgreSQL.</small>
+                        <small id="rfMotorTexto">Estimación neuronal sincronizada con Supabase PostgreSQL.</small>
                         <div style="margin-top:10px;">
                             <div id="rfBadgeOrigen" class="rf-cache-badge" style="display:none;"></div>
                         </div>
                     </div>
                     <div class="metrics-grid">
-                        <div class="metric-card" style="--accent:#0284c7;"><h4>Venta total proyectada</h4><p id="rfVentaTotal">S/. --</p><small>Suma de las ventas proyectadas de todos los productos</small></div>
-                        <div class="metric-card" id="rfMargenCard" style="--accent:#10b981;"><h4>Indicador lineal: margen promedio proyectado</h4><p id="rfMargen">--</p><small>Promedio de las variaciones de precio</small></div>
-                        <div class="metric-card" style="--accent:#dc2626;"><h4>Producto con mayor riesgo</h4><p id="rfRiesgo" style="font-size:18px;">--</p><small id="rfRiesgoDet"></small></div>
+                        <div class="metric-card" style="--accent:#0284c7;"><h4>Facturación Proyectada</h4><p id="rfVentaTotal">S/. --</p><small>Consolidado del portafolio</small></div>
+                        <div class="metric-card" id="rfMargenCard" style="--accent:#10b981;"><h4>Margen Promedio Proyectado</h4><p id="rfMargen">--</p><small>Variación media estimada</small></div>
+                        <div class="metric-card" style="--accent:#dc2626;"><h4>SKU con Mayor Riesgo</h4><p id="rfRiesgo" style="font-size:18px;">--</p><small id="rfRiesgoDet"></small></div>
                     </div>
                     <div class="chart-card full">
-                        <h4>📋 Rendimiento y proyección por producto</h4>
+                        <h4>Proyección por Producto</h4>
                         <div class="table-wrap">
                             <table>
                                 <thead><tr>
                                     <th>Producto</th><th>Categoría</th>
                                     <th class="num">Precio actual (S/.)</th>
-                                    <th class="num">Precio futuro proyectado (S/.)</th>
-                                    <th class="num">Variación estimada (%)</th>
+                                    <th class="num">Precio proyectado (S/.)</th>
+                                    <th class="num">Variación (%)</th>
                                     <th class="num">Ventas proyectadas (S/.)</th>
-                                    <th>Estado de rentabilidad</th>
+                                    <th>Rentabilidad</th>
                                 </tr></thead>
                                 <tbody id="rfTabla"></tbody>
                             </table>
                         </div>
-                        <p class="hint">Precio actual = último precio real registrado. Variación = (precio futuro − precio actual) ÷ precio actual × 100.</p>
                     </div>
                 </div>
 
-                <!-- Comparación: predicción VS mes guardado -->
+                <!-- Comparación: proyección VS histórico -->
                 <div id="rfComparacion" class="bloque" style="display:none;">
-                    <h2 class="section-title">⚖️ Comparación de reportes</h2>
-                    <p class="section-sub">Predicción frente al mes guardado en la base de datos.</p>
+                    <h2 class="section-title">Comparativa de Periodos</h2>
+                    <p class="section-sub">Proyección frente a cierre histórico real.</p>
                     <div class="rf-vs">
                         <div class="rf-lado" id="rfLadoPred">
-                            <span class="rf-tag">🔮 Predicción</span>
+                            <span class="rf-tag">Proyección</span>
                             <h3 id="rfCmpTitPred">--</h3>
-                            <span class="rf-valor" id="rfCmpTotPred">--</span><small>Venta total</small>
-                            <span class="rf-valor" id="rfCmpMargPred">--</span><small>Margen promedio proyectado</small>
+                            <span class="rf-valor" id="rfCmpTotPred">--</span><small>Facturación total</small>
+                            <span class="rf-valor" id="rfCmpMargPred">--</span><small>Margen proyectado</small>
                             <span class="rf-badge igual" id="rfCmpBadgePred">--</span>
                         </div>
                         <div class="rf-centro">
@@ -1897,143 +1966,137 @@
                             <em id="rfCmpDif">--</em>
                         </div>
                         <div class="rf-lado real" id="rfLadoReal">
-                            <span class="rf-tag">🗄️ Mes guardado</span>
+                            <span class="rf-tag">Cierre Real</span>
                             <h3 id="rfCmpTitReal">--</h3>
-                            <span class="rf-valor" id="rfCmpTotReal">--</span><small>Venta total</small>
+                            <span class="rf-valor" id="rfCmpTotReal">--</span><small>Facturación total</small>
                             <span class="rf-valor" id="rfCmpMargReal">--</span><small>Margen promedio</small>
                             <span class="rf-badge igual" id="rfCmpBadgeReal">--</span>
                         </div>
                     </div>
                     <div class="charts-grid">
                         <div class="chart-card full">
-                            <h4>📊 Ventas por producto: predicción vs. mes guardado</h4>
+                            <h4>Ventas por Producto: Proyección vs. Real</h4>
                             <div class="chart-container"><canvas id="rfChartCmp"></canvas></div>
                         </div>
                         <div class="chart-card full">
-                            <h4>📋 Detalle de la comparación</h4>
+                            <h4>Detalle de Variaciones</h4>
                             <div class="table-wrap">
                                 <table>
-                                    <thead><tr><th>Producto</th><th class="num">Predicción (S/.)</th><th class="num">Mes guardado (S/.)</th><th class="num">Diferencia (S/.)</th><th class="num">Diferencia (%)</th></tr></thead>
+                                    <thead><tr><th>Producto</th><th class="num">Proyección (S/.)</th><th class="num">Real (S/.)</th><th class="num">Diferencia (S/.)</th><th class="num">Variación (%)</th></tr></thead>
                                     <tbody id="rfTablaCmp"></tbody>
                                 </table>
                             </div>
                         </div>
                     </div>
                 </div>
-                <!-- ===== FIN REPORTE FUTURO ===== -->
 
                 <div class="field rm-filtro">
-                    <label for="selectMesReporte">Mes a consultar</label>
+                    <label for="selectMesReporte">Periodo a consultar</label>
                     <select id="selectMesReporte"></select>
                 </div>
 
                 <div class="metrics-grid">
                     <div class="metric-card" style="--accent: #0284c7;">
-                        <h4>Venta total del mes</h4>
+                        <h4>Facturación del Mes</h4>
                         <p id="rmVentaTotal">S/. --</p>
-                        <small>Suma de las ventas de todos los productos</small>
+                        <small>Consolidado mensual</small>
                     </div>
                     <div class="metric-card" id="rmMargenCard" style="--accent: #10b981;">
-                        <h4>Indicador lineal: margen promedio proyectado</h4>
+                        <h4>Margen Lineal Proyectado</h4>
                         <p id="rmMargen">--</p>
-                        <small id="rmMargenDetalle">Predicción de la Regresión Lineal</small>
+                        <small id="rmMargenDetalle">Regresión lineal</small>
                     </div>
                     <div class="metric-card" style="--accent: #dc2626;">
-                        <h4>Producto con mayor riesgo</h4>
+                        <h4>Producto con Mayor Riesgo</h4>
                         <p id="rmRiesgo" style="font-size:18px;">--</p>
-                        <small id="rmRiesgoDetalle">Mayor caída proyectada</small>
+                        <small id="rmRiesgoDetalle">Mayor variación negativa</small>
                     </div>
                 </div>
 
                 <div class="charts-grid">
                     <div class="chart-card full">
-                        <h4>📋 Rendimiento y proyección por producto</h4>
+                        <h4>Rendimiento Mensual por Producto</h4>
                         <div class="table-wrap">
                             <table>
                                 <thead><tr>
                                     <th>Producto</th><th>Categoría</th>
                                     <th class="num">Precio actual (S/.)</th>
-                                    <th class="num">Precio futuro proyectado (S/.)</th>
-                                    <th class="num">Variación estimada (%)</th>
+                                    <th class="num">Precio proyectado (S/.)</th>
+                                    <th class="num">Variación (%)</th>
                                     <th class="num">Ventas del mes (S/.)</th>
-                                    <th>Estado de rentabilidad</th>
+                                    <th>Rentabilidad</th>
                                 </tr></thead>
-                                <tbody id="tablaReporte"><tr><td colspan="7">Elige un mes para ver el reporte.</td></tr></tbody>
+                                <tbody id="tablaReporte"><tr><td colspan="7">Selecciona un periodo para ver el cierre.</td></tr></tbody>
                             </table>
                         </div>
-                        <p class="hint">Variación = (precio futuro − precio actual) ÷ precio actual × 100. Ganancia si es mayor a +2%, pérdida si es menor a −2%, y neutro entre ambos.</p>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- ================= VISTA: ESTADÍSTICA Y PROBABILIDADES ================= -->
+        <!-- ================= VISTA: RIESGO ESTADÍSTICO ================= -->
         <section id="vista-estadistica" class="vista">
             <style>
-                .est-barra { height: 14px; border-radius: 8px; background: #e2e8f0; overflow: hidden; }
-                .est-barra i { display: block; height: 100%; border-radius: 8px; background: var(--accent); transition: width .6s ease; }
+                .est-barra { height: 12px; border-radius: 999px; background: var(--border); overflow: hidden; }
+                .est-barra i { display: block; height: 100%; border-radius: 999px; background: var(--accent); transition: width .6s ease; }
                 .est-fila { display: grid; grid-template-columns: 1fr 1.4fr 1.4fr; gap: 14px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
                 .est-fila:last-child { border-bottom: 0; }
                 .est-fila small { color: var(--text-muted); font-size: 11px; display: block; }
                 .est-cab { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); font-weight: 700; }
-                .est-pct { font-weight: 800; color: var(--primary); }
-                body.dark-mode .est-barra { background: #334155; }
-                body.dark-mode .est-pct { color: #e2e8f0; }
+                .est-pct { font-weight: 800; color: var(--text-main); }
                 @media (max-width: 700px) { .est-fila { grid-template-columns: 1fr; } }
             </style>
             <div class="page-hero">
-                <div class="crumbs">Inicio / <b>Estadística</b></div>
-                <h1>Estadística y probabilidades</h1>
-                <p>Resumen de las ventas con números fáciles de leer y la probabilidad de que pasen ciertas cosas.</p>
+                <div class="crumbs">Inicio / <b>Riesgo Estadístico</b></div>
+                <h1>Estadística y Riesgo de Inventario</h1>
+                <p>Parámetros de dispersión, cumplimiento de metas y riesgo de quiebre.</p>
             </div>
             <div class="contenido">
                 <div id="estError" class="error-box" style="display:none;margin-bottom:16px;"></div>
                 <div class="metrics-grid">
-                    <div class="metric-card"><h4>Media (promedio)</h4><p>S/. <span id="estMedia">--</span></p><small>Si todas las ventas fueran iguales, valdrían esto</small></div>
-                    <div class="metric-card" style="--accent: #7c3aed;"><h4>Mediana</h4><p>S/. <span id="estMediana">--</span></p><small>La mitad de las ventas está por debajo de este valor</small></div>
-                    <div class="metric-card" style="--accent: #db2777;"><h4>Desviación estándar</h4><p>S/. <span id="estDesv">--</span></p><small>Cuánto se alejan las ventas del promedio</small></div>
-                    <div class="metric-card" style="--accent: #ea580c;"><h4>Varianza</h4><p id="estVar">--</p><small>La desviación elevada al cuadrado</small></div>
-                    <div class="metric-card" style="--accent: #10b981;"><h4>Ventas analizadas</h4><p id="estN">--</p><small>Transacciones del dataset</small></div>
+                    <div class="metric-card"><h4>Media</h4><p>S/. <span id="estMedia">--</span></p><small>Promedio por transacción</small></div>
+                    <div class="metric-card" style="--accent: #7c3aed;"><h4>Mediana</h4><p>S/. <span id="estMediana">--</span></p><small>Percentil 50</small></div>
+                    <div class="metric-card" style="--accent: #db2777;"><h4>Desviación Estándar</h4><p>S/. <span id="estDesv">--</span></p><small>Dispersión respecto a media</small></div>
+                    <div class="metric-card" style="--accent: #ea580c;"><h4>Varianza</h4><p id="estVar">--</p><small>Dispersión cuadrática</small></div>
+                    <div class="metric-card" style="--accent: #10b981;"><h4>Muestra</h4><p id="estN">--</p><small>Transacciones evaluadas</small></div>
                 </div>
 
-                <div class="panel" style="margin-bottom:22px;">
-                    <h4 style="margin:0 0 14px;color:var(--primary);font-size:16px;">Cambia los valores y mira la probabilidad</h4>
+                <div class="panel" style="margin-bottom:20px;">
+                    <h4 style="margin:0 0 14px;font-size:15px;">Simulación de Umbrales Operativos</h4>
                     <div class="two-cols">
                         <div class="field"><label>Meta de venta (S/.) <b id="vEstMeta"></b></label><input type="range" id="estMeta" min="50" max="400" step="10" value="200"></div>
                         <div class="field"><label>Stock mínimo seguro (unidades) <b id="vEstUmbral"></b></label><input type="range" id="estUmbral" min="50" max="250" step="10" value="100"></div>
                     </div>
                 </div>
 
-                <div class="panel" style="margin-bottom:22px;">
-                    <h4 style="margin:0 0 6px;color:var(--primary);font-size:16px;">¿Qué tan probable es vender más que la meta?</h4>
-                    <p id="estTextoMeta" style="margin:0 0 16px;color:var(--text-muted);font-size:14px;line-height:1.55;">Cargando...</p>
-                    <div class="field"><label>Según la curva normal (campana de Gauss) <b id="estPctNormal">--</b></label><div class="est-barra"><i id="estBarNormal" style="width:0"></i></div></div>
-                    <div class="field" style="margin-bottom:0;"><label>Según los datos reales <b id="estPctReal">--</b></label><div class="est-barra"><i id="estBarReal" style="width:0;background:#10b981;"></i></div></div>
+                <div class="panel" style="margin-bottom:20px;">
+                    <h4 style="margin:0 0 6px;font-size:15px;">Probabilidad de Superar Meta</h4>
+                    <p id="estTextoMeta" style="margin:0 0 16px;color:var(--text-muted);font-size:13.5px;">Calculando...</p>
+                    <div class="field"><label>Distribución Normal (Gauss) <b id="estPctNormal">--</b></label><div class="est-barra"><i id="estBarNormal" style="width:0"></i></div></div>
+                    <div class="field" style="margin-bottom:0;"><label>Frecuencia Empírica Real <b id="estPctReal">--</b></label><div class="est-barra"><i id="estBarReal" style="width:0;background:#10b981;"></i></div></div>
                 </div>
 
-                <div class="panel" style="margin-bottom:22px;">
-                    <h4 style="margin:0 0 6px;color:var(--primary);font-size:16px;">Riesgo de quiebre de stock por tienda</h4>
-                    <p id="estTextoQuiebre" style="margin:0 0 10px;color:var(--text-muted);font-size:14px;line-height:1.55;">Cargando...</p>
-                    <div class="est-fila"><span class="est-cab">Tienda</span><span class="est-cab">Probabilidad (campana de Gauss)</span><span class="est-cab">Probabilidad real</span></div>
+                <div class="panel" style="margin-bottom:20px;">
+                    <h4 style="margin:0 0 6px;font-size:15px;">Riesgo de Quiebre de Stock por Tienda</h4>
+                    <p id="estTextoQuiebre" style="margin:0 0 10px;color:var(--text-muted);font-size:13.5px;">Calculando...</p>
+                    <div class="est-fila"><span class="est-cab">Tienda</span><span class="est-cab">Probabilidad Normal</span><span class="est-cab">Probabilidad Empírica</span></div>
                     <div id="estTiendas"></div>
                 </div>
-
-                <div class="nota"><b>¿Cómo leerlo?</b> Una probabilidad de 20 % significa que de cada 100 ventas, unas 20 pasan la meta. La campana de Gauss es una aproximación matemática; los datos reales pueden variar un poco, por eso mostramos las dos.</div>
             </div>
         </section>
 
-        <!-- ================= VISTA: ESTRATEGIA COMERCIAL Y REABASTECIMIENTO (IA + CV) ================= -->
+        <!-- ================= VISTA: ESTRATEGIA IA (SOLO SUPERADMIN) ================= -->
         <section id="vista-estrategia" class="vista">
             <div class="page-hero">
-                <div class="crumbs">Inicio / <b>Estrategia Comercial y Reabastecimiento</b></div>
-                <span class="chip" style="margin-bottom:8px;">Smile ML DecisionTree · Filtrado Colaborativo · Recursividad · 5-Fold Cross-Validation</span>
-                <h1>Recomendador de Estrategia Comercial</h1>
-                <p>Combina similitud colaborativa entre tiendas, clasificación con Árbol de Decisión (Smile ML) y evaluación recursiva de reglas explicables sobre los agregados de Supabase PostgreSQL.</p>
+                <div class="crumbs">Inicio / <b>Estrategia IA</b></div>
+                <span class="chip" style="margin-bottom:8px;">Smile ML · Filtrado Colaborativo · 5-Fold CV</span>
+                <h1>Estrategia Comercial y Reabastecimiento</h1>
+                <p>Recomendaciones por tienda, árbol de decisión y validación cruzada.</p>
             </div>
             <div class="content">
                 <div class="estrat-toolbar">
                     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                        <label for="selTiendaEstrategia" style="font-weight:700;font-size:14px;">🏪 Tienda analizada:</label>
+                        <label for="selTiendaEstrategia" style="font-weight:700;font-size:13.5px;color:var(--text-main);">Tienda analizada:</label>
                         <select id="selTiendaEstrategia">
                             <option value="Hipermercado Centro">Hipermercado Centro</option>
                             <option value="Mayorista San Martín">Mayorista San Martín</option>
@@ -2041,376 +2104,349 @@
                             <option value="Tienda Express Los Olivos">Tienda Express Los Olivos</option>
                         </select>
                     </div>
-                    <button type="button" class="btn-primary" id="btnRecargarEstrategia" style="padding:10px 18px;border-radius:10px;border:none;cursor:pointer;font-weight:700;background:var(--accent-gradient);color:#fff;">🔄 Actualizar Análisis IA</button>
+                    <button type="button" class="btn-run" id="btnRecargarEstrategia" style="padding:10px 18px;border:none;cursor:pointer;">Actualizar Análisis IA</button>
                 </div>
 
                 <!-- Filtrado Colaborativo entre Tiendas -->
                 <div class="estrat-colab-banner" id="estratColabBanner">
                     <div>
-                        <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--accent);letter-spacing:0.5px;">🤝 Filtrado Colaborativo (Similitud del Coseno &amp; Pearson)</div>
-                        <div id="estratColabResumen" style="font-size:15px;font-weight:700;margin-top:4px;color:var(--text-main);">Calculando similitud entre tiendas en Supabase...</div>
+                        <div style="font-size:11.5px;font-weight:700;text-transform:uppercase;color:var(--accent);letter-spacing:0.6px;">Similitud Colaborativa entre Tiendas</div>
+                        <div id="estratColabResumen" style="font-size:15px;font-weight:700;margin-top:4px;color:var(--text-main);">Calculando similitud en Supabase...</div>
                     </div>
                     <div class="estrat-sim-pills" id="estratSimPills"></div>
                 </div>
 
                 <!-- Tabla Interactiva de Recomendaciones y Ruta Recursiva -->
                 <div class="panel" style="margin-bottom:22px;overflow-x:auto;">
-                    <h4 style="margin:0 0 6px;font-size:16px;color:var(--text-main);">📋 Recomendaciones por Producto y Ruta de Decisión Recursiva</h4>
-                    <p style="margin:0 0 14px;font-size:13px;color:var(--text-muted);">Cada fila muestra la estrategia clasificada por Smile ML, la prioridad operativa, el insight colaborativo de la tienda más similar y la traza paso a paso de <code>NodoEstrategia.evaluarRutaRecomendacion()</code>.</p>
-                    <table style="width:100%;border-collapse:collapse;font-size:13px;">
-                        <thead>
-                            <tr style="border-bottom:2px solid var(--border);text-align:left;color:var(--text-muted);font-size:11.5px;text-transform:uppercase;">
-                                <th style="padding:10px 8px;">Producto</th>
-                                <th style="padding:10px 8px;">Indicadores (Supabase)</th>
-                                <th style="padding:10px 8px;">Estrategia IA</th>
-                                <th style="padding:10px 8px;">Prioridad</th>
-                                <th style="padding:10px 8px;">Insight Colaborativo &amp; Explicación Recursiva</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tbodyEstrategiasIA">
-                            <tr><td colspan="5" style="padding:20px;text-align:center;color:var(--text-muted);">Cargando recomendaciones estratégicas desde Java...</td></tr>
-                        </tbody>
-                    </table>
+                    <h4 style="margin:0 0 12px;font-size:16px;color:var(--text-main);">Acciones Recomendadas y Traza de Decisión</h4>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Indicadores</th>
+                                    <th>Estrategia IA</th>
+                                    <th>Prioridad</th>
+                                    <th>Insight Colaborativo y Ruta de Decisión</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyEstrategiasIA">
+                                <tr><td colspan="5" style="padding:20px;text-align:center;color:var(--text-muted);">Cargando recomendaciones estratégicas...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
                 <!-- KPIs de Validación Cruzada (K-Fold Cross-Validation) -->
-                <h3 style="margin:0 0 12px;font-size:17px;color:var(--text-main);">🧪 Validación Cruzada del Árbol de Decisión (5-Fold Cross-Validation · Smile ML)</h3>
+                <h3 style="margin:0 0 12px;font-size:16px;color:var(--text-main);">Métricas de Validación Cruzada (5-Fold CV)</h3>
                 <div class="estrat-kpis">
                     <div class="estrat-kpi"><span>Exactitud (Accuracy)</span><b id="cvAccuracy">--</b><small id="cvFoldsInfo">5-Fold Stratified CV</small></div>
-                    <div class="estrat-kpi" style="border-top-color:#10b981;"><span>Precisión (Macro)</span><b id="cvPrecision">--</b><small>Calidad de predicción positiva</small></div>
-                    <div class="estrat-kpi" style="border-top-color:#7c3aed;"><span>Sensibilidad (Recall)</span><b id="cvRecall">--</b><small>Cobertura de alertas reales</small></div>
+                    <div class="estrat-kpi" style="border-top-color:#10b981;"><span>Precisión (Macro)</span><b id="cvPrecision">--</b><small>Predicción positiva</small></div>
+                    <div class="estrat-kpi" style="border-top-color:#7c3aed;"><span>Sensibilidad (Recall)</span><b id="cvRecall">--</b><small>Cobertura de alertas</small></div>
                     <div class="estrat-kpi" style="border-top-color:#f59e0b;"><span>F1-Score (Macro)</span><b id="cvF1">--</b><small id="cvComparativaTxt">vs. Reglas estáticas</small></div>
                 </div>
 
                 <!-- Comparativa vs Reglas Estáticas + Matriz de Confusión -->
                 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px;">
                     <div class="panel">
-                        <h4 style="margin:0 0 8px;font-size:15px;color:var(--text-main);">⚖️ Modelo Smile ML vs. Reglas Estáticas Básicas</h4>
+                        <h4 style="margin:0 0 8px;font-size:15px;color:var(--text-main);">Smile ML vs. Reglas Estáticas</h4>
                         <p id="cvComparativaDetalle" style="margin:0 0 12px;font-size:13px;color:var(--text-muted);">Calculando comparativa...</p>
                         <div id="cvFoldsBarras" style="display:flex;flex-direction:column;gap:8px;"></div>
                     </div>
                     <div class="panel" style="overflow-x:auto;">
-                        <h4 style="margin:0 0 8px;font-size:15px;color:var(--text-main);">🔢 Matriz de Confusión (4 Estrategias)</h4>
-                        <p style="margin:0 0 8px;font-size:12.5px;color:var(--text-muted);">Filas: Clase Real · Columnas: Predicción Out-of-Fold (CV).</p>
+                        <h4 style="margin:0 0 8px;font-size:15px;color:var(--text-main);">Matriz de Confusión</h4>
+                        <p style="margin:0 0 8px;font-size:12.5px;color:var(--text-muted);">Filas: Clase Real · Columnas: Predicción CV.</p>
                         <div id="cvMatrizConfusion">Cargando matriz...</div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- ================= VISTA: INCIDENCIAS CLIENTE ================= -->
+        <!-- ================= VISTA: INCIDENCIAS Y SLA ================= -->
         <section id="vista-incidencias" class="vista">
             <div class="page-hero">
-                <div class="crumbs">Inicio / <b>Incidencias cliente</b></div>
-                <span class="chip" style="margin-bottom:8px;">Atención al Cliente · Registro de Formulario Web Supabase</span>
-                <h1>Incidencias</h1>
+                <div class="crumbs">Inicio / <b>Incidencias y SLA</b></div>
+                <span class="chip" style="margin-bottom:8px;">Soporte Corporativo · Monitoreo en Vivo</span>
+                <h1>Incidencias y Salud Web</h1>
                 <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;"><button type="button" class="btn-timer-historial" id="btnIncClientes">Clientes</button><button type="button" class="btn-timer-historial" id="btnIncColaboradores" style="display:none;">Colaboradores</button></div>
-                <p>Gestión y seguimiento en tiempo real de quejas, consultas y mensajes enviados por los clientes a través del portal de contacto oficial.</p>
+                <p>Gestión de tickets de clientes y detección de alertas web.</p>
             </div>
             <div class="contenido">
-                <!-- Métricas de Incidencias -->
-                <div class="metrics-grid" style="margin-bottom: 25px;">
+                <div class="metrics-grid" style="margin-bottom: 22px;">
                     <div class="metric-card" style="--accent: #0284c7;">
                         <h4>Total Incidencias</h4>
                         <p id="incTotal">--</p>
-                        <small>Mensajes registrados en base de datos</small>
+                        <small>Tickets registrados</small>
                     </div>
                     <div class="metric-card" style="--accent: #f59e0b;">
-                        <h4>En espera</h4>
+                        <h4>En Espera</h4>
                         <p id="incEspera">--</p>
-                        <small>Pendientes de atención (💤)</small>
+                        <small>Pendientes de atención</small>
                     </div>
                     <div class="metric-card" style="--accent: #10b981;">
-                        <h4>Revisadas / Leídas</h4>
+                        <h4>Revisadas</h4>
                         <p id="incLeido">--</p>
-                        <small>Incidencias procesadas (😊)</small>
+                        <small>Incidencias procesadas</small>
                     </div>
                     <div class="metric-card" style="--accent: #7c3aed;">
-                        <h4>Origen de Datos</h4>
+                        <h4>Origen</h4>
                         <p style="font-size:18px;" id="incFuente">Supabase PostgreSQL</p>
-                        <small>Tabla incidencias_contacto</small>
+                        <small>incidencias_contacto</small>
                     </div>
                 </div>
 
-                <!-- Barra de acciones y filtros -->
                 <div class="bloque" style="margin-bottom: 20px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
                         <div class="filtros" id="filtrosIncidencias" style="margin:0;">
                             <button class="active" data-filtro-inc="todos">Todos</button>
-                            <button data-filtro-inc="en_espera">💤 En espera</button>
-                            <button data-filtro-inc="leido">😊 Leídos</button>
+                            <button data-filtro-inc="en_espera">En espera</button>
+                            <button data-filtro-inc="leido">Leídos</button>
                         </div>
                         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-                            <input type="text" id="busquedaIncidencia" placeholder="🔍 Buscar por cliente o correo..." style="padding: 9px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; background: var(--surface); color: var(--text-main); outline:none; min-width: 240px;">
-                            <button type="button" id="btnRecargarIncidencias" class="btn-run" style="padding: 9px 16px; font-size: 13px; display:flex; align-items:center; gap:6px;">
-                                <span>🔄</span> Actualizar
-                            </button>
+                            <input type="text" id="busquedaIncidencia" placeholder="Buscar por cliente o correo..." style="min-width: 240px;">
+                            <button type="button" id="btnRecargarIncidencias" class="btn-run" style="padding: 9px 16px; font-size: 13px;">Actualizar</button>
                         </div>
                     </div>
                 </div>
 
-                <!-- Tabla de incidencias -->
                 <div class="bloque">
                     <div class="table-wrap">
-                        <table style="width:100%; border-collapse: collapse;">
+                        <table>
                             <thead>
                                 <tr>
-                                    <th style="width: 220px;">Nombre del cliente</th>
-                                    <th style="width: 220px;">Correo electrónico</th>
-                                    <th>Mensaje respectivo</th>
+                                    <th style="width: 220px;">Cliente</th>
+                                    <th style="width: 220px;">Correo</th>
+                                    <th>Detalle del Mensaje</th>
                                     <th style="width: 150px;">Fecha</th>
-                                    <th style="width: 160px; text-align: center;">Estado / Acción</th>
+                                    <th style="width: 160px; text-align: center;">Estado</th>
                                 </tr>
                             </thead>
                             <tbody id="tablaIncidencias">
-                                <tr><td colspan="5" style="text-align:center; padding: 25px; color:var(--text-muted);">Cargando incidencias desde la base de datos... ⏳</td></tr>
+                                <tr><td colspan="5" style="text-align:center; padding: 25px; color:var(--text-muted);">Cargando incidencias...</td></tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
 
-                <!-- ================= DETECCIÓN DE FALLAS GENERALES EN LA WEB (TIEMPO REAL + SUPABASE) ================= -->
+                <!-- ================= DETECCIÓN DE FALLAS EN LA WEB ================= -->
                 <div class="bloque fallas-web-panel">
                     <div class="fallas-header-top">
                         <div class="fallas-title-wrap">
                             <h3>
-                                <span>🛠️</span> Detección de fallas generales en la web
-                                <span class="fallas-live-pill"><span class="fallas-live-dot"></span> Monitoreo en Tiempo Real</span>
+                                Monitor de Fallas Web e Inventario
+                                <span class="fallas-live-pill"><span class="fallas-live-dot"></span> Tiempo Real</span>
                             </h3>
-                            <p>Registro automático en vivo de errores de consola web, bugs de sistema, falta de productos, escasez de inventario y alertas operativas sincronizadas con Supabase.</p>
+                            <p>Errores de consola, alertas de inventario y diagnóstico operativo.</p>
                         </div>
                         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-                            <span id="txtFuenteFallasWeb" style="font-size:12px; color:var(--text-muted); font-weight:600;">🗄️ Supabase PostgreSQL</span>
-                            <button type="button" id="btnEscanearFallasWeb" class="btn-run" style="padding: 9px 16px; font-size: 13px; display:flex; align-items:center; gap:6px;">
-                                <span>🔍</span> Escanear fallas ahora
-                            </button>
+                            <span id="txtFuenteFallasWeb" style="font-size:12px; color:var(--text-muted); font-weight:600;">Supabase PostgreSQL</span>
+                            <button type="button" id="btnEscanearFallasWeb" class="btn-run" style="padding: 9px 16px; font-size: 13px;">Escanear Ahora</button>
                         </div>
                     </div>
 
-                    <!-- Mini KPIs de Fallas -->
                     <div class="fallas-kpis">
                         <div class="falla-kpi-box">
                             <span>Total detectadas</span>
                             <b id="fallasKpiTotal">--</b>
                         </div>
                         <div class="falla-kpi-box" style="border-left: 3px solid #ef4444;">
-                            <span>🔴 Sin resolver</span>
+                            <span>Sin resolver</span>
                             <b id="fallasKpiSinResolver" style="color:#ef4444;">--</b>
                         </div>
                         <div class="falla-kpi-box" style="border-left: 3px solid #f59e0b;">
-                            <span>🟡 En proceso</span>
+                            <span>En proceso</span>
                             <b id="fallasKpiEnProceso" style="color:#f59e0b;">--</b>
                         </div>
                         <div class="falla-kpi-box" style="border-left: 3px solid #10b981;">
-                            <span>🟢 Resueltas</span>
+                            <span>Resueltas</span>
                             <b id="fallasKpiResuelto" style="color:#10b981;">--</b>
                         </div>
                     </div>
 
-                    <!-- Filtros de la tabla de fallas -->
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom: 16px;">
                         <div class="filtros" id="filtrosFallasWeb" style="margin:0;">
                             <button class="active" data-filtro-falla="todos">Todos</button>
-                            <button data-filtro-falla="sin_resolver">🔴 Sin resolver</button>
-                            <button data-filtro-falla="en_proceso">🟡 En proceso</button>
-                            <button data-filtro-falla="resuelto">🟢 Resuelto</button>
+                            <button data-filtro-falla="sin_resolver">Sin resolver</button>
+                            <button data-filtro-falla="en_proceso">En proceso</button>
+                            <button data-filtro-falla="resuelto">Resuelto</button>
                         </div>
                         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-                            <select id="selectTipoFallaWeb" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; background: var(--surface); color: var(--text-main); outline:none;">
-                                <option value="todos">Todos los tipos de falla</option>
-                                <option value="Error Web Consola">💻 Error Web Consola</option>
-                                <option value="Bug">🐛 Bug / Sistema</option>
-                                <option value="Falta de Productos">📦 Falta de Productos</option>
-                                <option value="Escasez de Inventario">⚠️ Escasez de Inventario</option>
-                                <option value="Alerta">🔔 Alertas BD / Config</option>
+                            <select id="selectTipoFallaWeb">
+                                <option value="todos">Todos los tipos</option>
+                                <option value="Error Web Consola">Error Web Consola</option>
+                                <option value="Bug">Bug / Sistema</option>
+                                <option value="Falta de Productos">Falta de Productos</option>
+                                <option value="Escasez de Inventario">Escasez de Inventario</option>
+                                <option value="Alerta">Alertas BD / Config</option>
                             </select>
-                            <input type="text" id="busquedaFallaWeb" placeholder="🔍 Filtrar error, SKU o módulo..." style="padding: 8px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; background: var(--surface); color: var(--text-main); outline:none; min-width: 220px;">
+                            <input type="text" id="busquedaFallaWeb" placeholder="Filtrar error, SKU o módulo..." style="min-width: 220px;">
                         </div>
                     </div>
 
-                    <!-- Tabla de Detección de Fallas Generales en la Web -->
                     <div class="table-wrap">
-                        <table style="width:100%; border-collapse: collapse;">
+                        <table>
                             <thead>
                                 <tr>
-                                    <th>Error detectado / Detalle en tiempo real</th>
-                                    <th style="width: 200px;">Tipo de error</th>
-                                    <th style="width: 140px; text-align: center;">Gravedad del error</th>
-                                    <th style="width: 320px; text-align: center;">Estado interactivo (Acción)</th>
+                                    <th>Evento Detectado</th>
+                                    <th style="width: 200px;">Categoría</th>
+                                    <th style="width: 140px; text-align: center;">Gravedad</th>
+                                    <th style="width: 320px; text-align: center;">Gestión de Estado</th>
                                 </tr>
                             </thead>
                             <tbody id="tablaFallasWebBody">
-                                <tr><td colspan="4" style="text-align:center; padding: 28px; color:var(--text-muted);">Analizando estado de la web, consola e inventario en tiempo real... ⏳</td></tr>
+                                <tr><td colspan="4" style="text-align:center; padding: 28px; color:var(--text-muted);">Analizando estado del sistema...</td></tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
-            <div id="panelAuditoriaColaboradoresInc" class="contenido" style="display:none;"><div class="panel"><h3>Auditoría de colaboradores</h3><p style="font-size:13px;color:var(--text-muted);">La auditoría ahora es una sola, con filtros, buscador, paginación y exportación a PDF, y está en Administración.</p><button type="button" class="btn-secundario" id="btnIrAuditoriaAdmin">Ir a Administración</button></div></div>
+            <div id="panelAuditoriaColaboradoresInc" class="contenido" style="display:none;"><div class="panel"><h3>Auditoría de Colaboradores</h3><p style="font-size:13px;color:var(--text-muted);">Consulta filtros, paginación y exportación PDF en Gestión de Equipo.</p><button type="button" class="btn-secundario" id="btnIrAuditoriaAdmin">Abrir Gestión de Equipo</button></div></div>
         </section>
 
-        <!-- ================= VISTA: ADMINISTRACIÓN DE COLABORADORES ================= -->
-        <div class="modal-overlay" id="modalAccionColaborador"><div class="panel" style="width:min(440px,95vw);"><h3 id="tituloModalColaborador">Acción de colaborador</h3><p id="textoModalColaborador">Completa los datos requeridos.</p><div id="campoMotivoColaborador" style="display:none;margin:12px 0;"><label for="inputMotivoColaborador">Motivo (opcional)</label><textarea id="inputMotivoColaborador" rows="3" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text-main);"></textarea></div><div id="campoEmailColaborador" style="display:none;margin:12px 0;"><label for="inputEmailColaborador">Correo electrónico</label><input id="inputEmailColaborador" type="email" maxlength="200" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text-main);"></div><div style="display:flex;gap:8px;justify-content:flex-end;"><button type="button" class="btn-secundario" id="btnCancelarAccionColaborador">Cancelar</button><button type="button" class="btn-run" id="btnConfirmarAccionColaborador">Confirmar</button></div><div id="statusModalColaborador" style="margin-top:10px;"></div></div></div>
+        <!-- ================= VISTA: GESTIÓN DE EQUIPO (SOLO SUPERADMIN) ================= -->
+        <div class="modal-overlay" id="modalAccionColaborador"><div class="panel" style="width:min(440px,95vw);"><h3 id="tituloModalColaborador">Acción de colaborador</h3><p id="textoModalColaborador">Completa los datos requeridos.</p><div id="campoMotivoColaborador" style="display:none;margin:12px 0;"><label for="inputMotivoColaborador">Motivo (opcional)</label><textarea id="inputMotivoColaborador" rows="3" style="width:100%;"></textarea></div><div id="campoEmailColaborador" style="display:none;margin:12px 0;"><label for="inputEmailColaborador">Correo electrónico</label><input id="inputEmailColaborador" type="email" maxlength="200" style="width:100%;"></div><div style="display:flex;gap:8px;justify-content:flex-end;"><button type="button" class="btn-secundario" id="btnCancelarAccionColaborador">Cancelar</button><button type="button" class="btn-run" id="btnConfirmarAccionColaborador">Confirmar</button></div><div id="statusModalColaborador" style="margin-top:10px;"></div></div></div>
 
         <section id="vista-administracion" class="vista">
-            <div class="page-hero"><span class="chip">Módulo restringido</span><h1>Administración</h1><p>Gestión de colaboradores, roles, estado de acceso y correo corporativo.</p></div>
+            <div class="page-hero"><span class="chip">Acceso SuperAdmin</span><h1>Gestión de Equipo</h1><p>Roles corporativos, cuentas activas y auditoría de acciones.</p></div>
             <div class="contenido"><div class="panel">
-                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><h3>Colaboradores</h3>
-                    <div style="display:flex;gap:8px;"><button type="button" class="btn-secundario" id="btnAdmPdf" style="padding:6px 12px;font-size:12px;">📄 Exportar PDF</button><button type="button" class="btn-secundario" id="btnRecargarAdministracion" style="padding:6px 12px;font-size:12px;">🔄 Actualizar</button></div></div>
-                <p style="font-size:13px;color:var(--text-muted);margin:6px 0 0;">Aquí se gestionan roles, cuentas y correos. La pestaña Seguridad Super Admin es solo para monitorear en vivo.</p>
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><h3 style="margin:0;">Directorio de Colaboradores</h3>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;"><button type="button" class="btn-secundario" id="btnAdmPdf" style="padding:7px 14px;font-size:12.5px;">Exportar PDF</button><button type="button" class="btn-secundario" id="btnRecargarAdministracion" style="padding:7px 14px;font-size:12.5px;">Actualizar</button></div></div>
                 <div class="adm-resumen" id="admResumen">
                     <button type="button" class="adm-card activa" data-adm-filtro="todos"><b id="admCntTodos">–</b><span>Total</span></button>
                     <button type="button" class="adm-card" data-adm-filtro="superadmin"><b id="admCntSuper">–</b><span>Super Admin</span></button>
                     <button type="button" class="adm-card" data-adm-filtro="analista"><b id="admCntAnalista">–</b><span>Analistas</span></button>
                     <button type="button" class="adm-card" data-adm-filtro="suspendido"><b id="admCntSusp">–</b><span>Suspendidos</span></button>
-                    <button type="button" class="adm-card" data-adm-filtro="conectado"><b id="admCntConectados">–</b><span>Conectados ahora</span></button>
+                    <button type="button" class="adm-card" data-adm-filtro="conectado"><b id="admCntConectados">–</b><span>En línea</span></button>
                 </div>
-                <input type="search" id="admBuscar" class="adm-buscar" placeholder="Buscar por nombre, usuario o correo…" maxlength="80" autocomplete="off">
+                <input type="search" id="admBuscar" class="adm-buscar" placeholder="Buscar por nombre, usuario o correo..." maxlength="80" autocomplete="off">
                 <div id="statusAdministracion" style="margin:10px 0;display:none;"></div>
                 <div class="tabla-historial-wrap tabla-moderna-wrap" style="max-height:560px;"><table class="tabla-historial tabla-moderna adm-tabla"><thead><tr><th>Colaborador</th><th>Rol</th><th>Estado</th><th>Correo</th><th>Última actividad</th><th>Acciones</th></tr></thead><tbody id="tablaAdministracionBody"><tr><td colspan="6">Cargando...</td></tr></tbody></table></div>
             </div></div>
             <div class="adm-menu" id="admMenu" role="menu"></div>
-            <!-- ===== Actividad del equipo (carga solo al abrir; sin refresco automático) ===== -->
-            <div class="contenido"><details class="panel" id="detActividadEquipo" style="margin-top:25px;">
-                <summary style="cursor:pointer;font-size:1.15rem;font-weight:700;">📊 Actividad del equipo <span style="font-size:12px;font-weight:400;color:var(--text-muted);">· ranking, atención de tickets y proyección</span></summary>
+
+            <!-- Actividad del equipo -->
+            <div class="contenido"><details class="panel" id="detActividadEquipo" style="margin-top:8px;">
+                <summary style="cursor:pointer;font-size:1.05rem;font-weight:700;">Productividad del Equipo <span style="font-size:12px;font-weight:400;color:var(--text-muted);">· atención de tickets y tendencia</span></summary>
                 <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:16px 0 8px;">
-                    <div id="eqPeriodo" style="display:inline-flex;gap:4px;">
+                    <div id="eqPeriodo" style="display:inline-flex;gap:6px;">
                         <button type="button" class="btn-secundario" data-eq-periodo="mes" style="padding:6px 12px;font-size:12px;font-weight:700;">Mes</button>
                         <button type="button" class="btn-secundario" data-eq-periodo="anio" style="padding:6px 12px;font-size:12px;">Año</button>
                     </div>
-                    <input type="month" id="eqMes" style="padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:inherit;">
-                    <input type="number" id="eqAnio" min="2020" max="2100" style="display:none;width:90px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:inherit;">
-                    <button type="button" class="btn-secundario" id="btnEqActualizar" style="padding:6px 12px;font-size:12px;">🔄 Actualizar</button>
+                    <input type="month" id="eqMes">
+                    <input type="number" id="eqAnio" min="2020" max="2100" style="display:none;width:96px;">
+                    <button type="button" class="btn-secundario" id="btnEqActualizar" style="padding:7px 14px;font-size:12px;">Actualizar</button>
                 </div>
-                <p style="font-size:12.5px;color:var(--text-muted);margin:6px 0 14px;">Estar conectado no equivale a rendir: se muestran varias métricas juntas y no hay un único “mejor”. Las proyecciones usan regresión lineal sobre las últimas 12 semanas y requieren al menos 4 semanas de datos.</p>
-                <div id="eqContenido" style="font-size:13px;color:var(--text-muted);">Abre este panel para cargar los datos reales del equipo.</div>
+                <div id="eqContenido" style="font-size:13px;color:var(--text-muted);">Despliega este panel para consultar métricas de productividad.</div>
             </details></div>
 
-            <!-- ===== Auditoría con filtros, paginación y PDF ===== -->
-            <div class="contenido"><div class="panel" style="margin-top:25px;">
+            <!-- Auditoría -->
+            <div class="contenido"><div class="panel" style="margin-top:8px;">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:10px;">
-                    <h3 style="margin:0;font-size:1.15rem;">📋 Auditoría de acciones administrativas</h3>
-                    <div style="display:flex;gap:8px;">
-                        <button type="button" class="btn-secundario" id="btnRefrescarAuditoria" style="padding:6px 12px;font-size:12px;">🔄 Actualizar</button>
-                        <button type="button" class="btn-secundario" id="btnAudPdf" style="padding:6px 12px;font-size:12px;">📄 Exportar PDF</button>
+                    <h3 style="margin:0;font-size:1.1rem;">Auditoría Administrativa</h3>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <button type="button" class="btn-secundario" id="btnRefrescarAuditoria" style="padding:7px 14px;font-size:12px;">Actualizar</button>
+                        <button type="button" class="btn-secundario" id="btnAudPdf" style="padding:7px 14px;font-size:12px;">Exportar PDF</button>
                     </div>
                 </div>
-                <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 14px;font-size:12px;">
-                    <input type="date" id="audDesde" title="Desde" style="padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:inherit;">
-                    <input type="date" id="audHasta" title="Hasta" style="padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:inherit;">
-                    <select id="audAccion" style="padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:inherit;">
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 14px;font-size:12px;">
+                    <input type="date" id="audDesde" title="Desde">
+                    <input type="date" id="audHasta" title="Hasta">
+                    <select id="audAccion">
                         <option value="">Todas las acciones</option>
                         <option value="suspension">Suspensión</option><option value="reactivacion">Reactivación</option>
                         <option value="ascenso_rol">Ascenso de rol</option><option value="degradacion_rol">Degradación de rol</option>
                         <option value="cambio_clave">Cambio de llave</option><option value="actualizacion_email">Actualización de correo</option>
                     </select>
-                    <input type="text" id="audColaborador" placeholder="Colaborador" maxlength="60" style="width:130px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:inherit;">
-                    <input type="search" id="audBuscar" placeholder="Buscar texto…" maxlength="80" style="flex:1;min-width:140px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:inherit;">
-                    <button type="button" class="btn-secundario" id="btnAudLimpiar" style="padding:6px 12px;font-size:12px;">Limpiar</button>
+                    <input type="text" id="audColaborador" placeholder="Colaborador" maxlength="60" style="width:140px;">
+                    <input type="search" id="audBuscar" placeholder="Buscar en auditoría..." maxlength="80" style="flex:1;min-width:150px;">
+                    <button type="button" class="btn-secundario" id="btnAudLimpiar" style="padding:7px 14px;font-size:12px;">Limpiar</button>
                 </div>
                 <div class="tabla-historial-wrap tabla-moderna-wrap" style="max-height:420px;">
                     <table class="tabla-historial tabla-moderna">
-                        <thead><tr><th>Fecha</th><th>Usuario afectado</th><th>Acción</th><th>Ejecutado por</th><th>Motivo / detalle</th></tr></thead>
-                        <tbody id="tablaAuditoriaSuperadminBody"><tr><td colspan="5" style="text-align:center;color:#64748b;">Cargando auditoría…</td></tr></tbody>
+                        <thead><tr><th>Fecha</th><th>Usuario afectado</th><th>Acción</th><th>Ejecutado por</th><th>Detalle</th></tr></thead>
+                        <tbody id="tablaAuditoriaSuperadminBody"><tr><td colspan="5" style="text-align:center;color:var(--text-muted);">Cargando auditoría...</td></tr></tbody>
                     </table>
                 </div>
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:12px;color:var(--text-muted);gap:10px;flex-wrap:wrap;">
                     <span id="audInfo">—</span>
-                    <span><button type="button" class="btn-secundario" id="btnAudAnterior" style="padding:5px 10px;font-size:12px;">← Anterior</button>
-                    <button type="button" class="btn-secundario" id="btnAudSiguiente" style="padding:5px 10px;font-size:12px;">Siguiente →</button></span>
+                    <span style="display:inline-flex;gap:6px;"><button type="button" class="btn-secundario" id="btnAudAnterior" style="padding:5px 12px;font-size:12px;">← Anterior</button>
+                    <button type="button" class="btn-secundario" id="btnAudSiguiente" style="padding:5px 12px;font-size:12px;">Siguiente →</button></span>
                 </div>
             </div></div>
         </section>
 
-        <!-- ================= VISTA: SEGURIDAD SUPER ADMIN ================= -->
+        <!-- ================= VISTA: SEGURIDAD Y LLAVES (SOLO SUPERADMIN) ================= -->
         <section id="vista-seguridad" class="vista">
             <div class="page-hero">
-                <span class="chip" style="background: rgba(220, 38, 38, 0.15); color: #ef4444; border: 1px solid rgba(220, 38, 38, 0.3);">
-                    🛡️ Módulo Restringido · Nivel Super Administrador
+                <span class="chip" style="background: rgba(239, 68, 68, 0.18) !important; color: #fca5a5 !important; border-color: rgba(239, 68, 68, 0.38) !important;">
+                    Nivel SuperAdmin · Seguridad Corporativa
                 </span>
-                <h1 style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-                    Control de Acceso y Llave Secreta
-                </h1>
-                <p>Configuración exclusiva de la clave numérica requerida en la URL para habilitar el botón "Personal Autorizado". Los clientes y usuarios regulares no tienen acceso a este módulo.</p>
+                <h1>Seguridad y Llaves de Acceso</h1>
+                <p>Control de llave secreta URL, aprobaciones y sesiones en vivo.</p>
             </div>
 
             <div class="contenido">
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; margin-bottom: 25px;">
-                    <!-- Tarjeta: Llave Actual -->
-                    <div class="panel" style="border-top: 4px solid #0284c7;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                            <h3 style="margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: 8px;">
-                                <span>🔑</span> Llave Secreta Actual
-                            </h3>
-                            <span class="tag" style="background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;">
-                                ● Activa
-                            </span>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 22px;">
+                    <!-- Llave Actual -->
+                    <div class="panel" style="border-top: 3px solid var(--accent);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                            <h3 style="margin: 0; font-size: 1.05rem;">Llave Secreta Activa</h3>
+                            <span class="tag" style="background: rgba(16, 185, 129, 0.14); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700;">Activa</span>
                         </div>
-                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 18px;">
-                            Esta serie de dígitos es la que deben usar los colaboradores en la URL para que aparezca la opción de login en el portal.
-                        </p>
 
-                        <div style="position: relative; margin-bottom: 15px;">
-                            <input type="password" id="txtClaveActual" readonly value="------" style="width: 100%; font-size: 1.3rem; letter-spacing: 4px; font-weight: 800; text-align: center; padding: 12px 45px 12px 15px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--surface); color: var(--text-main);">
-                            <button type="button" id="btnToggleVerClave" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 1.2rem; color: var(--text-muted);" title="Mostrar / Ocultar">👁️</button>
+                        <div style="position: relative; margin-bottom: 14px;">
+                            <input type="password" id="txtClaveActual" readonly value="------" style="width: 100%; font-size: 1.25rem; letter-spacing: 4px; font-weight: 800; text-align: center; padding: 12px 46px 12px 15px;">
+                            <button type="button" id="btnToggleVerClave" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); display:inline-flex;" title="Mostrar u ocultar llave">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </button>
                         </div>
 
                         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                            <button type="button" class="btn-run" id="btnCopiarEnlaceKey" style="flex: 1; min-width: 140px; font-size: 12.5px; padding: 10px 14px; justify-content: center;">
-                                📋 Copiar Enlace con Llave
-                            </button>
-                            <button type="button" class="btn-secundario" id="btnRefrescarClave" style="padding: 10px 14px;" title="Refrescar">
-                                🔄
-                            </button>
+                            <button type="button" class="btn-run" id="btnCopiarEnlaceKey" style="flex: 1; min-width: 150px; font-size: 12.5px; padding: 10px 14px;">Copiar Enlace Seguro</button>
+                            <button type="button" class="btn-secundario" id="btnRefrescarClave" style="padding: 10px 14px;" title="Sincronizar llave">Actualizar</button>
                         </div>
-                        <p id="msgCopiadoKey" style="font-size: 12px; color: #10b981; margin-top: 10px; display: none; text-align: center;">✅ Enlace copiado al portapapeles</p>
+                        <p id="msgCopiadoKey" style="font-size: 12px; color: var(--success); margin-top: 10px; display: none; text-align: center;">Enlace copiado al portapapeles.</p>
                     </div>
 
-                    <!-- Tarjeta: Modificar Llave -->
-                    <div class="panel" style="border-top: 4px solid #ef4444;">
-                        <h3 style="margin: 0 0 15px; font-size: 1.15rem; display: flex; align-items: center; gap: 8px;">
-                            <span>⚙️</span> Solicitar cambio de llave
-                        </h3>
-                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 18px;">
-                            Propón una llave de 4 a 12 dígitos. Tu contraseña valida la solicitud; otro Super Admin activo deberá aprobarla antes de aplicar el cambio.
-                        </p>
+                    <!-- Solicitar cambio de llave -->
+                    <div class="panel" style="border-top: 3px solid #ef4444;">
+                        <h3 style="margin: 0 0 14px; font-size: 1.05rem;">Rotación de Llave (Doble Aprobación)</h3>
 
                         <div style="margin-bottom: 12px;">
-                            <label style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 6px; color: var(--text-main);">Nueva Llave Numérica:</label>
+                            <label style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 6px; color: var(--text-main);">Nueva llave (4 a 12 dígitos)</label>
                             <div style="display: flex; gap: 8px;">
-                                <input type="text" id="txtNuevaClave" placeholder="Ej: 984321" maxlength="12" style="flex: 1; padding: 10px 14px; border-radius: 8px; border: 1.5px solid var(--border); font-size: 14px; background: var(--surface); color: var(--text-main); font-weight: 700;">
-                                <button type="button" class="btn-secundario" id="btnGenerarRandomKey" title="Generar clave aleatoria de 6 dígitos">
-                                    🎲 Azar
-                                </button>
+                                <input type="text" id="txtNuevaClave" placeholder="Ej: 984321" maxlength="12" style="flex: 1; font-weight: 700;">
+                                <button type="button" class="btn-secundario" id="btnGenerarRandomKey" style="padding: 9px 14px;" title="Generar 6 dígitos aleatorios">Generar</button>
                             </div>
                         </div>
 
-                        <div style="margin-bottom: 18px;">
-                            <label style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 6px; color: var(--text-main);">Confirmar con tu Contraseña:</label>
-                            <input type="password" id="txtPassConfirmacion" placeholder="Tu contraseña de Super Admin" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid var(--border); font-size: 14px; background: var(--surface); color: var(--text-main);">
+                        <div style="margin-bottom: 16px;">
+                            <label style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 6px; color: var(--text-main);">Confirmación de identidad</label>
+                            <input type="password" id="txtPassConfirmacion" placeholder="Contraseña SuperAdmin" style="width: 100%;">
                         </div>
 
-                        <button type="button" class="btn-run" id="btnGuardarNuevaClave" style="width: 100%; justify-content: center; background: #dc2626; border-color: #b91c1c;">
-                            📨 Solicitar cambio de llave
-                        </button>
+                        <button type="button" class="btn-run" id="btnGuardarNuevaClave" style="width: 100%; background: linear-gradient(135deg, #dc2626, #b91c1c);">Solicitar Cambio de Llave</button>
                         <div id="statusModificarClave" style="margin-top: 12px; font-size: 13px; text-align: center;"></div>
                     </div>
                 </div>
 
-                <div class="panel" style="margin-bottom:25px;"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><h3>Solicitudes de cambio de llave</h3><button type="button" class="btn-secundario" id="btnRecargarSolicitudesClave">Actualizar</button></div><p style="font-size:13px;color:var(--text-muted);">Las solicitudes vencen a las 24 horas. Quien solicita no puede aprobar su propia solicitud.</p><div class="tabla-historial-wrap"><table class="tabla-historial"><thead><tr><th>Solicitante</th><th>Fecha</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="tablaSolicitudesClave"><tr><td colspan="4">Cargando solicitudes...</td></tr></tbody></table></div><div id="statusSolicitudesClave" style="margin-top:10px;"></div></div>
-                <div class="modal-overlay" id="modalAprobarClave"><div class="panel" style="width:min(420px,95vw);"><h3>Aprobar cambio de llave</h3><p>Confirma tu identidad con tu contraseña de Super Admin.</p><input type="password" id="passwordAprobarClave" placeholder="Tu contraseña" style="width:100%;padding:10px;margin:10px 0;border:1px solid var(--border);border-radius:8px;"><div style="display:flex;gap:8px;justify-content:flex-end;"><button type="button" class="btn-secundario" id="btnCancelarAprobarClave">Cancelar</button><button type="button" class="btn-run" id="btnConfirmarAprobarClave">Aprobar</button></div><div id="statusModalAprobarClave"></div></div></div>
+                <div class="panel" style="margin-bottom:22px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+                        <h3 style="margin:0;font-size:1.05rem;">Solicitudes de Rotación Pendientes</h3>
+                        <button type="button" class="btn-secundario" id="btnRecargarSolicitudesClave" style="padding:7px 14px;font-size:12px;">Actualizar</button>
+                    </div>
+                    <div class="tabla-historial-wrap"><table class="tabla-historial"><thead><tr><th>Solicitante</th><th>Fecha</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="tablaSolicitudesClave"><tr><td colspan="4">Cargando solicitudes...</td></tr></tbody></table></div>
+                    <div id="statusSolicitudesClave" style="margin-top:10px;"></div>
+                </div>
 
-                <!-- Tarjeta: Usuarios en vivo (estado, tiempo, biometria, historial, administración) -->
-                <div class="panel" style="margin-bottom: 25px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 10px;">
-                        <h3 style="margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: 8px;">
-                            <span>👥</span> Usuarios, Roles y Actividad en Vivo
-                        </h3>
+                <div class="modal-overlay" id="modalAprobarClave"><div class="panel" style="width:min(420px,95vw);"><h3>Aprobar Rotación de Llave</h3><p>Confirma con tu contraseña de SuperAdmin.</p><input type="password" id="passwordAprobarClave" placeholder="Contraseña" style="width:100%;margin:10px 0;"><div style="display:flex;gap:8px;justify-content:flex-end;"><button type="button" class="btn-secundario" id="btnCancelarAprobarClave">Cancelar</button><button type="button" class="btn-run" id="btnConfirmarAprobarClave">Aprobar</button></div><div id="statusModalAprobarClave"></div></div></div>
+
+                <!-- Monitor de usuarios en vivo -->
+                <div class="panel">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+                        <h3 style="margin: 0; font-size: 1.05rem;">Monitor de Sesiones y Biometría en Vivo</h3>
                         <span id="txtResumenConectados" style="font-size: 12px; color: var(--text-muted);">Cargando...</span>
                     </div>
-                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
-                        Monitor en vivo (solo lectura): estado, tiempo de hoy, biometría, vector e historial de cada colaborador. Los roles, suspensiones y correos se gestionan en Administración.
-                    </p>
                     <div id="statusAdminUsuarios" style="margin-bottom: 12px; font-size: 13px; display: none;"></div>
                     <div class="tabla-historial-wrap tabla-moderna-wrap" style="max-height: 420px;">
                         <table class="tabla-historial tabla-moderna">
@@ -2426,24 +2462,10 @@
                                 </tr>
                             </thead>
                             <tbody id="tablaUsuariosSuperadminBody">
-                                <tr><td colspan="7" style="text-align: center; color: #64748b;">Cargando usuarios desde Supabase...</td></tr>
+                                <tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Cargando monitor en vivo...</td></tr>
                             </tbody>
                         </table>
                     </div>
-                </div>
-
-                <!-- Tarjeta: Explicación de Funcionamiento -->
-                <div class="panel">
-                    <h4 style="margin: 0 0 12px; display: flex; align-items: center; gap: 8px; color: var(--text-main);">
-                        <span>📘</span> Protocolo de Seguridad Corporativa de Alicorp
-                    </h4>
-                    <ul style="padding-left: 20px; font-size: 13px; color: var(--text-muted); line-height: 1.8;">
-                        <li><strong>Ocultamiento total:</strong> Cualquier cliente, consumidor o visitante que entre a <code>/index.html</code> o subpáginas verá el portal limpio sin botones ni enlaces de acceso para empleados.</li>
-                        <li><strong>Acceso autorizado:</strong> Los colaboradores deben acceder usando el enlace especial: <code>https://.../index.html?key=[TU_LLAVE]</code>.</li>
-                        <li><strong>Anti-Rastreo:</strong> Al ingresar la llave correcta, el sistema limpia instantáneamente la barra de direcciones del navegador en milisegundos para que nadie vea la clave en pantalla ni quede en el historial.</li>
-                        <li><strong>Protección directa:</strong> Si alguien intenta escribir <code>/admin_login.html</code> directamente en la barra de URL sin haber pasado la llave, el servidor y el cliente lo devuelven de inmediato al inicio.</li>
-                        <li><strong>Sincronización:</strong> La llave se almacena en la tabla segura <code>configuracion_seguridad</code> de Supabase y en el respaldo del servidor.</li>
-                    </ul>
                 </div>
             </div>
         </section>
@@ -2451,11 +2473,11 @@
         <!-- ================= PIE DE PÁGINA ================= -->
         <footer class="footer">
             <div class="footer-grid">
-                <div><h5>Alicorp Intelligence</h5><p>Plataforma de Inteligencia de Negocios · Redes Neuronales y Machine Learning conectadas a base de datos Supabase.</p></div>
-                <div><h5>Secciones</h5><button data-go="inicio">Inicio</button><button data-go="productos">Productos</button><button data-go="compras">Compras de clientes</button><button data-go="prediccion">Predicción de ventas</button><button data-go="keras">Deep Learning (Keras)</button><button data-go="segmentacion">Segmentación no supervisada</button><button data-go="estadistica">Estadística</button><button data-go="reporte">Reporte mensual</button><button data-go="incidencias">Incidencias cliente</button></div>
-                <div><h5>Tecnología</h5><p>Python · Flask<br>TensorFlow & Keras<br>scikit-learn · Chart.js</p></div>
+                <div><h5>Alicorp Intelligence</h5><p>Suite ejecutiva de Business Intelligence y Machine Learning conectada a Supabase PostgreSQL.</p></div>
+                <div><h5>Módulos</h5><button data-go="inicio">Resumen Ejecutivo</button><button data-go="productos">Portafolio y Stock</button><button data-go="compras">Órdenes Web</button><button data-go="prediccion">Pronóstico Lineal</button><button data-go="keras">Simulador Neuronal</button><button data-go="segmentacion">Clusters K-Means</button><button data-go="estadistica">Riesgo Estadístico</button><button data-go="reporte">Cierre Mensual</button><button data-go="incidencias">Incidencias y SLA</button></div>
+                <div><h5>Arquitectura</h5><p>Java 21 · Javalin 6<br>DL4J · Smile ML · JavaCV<br>Supabase PostgreSQL · Chart.js</p></div>
             </div>
-            <div class="copy">© 2026 Corporación Alicorp S.A.A. · Todos los derechos reservados · Business Intelligence & Machine Learning</div>
+            <div class="copy">© 2026 Corporación Alicorp S.A.A. · Executive Business Intelligence Suite</div>
         </footer>
     </div>
 
@@ -2464,8 +2486,8 @@
         <div class="modal-card">
             <div class="modal-header">
                 <div>
-                    <h3><span>🧬</span> Huella Vectorial Biométrica Facial</h3>
-                    <p id="modalBioSub">Embedding de 128 dimensiones generado por la Red Neuronal Profunda</p>
+                    <h3>Huella Vectorial Biométrica 128-D</h3>
+                    <p id="modalBioSub">Embedding facial normalizado de 128 dimensiones</p>
                 </div>
                 <button type="button" class="modal-close" id="btnCerrarModalBio">✕</button>
             </div>
@@ -2477,16 +2499,16 @@
                 <div class="v-stat"><span>L2 Norm</span><b id="vStatNorm">1.000</b></div>
             </div>
 
-            <div style="font-size: 11.5px; color: #94a3b8; margin-bottom: 6px; display: flex; justify-content: space-between;">
-                <span>Mapa de Calor de Activación (128 pesos):</span>
-                <span style="font-size: 10px; color: #64748b;">Azul/Verde: Positivo | Naranja: Negativo</span>
+            <div style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 6px; display: flex; justify-content: space-between;">
+                <span>Mapa de Activación (128 pesos)</span>
+                <span style="font-size: 10.5px;">Azul/Verde: Positivo · Naranja: Negativo</span>
             </div>
             
             <div class="vector-grid" id="vectorGrid"></div>
 
             <div style="display: flex; justify-content: space-between; align-items: center; margin: 12px 0 6px;">
-                <span style="font-size: 11.5px; color: #94a3b8;">Tensor Numérico (Float32 Array):</span>
-                <button type="button" class="btn-timer-historial" id="btnCopiarVector">📋 Copiar Vector</button>
+                <span style="font-size: 11.5px; color: var(--text-muted);">Tensor Numérico (Float32)</span>
+                <button type="button" class="btn-timer-historial" id="btnCopiarVector">Copiar Vector</button>
             </div>
             <div class="raw-vector-box" id="rawVectorText">Cargando vector biométrico...</div>
 
@@ -2501,8 +2523,8 @@
         <div class="modal-card">
             <div class="modal-header">
                 <div>
-                    <h3><span>⏱️</span> Historial de Actividad del Usuario</h3>
-                    <p id="modalHistorialSub">Registros de tiempo en vivo almacenados en la tabla actividad_usuarios de Supabase</p>
+                    <h3>Historial de Actividad de Sesión</h3>
+                    <p id="modalHistorialSub">Registro de jornadas activas sincronizado con Supabase</p>
                 </div>
                 <button type="button" class="modal-close" id="btnCerrarModalHist">✕</button>
             </div>
@@ -2519,13 +2541,13 @@
                         </tr>
                     </thead>
                     <tbody id="tablaHistorialBody">
-                        <tr><td colspan="5" style="text-align: center; color: #64748b;">Cargando historial desde Supabase...</td></tr>
+                        <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Cargando historial...</td></tr>
                     </tbody>
                 </table>
             </div>
 
             <div class="modal-actions">
-                <button type="button" class="btn-light" id="btnHistPdf">📄 Exportar PDF</button>
+                <button type="button" class="btn-light" id="btnHistPdf">Exportar PDF</button>
                 <button type="button" class="btn-light" id="btnCerrarModalHist2">Cerrar</button>
             </div>
         </div>
@@ -2589,20 +2611,55 @@
         function dibujar(id, config) {
             if (charts[id]) charts[id].destroy();
             const esOscuro = document.body && document.body.classList.contains('dark-mode');
-            const textColor = esOscuro ? '#94a3b8' : '#64748b';
-            const gridColor = esOscuro ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
-            
-            if (config && config.options) {
+            const textColor = esOscuro ? '#94a3b8' : '#5b6b82';
+            const gridColor = esOscuro ? 'rgba(148, 163, 184, 0.11)' : 'rgba(15, 23, 42, 0.06)';
+            const canvas = $(id);
+            if (!canvas) return;
+
+            // Estética moderna corporativa Chart.js (bordes suaves, tooltips oscuros, anillos finos)
+            if (config) {
+                if (!config.options) config.options = {};
+                if (!config.options.plugins) config.options.plugins = {};
+                config.options.plugins.tooltip = Object.assign({
+                    backgroundColor: 'rgba(11, 19, 41, 0.94)',
+                    titleColor: '#f8fafc',
+                    bodyColor: '#cbd5e1',
+                    borderColor: 'rgba(56, 189, 248, 0.28)',
+                    borderWidth: 1,
+                    padding: 11,
+                    cornerRadius: 10,
+                    displayColors: true
+                }, config.options.plugins.tooltip || {});
+
+                if (config.options.plugins.legend && config.options.plugins.legend.labels) {
+                    config.options.plugins.legend.labels.color = textColor;
+                } else if (config.options.plugins.legend !== false) {
+                    config.options.plugins.legend = Object.assign({}, config.options.plugins.legend || {}, {
+                        labels: Object.assign({ color: textColor, usePointStyle: true, boxWidth: 8 }, (config.options.plugins.legend && config.options.plugins.legend.labels) || {})
+                    });
+                }
+
+                if (config.type === 'doughnut' && !config.options.cutout) {
+                    config.options.cutout = '68%';
+                }
+                if (config.type === 'bar' && config.data && Array.isArray(config.data.datasets)) {
+                    config.data.datasets.forEach(ds => {
+                        if (ds.borderRadius === undefined) ds.borderRadius = 8;
+                        if (ds.borderSkipped === undefined) ds.borderSkipped = false;
+                    });
+                }
                 if (config.options.scales) {
                     Object.values(config.options.scales).forEach(scale => {
                         if (!scale.ticks) scale.ticks = {};
-                        if (!scale.ticks.color) scale.ticks.color = textColor;
+                        scale.ticks.color = textColor;
                         if (!scale.grid) scale.grid = {};
-                        if (!scale.grid.color) scale.grid.color = gridColor;
+                        scale.grid.color = gridColor;
+                        if (!scale.border) scale.border = {};
+                        scale.border.display = false;
                     });
                 }
             }
-            charts[id] = new Chart($(id).getContext('2d'), config);
+            charts[id] = new Chart(canvas.getContext('2d'), config);
         }
         function mostrarError(msg) {
             const caja = $('errorGlobal');
@@ -2611,13 +2668,17 @@
         }
 
         /* ---------- MODO OSCURO / MODO CLARO (THEME ENGINE) ---------- */
+        const SVG_SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
+        const SVG_MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+
         function actualizarTemaGraficos(esOscuro) {
-            const textColor = esOscuro ? '#94a3b8' : '#64748b';
-            const gridColor = esOscuro ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
+            const textColor = esOscuro ? '#94a3b8' : '#5b6b82';
+            const gridColor = esOscuro ? 'rgba(148, 163, 184, 0.11)' : 'rgba(15, 23, 42, 0.06)';
             
             if (window.Chart) {
                 Chart.defaults.color = textColor;
                 Chart.defaults.borderColor = gridColor;
+                Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif";
             }
             
             Object.values(charts).forEach(c => {
@@ -2644,13 +2705,13 @@
             if (esOscuro) {
                 document.documentElement.classList.add('dark-mode');
                 if (document.body) document.body.classList.add('dark-mode');
-                if (icon) icon.textContent = '☀️';
+                if (icon) icon.innerHTML = SVG_SUN;
                 if (txt) txt.textContent = 'Modo Claro';
                 if (btn) btn.title = 'Cambiar a Modo Claro';
             } else {
                 document.documentElement.classList.remove('dark-mode');
                 if (document.body) document.body.classList.remove('dark-mode');
-                if (icon) icon.textContent = '🌙';
+                if (icon) icon.innerHTML = SVG_MOON;
                 if (txt) txt.textContent = 'Modo Oscuro';
                 if (btn) btn.title = 'Cambiar a Modo Oscuro';
             }
@@ -2708,15 +2769,15 @@
 
         async function mostrarVista(nombre) {
             if (!VISTAS.includes(nombre)) return;
-            // Guardia de acceso: Solo Super Administradores pueden entrar a la vista 'seguridad'
-            if ((nombre === 'seguridad' || nombre === 'administracion') && !esSuperAdminActivo) {
+            // Guardia de acceso: Solo Super Administradores pueden entrar a 'seguridad', 'administracion' o 'estrategia'
+            if ((nombre === 'seguridad' || nombre === 'administracion' || nombre === 'estrategia') && !esSuperAdminActivo) {
                 console.warn('Acceso denegado: vista exclusiva para Super Administradores.');
                 mostrarVista('inicio');
                 return;
             }
             document.querySelectorAll('.vista').forEach(v => v.classList.toggle('active', v.id === 'vista-' + nombre));
             document.querySelectorAll('.sb-menu button').forEach(b => b.classList.toggle('active', b.dataset.go === nombre));
-            $('sidebar').classList.remove('open');
+            if ($('sidebar')) $('sidebar').classList.remove('open');
             try { history.replaceState(null, '', '#' + nombre); } catch (e) {}
             window.scrollTo(0, 0);
 
@@ -2824,7 +2885,34 @@
             const destino = e.target.closest('[data-go]');
             if (destino) mostrarVista(destino.dataset.go);
         });
-        $('menuToggle').addEventListener('click', () => $('sidebar').classList.toggle('open'));
+        if ($('menuToggle') && $('sidebar')) {
+            $('menuToggle').addEventListener('click', () => $('sidebar').classList.toggle('open'));
+        }
+
+        // Cápsula flotante colapsable de perfil y biometría (esquina inferior izquierda)
+        (function initProfileCapsule() {
+            const capsule = $('floatingProfileCapsule');
+            const toggleBtn = $('btnToggleProfileCapsule');
+            if (!capsule || !toggleBtn) return;
+
+            const aplicarEstadoCapsula = (colapsada) => {
+                capsule.classList.toggle('is-collapsed', colapsada);
+                toggleBtn.setAttribute('aria-expanded', String(!colapsada));
+                toggleBtn.title = colapsada ? 'Expandir panel de perfil y biometría' : 'Minimizar panel de perfil';
+            };
+
+            try {
+                if (localStorage.getItem('alicorp_capsula_colapsada') === '1') {
+                    aplicarEstadoCapsula(true);
+                }
+            } catch (e) {}
+
+            toggleBtn.addEventListener('click', () => {
+                const siguiente = !capsule.classList.contains('is-collapsed');
+                aplicarEstadoCapsula(siguiente);
+                try { localStorage.setItem('alicorp_capsula_colapsada', siguiente ? '1' : '0'); } catch (e) {}
+            });
+        })();
 
         // Cerrar sesión: limpia la sesión del navegador y vuelve al login (/portal_institucional/index.html)
         const limpiarSesionSalir = () => {
@@ -4583,6 +4671,7 @@ function rfComparar() {
             const badgeRol = $('badgeRolUsuario') || document.querySelector('.sb-user-card .badge-role');
             const btnSec = $('btnMenuSeguridad');
             const btnAdminMenu = $('btnMenuAdministracion');
+            const btnEstratMenu = $('btnMenuEstrategia');
             if (badgeRol) {
                 badgeRol.textContent = 'Analista';
                 badgeRol.className = 'badge-role badge-analista';
@@ -4590,6 +4679,7 @@ function rfComparar() {
             }
             if (btnSec) btnSec.style.display = 'none';
             if (btnAdminMenu) btnAdminMenu.style.display = 'none';
+            if (btnEstratMenu) btnEstratMenu.style.display = 'none';
             if ($('btnIncColaboradores')) $('btnIncColaboradores').style.display = 'none';
             esSuperAdminActivo = false;
 
@@ -4603,6 +4693,7 @@ function rfComparar() {
                         claveAccesoActual = dataSec.clave_actual;
                         if (btnSec) btnSec.style.display = 'flex';
                         if (btnAdminMenu) btnAdminMenu.style.display = 'flex';
+                        if (btnEstratMenu) btnEstratMenu.style.display = 'flex';
                         if ($('btnIncColaboradores')) $('btnIncColaboradores').style.display = 'inline-flex';
                         if (badgeRol) {
                             badgeRol.textContent = 'Super Admin';
@@ -4615,6 +4706,8 @@ function rfComparar() {
                     // Acceso restringido (403): Usuario estándar (Analista)
                     esSuperAdminActivo = false;
                     if (btnSec) btnSec.style.display = 'none';
+                    if (btnAdminMenu) btnAdminMenu.style.display = 'none';
+                    if (btnEstratMenu) btnEstratMenu.style.display = 'none';
                     if (badgeRol) {
                         badgeRol.textContent = 'Analista';
                         badgeRol.className = 'badge-role badge-analista';
@@ -4625,6 +4718,8 @@ function rfComparar() {
                 console.warn("Verificación de rol de seguridad:", e);
                 esSuperAdminActivo = false;
                 if (btnSec) btnSec.style.display = 'none';
+                if (btnAdminMenu) btnAdminMenu.style.display = 'none';
+                if (btnEstratMenu) btnEstratMenu.style.display = 'none';
                 if (badgeRol) {
                     badgeRol.textContent = 'Analista';
                     badgeRol.className = 'badge-role badge-analista';
@@ -5778,14 +5873,27 @@ function rfComparar() {
             pedir('/api/tienda/categorias').then(c => {
                 const cats = (c.categorias || []).slice().sort((a, b) => b.cantidad - a.cantidad);
                 if (!cats.length) return;
+                const esOscuro = document.body && document.body.classList.contains('dark-mode');
+                const txtC = esOscuro ? '#94a3b8' : '#5b6b82';
+                const grdC = esOscuro ? 'rgba(148, 163, 184, 0.11)' : 'rgba(15, 23, 42, 0.06)';
                 graficoCat = new Chart(el('chartTiendaCategorias').getContext('2d'), {
                     type: 'bar',
                     data: {
                         labels: cats.map(x => x.categoria),
-                        datasets: [{ label: 'Productos', data: cats.map(x => x.cantidad), backgroundColor: '#0284c7', borderRadius: 6 }]
+                        datasets: [{ label: 'Productos', data: cats.map(x => x.cantidad), backgroundColor: '#0284c7', borderRadius: 8, borderSkipped: false }]
                     },
-                    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { ticks: { color: txtC }, grid: { color: grdC }, border: { display: false } },
+                            y: { ticks: { color: txtC }, grid: { display: false }, border: { display: false } }
+                        }
+                    }
                 });
+                if (typeof charts !== 'undefined') charts['chartTiendaCategorias'] = graficoCat;
                 el('tdCatHint').textContent = cats.length + ' categorías · ' + miles(cats.reduce((s, x) => s + x.cantidad, 0)) + ' productos en total.';
             }).catch(() => {});
         }
@@ -5895,10 +6003,20 @@ function rfComparar() {
 
         function obtenerUsuarioSesion() {
             try {
-                const raw = sessionStorage.getItem('usuario') || localStorage.getItem('usuario_activo') || '';
-                if (raw) return raw;
+                if (typeof sesionUsuario !== 'undefined' && sesionUsuario && sesionUsuario.usuario) {
+                    return String(sesionUsuario.usuario).trim();
+                }
+                const rawActivo = sessionStorage.getItem('usuario_activo') || localStorage.getItem('usuario_activo');
+                if (rawActivo) {
+                    if (rawActivo.trim().startsWith('{')) {
+                        const obj = JSON.parse(rawActivo);
+                        if (obj && obj.usuario) return String(obj.usuario).trim();
+                    } else {
+                        return rawActivo.trim();
+                    }
+                }
                 const ses = JSON.parse(localStorage.getItem('sesion_admin') || '{}');
-                return ses.usuario || '';
+                return ses.usuario ? String(ses.usuario).trim() : '';
             } catch (e) { return ''; }
         }
 
@@ -6032,6 +6150,7 @@ function rfComparar() {
         }
 
         window.cargarModuloEstrategia = function (forzar = false) {
+            if (typeof esSuperAdminActivo !== 'undefined' && !esSuperAdminActivo) return;
             const sel = document.getElementById('selTiendaEstrategia');
             const tienda = sel ? sel.value : 'Hipermercado Centro';
             if (!estrategiaCargada || forzar) {
