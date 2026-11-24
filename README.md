@@ -98,21 +98,27 @@ Una vez veas el mensaje `Servidor activo en: http://localhost:5000` en la termin
 ```text
 alicorp v2/
 ├── src/main/java/pe/com/alicorp/bi/
-│   ├── AlicorpBiApplication.java                  # Punto de entrada Javalin, seguridad y rutas core
+│   ├── AlicorpBiApplication.java                  # Punto de entrada Javalin y alias de rutas web
 │   ├── config/
 │   │   └── DatabaseConfig.java                    # Pool HikariCP (Supabase PostgreSQL / H2 3FN)
-│   ├── application/
-│   │   ├── biometria/ServicioBiometriaJavaCV.java # Extracción de vectores 128-D y distancia euclidiana
-│   │   ├── ml/ServicioAnaliticaSmile.java         # K-Means y distribución normal (Smile ML)
-│   │   ├── ml/ServicioRedNeuronalDL4J.java        # Inferencia Deep Learning (DL4J + ND4J)
-│   │   └── security/ServicioSeguridadRelacional.java # Roles, auditoría, latidos y llaves 3FN
-│   └── infrastructure/web/
-│       ├── DashboardEndpointsRegistrar.java       # Endpoints de resumen, predicción y SuperAdmin
-│       └── TiendaAndSupportEndpointsRegistrar.java # Tienda 3FN, reportes, competencia, fallas y PNGs
-├── frontend_corporativo/                          # Portal HTML5 / CSS3 / JS (Clientes, Tienda, Dashboard)
+│   └── modulos/                                   # Código Java organizado por sección web
+│       ├── acceso_biometria/                      # Login 128-D, Registro, Llaves, Auditoría y Equipo
+│       ├── tienda_buscador_ia/                    # Tienda 3FN + Árbol Trie Recursivo + Ranking Smile ML
+│       ├── dashboard_prediccion/                  # Resumen, Keras DL4J, K-Means, Estadística, Reportes, PNGs
+│       ├── estrategia_comercial/                  # Filtrado Colaborativo + DecisionTree + Cross-Validation
+│       └── contacto_soporte/                      # Buzón de Contacto, Incidencias y Fallas Web
+├── frontend_corporativo/                          # Frontend HTML5/CSS3/JS organizado por sección
+│   ├── compartido/                                # estilos.css, ilustraciones.css, script.js, favicon
+│   ├── portal_institucional/                      # index.html, clientes.html, inversionistas.html, etica.html, sostenibilidad.html
+│   ├── acceso_seguridad/                          # admin_login.html, registro.html
+│   ├── tienda_virtual/                            # tienda.html, tienda.css, tienda.js, tienda_imagenes.js
+│   ├── contacto_soporte/                          # contacto.html
+│   └── dashboard_bi/                              # dashboard.html
 ├── database/
 │   ├── esquema_relacional_3fn.sql                 # DDL completo en 3ra Forma Normal (PostgreSQL / H2)
-│   └── oracle_3fn_ddl.sql                         # Script DDL compatible con Oracle XE
+│   ├── oracle_3fn_ddl.sql                         # Script DDL compatible con Oracle XE
+│   └── atencion_tickets_3fn.sql                   # Trazabilidad de tickets e incidencias
+├── docs/                                          # Manual Word y documentación técnica
 ├── tools/maven/                                   # Apache Maven 3.9.9 portátil
 ├── .env.example                                   # Plantilla de variables de entorno (copiar a .env)
 ├── iniciar_servidor_java.bat                      # Lanzador rápido para Windows
