@@ -8,6 +8,7 @@ import pe.com.alicorp.bi.modulos.acceso_biometria.AccesoBiometriaController;
 import pe.com.alicorp.bi.modulos.acceso_biometria.ServicioActividadEquipo;
 import pe.com.alicorp.bi.modulos.acceso_biometria.ServicioBiometriaJavaCV;
 import pe.com.alicorp.bi.modulos.acceso_biometria.ServicioSeguridadRelacional;
+import pe.com.alicorp.bi.modulos.chatbot_asistente.ChatbotController;
 import pe.com.alicorp.bi.modulos.contacto_soporte.ContactoSoporteController;
 import pe.com.alicorp.bi.modulos.dashboard_prediccion.DashboardAnaliticaController;
 import pe.com.alicorp.bi.modulos.dashboard_prediccion.ServicioAnaliticaSmile;
@@ -69,6 +70,7 @@ public class AlicorpBiApplication {
         DashboardAnaliticaController.registrar(app, motorDl4j, motorSmile);
         RecomendadorController.registrar(app, motorSeguridad);
         ContactoSoporteController.registrar(app);
+        ChatbotController.registrar(app, servicioBuscadorIA, motorSeguridad);
 
         app.start(puerto);
         System.out.println("=========================================================================");

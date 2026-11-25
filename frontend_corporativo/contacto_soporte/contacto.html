@@ -134,6 +134,16 @@
         const btnEnviar = document.getElementById('btnEnviar');
         const alerta = document.getElementById('alertaMensaje');
 
+        // Llegada desde el chatbot: /contacto.html?tipo=queja|sugerencia|duda
+        const TIPOS_CONTACTO = {
+            queja: { asunto: 'Queja o reclamo', ayuda: 'Describe tu queja o reclamo con el mayor detalle posible (producto, fecha, qué ocurrió)...' },
+            sugerencia: { asunto: 'Sugerencia', ayuda: 'Cuéntanos tu sugerencia para mejorar nuestros productos o la tienda...' },
+            duda: { asunto: 'Consulta General', ayuda: 'Escribe tu duda y el equipo te responderá...' }
+        };
+        const tipoContacto = TIPOS_CONTACTO[new URLSearchParams(location.search).get('tipo')] || null;
+        const asuntoContacto = tipoContacto ? tipoContacto.asunto : 'Consulta General';
+        if (tipoContacto) { txtMensaje.placeholder = tipoContacto.ayuda; setTimeout(() => txtNombre.focus(), 300); }
+
         function mostrarAlerta(tipo, mensaje) {
             alerta.className = 'alert-box ' + (tipo === 'success' ? 'alert-success' : 'alert-error');
             alerta.textContent = mensaje;
@@ -180,6 +190,7 @@
                     body: JSON.stringify({
                         nombre: nombre,
                         correo: correo,
+                        asunto: asuntoContacto,
                         mensaje: mensaje
                     })
                 });
