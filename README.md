@@ -18,78 +18,75 @@ Sistema corporativo de **Inteligencia de Negocios (BI)**, **E-Commerce** y **Con
 
 ---
 
-## 📋 Requisitos Previos (Qué necesitas instalar aparte)
+## 📋 Orden de Requisitos Previos
 
-Para ejecutar el proyecto en tu máquina local (`localhost`), necesitas instalar:
+Instala y verifica estos requisitos **en orden** antes de ejecutar el proyecto en tu máquina local (`localhost`):
 
-1. **Java Development Kit (JDK) 21 o superior** (Recomendado: **JDK 21 LTS** o **Oracle JDK 26**).
+1. **Java Development Kit (JDK) 21 o superior** *(Obligatorio — probado en JDK 21 LTS y Oracle JDK 26)*:
    - Descarga: [Adoptium Temurin JDK 21+](https://adoptium.net/) o [Oracle JDK](https://www.oracle.com/java/technologies/downloads/).
-   - Verifica tu instalación en la terminal:
+   - Configura la variable de entorno **`JAVA_HOME`** apuntando a la carpeta de tu JDK (ej. `C:\Program Files\Java\jdk-26.0.2`).
+   - Verifica en PowerShell:
      ```powershell
      java -version
      ```
-   - Asegúrate de tener configurada la variable de entorno **`JAVA_HOME`** apuntando a la carpeta de tu JDK (ej. `C:\Program Files\Java\jdk-26.0.2` o `C:\Program Files\Eclipse Adoptium\jdk-21...`).
-2. **Git** (para clonar el repositorio y gestionar ramas).
-3. **Cámara Web** (necesaria si deseas probar el registro y login biométrico facial 128-D en vivo).
-4. **Apache Maven:** **NO necesitas instalarlo aparte.** El repositorio ya incluye Maven portátil (`3.9.9`) en la carpeta `tools/maven/` junto con el script `mvnw.cmd`.
-
-*(Nota: Si usas un IDE como Antigravity IDE / VS Code o IntelliJ IDEA, instala la extensión oficial de Java / Maven).*
+2. **Git** *(Obligatorio para clonar y sincronizar `main`)*.
+3. **Apache Maven:** **NO necesitas instalarlo.** El repositorio incluye Maven portátil (`3.9.9`) en `tools/maven/` mediante `.\mvnw.cmd`.
+4. **Credenciales de Base de Datos (`.env`):** Necesitas `JDBC_URL`, `JDBC_USER` y `JDBC_PASSWORD` de Supabase PostgreSQL *(si lo omites, arrancará en modo local embebido H2)*.
+5. **Cámara Web** *(Opcional: solo si probarás el registro y login biométrico facial 128-D en vivo)*.
 
 ---
 
-## 🚀 Guía de Instalación y Ejecución en Local
+## 🚀 Proceso Ordenado de Instalación y Ejecución en Local
 
-### Paso 1: Clonar el Repositorio
-```bash
+### 1. Clonar el Repositorio
+```powershell
 git clone https://github.com/Rakkiel-cmd/Alicorpt-v2.git
 cd "Alicorpt-v2"
 ```
 
-### Paso 2: Configurar las Variables de Entorno (`.env`)
-El proyecto incluye una plantilla [`.env.example`](.env.example) sin credenciales reales por seguridad.
+### 2. Configurar Variables de Entorno (`.env`)
+```powershell
+Copy-Item .env.example .env
+```
+Edita `.env` con las credenciales reales compartidas por el equipo:
+```env
+JDBC_URL=jdbc:postgresql://aws-0-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=require
+JDBC_USER=postgres.tu_project_ref
+JDBC_PASSWORD=TU_CONTRASENA_AQUI
+```
+> **Modo offline:** Si no creas `.env`, el sistema usa automáticamente una base embebida **H2** en `./data/alicorp_3fn_relacional`.
 
-1. Copia el archivo `.env.example` y renómbralo a `.env` en la raíz del proyecto:
-   ```powershell
-   Copy-Item .env.example .env
-   ```
-2. Abre `.env` y coloca las credenciales reales (`JDBC_URL`, `JDBC_USER`, `JDBC_PASSWORD`) compartidas por el administrador del equipo:
-   ```env
-   JDBC_URL=jdbc:postgresql://aws-0-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=require
-   JDBC_USER=postgres.tu_project_ref
-   JDBC_PASSWORD=TU_CONTRASENA_AQUI
-   ```
-   > **Modo sin conexión a la nube:** Si omites el archivo `.env`, el sistema levantará automáticamente una base de datos relacional local embebida **H2** (en `./data/alicorp_3fn_relacional`) con el esquema 3FN y datos de demostración iniciales.
+### 3. Compilar y Empaquetar el Backend Java
+Ejecuta en PowerShell (obligatorio la primera vez o cada vez que modifiques archivos `.java`):
+```powershell
+.\mvnw.cmd clean package -DskipTests
+```
+*(La primera ejecución descarga dependencias en `~/.m2/repository` y genera `target\alicorp-bi-java-2.0.0-shaded.jar`. Si solo modificaste archivos HTML/CSS/JS dentro de `frontend_corporativo/`, no necesitas recompilar).*
 
-### Paso 3: Compilar y Ejecutar el Servidor
-
-#### Opción A: Ejecución rápida en Windows (Recomendada)
-Haz doble clic o ejecuta en PowerShell / CMD:
+### 4. Iniciar el Servidor Local
+En PowerShell o CMD, ejecuta cualquiera de las dos opciones y **deja la ventana abierta**:
 ```powershell
 .\iniciar_servidor_java.bat
 ```
-Este script detecta tu JDK, compila y empaqueta automáticamente el Uber-JAR (`target/alicorp-bi-java-2.0.0-shaded.jar`) si aún no existe, y levanta el servidor en el puerto `5000`.
-
-> **Importante:** Si realizas cambios en el código Java (`.java`), vuelve a empaquetar antes de reiniciar con:
+O directamente con Java:
+```powershell
+java -jar target\alicorp-bi-java-2.0.0-shaded.jar
+```
+> **¿Puerto 5000 ocupado?** Cambia el puerto antes de ejecutar:
 > ```powershell
-> .\mvnw.cmd clean package -DskipTests
+> $env:PORT="5050"; java -jar target\alicorp-bi-java-2.0.0-shaded.jar
 > ```
 
-#### Opción B: Ejecución manual paso a paso (Windows / Linux / Mac)
-1. Compilar y empaquetar con el Maven incluido:
-   ```powershell
-   .\mvnw.cmd clean package -DskipTests
-   ```
-   *(La primera vez descargará las dependencias de Maven en `C:\Users\<TU_USUARIO>\.m2\repository`; puede tardar unos minutos debido a las librerías nativas de DL4J y JavaCV).*
-2. Ejecutar la aplicación:
-   ```powershell
-   java -jar target\alicorp-bi-java-2.0.0-shaded.jar
-   ```
+### 5. Abrir Manualmente en el Navegador
+> **Importante:** `iniciar_servidor_java.bat` solo levanta el servidor HTTP Javalin; **no abre el navegador automáticamente**.
 
-### Paso 4: Acceder al Sistema en el Navegador
-Una vez veas el mensaje `Servidor activo en: http://localhost:5000` en la terminal:
+Cuando la consola confirme que el servidor está activo en el puerto `5000`, abre tu navegador en:
+- **Portal Corporativo:** http://localhost:5000
+- **Dashboard Ejecutivo BI (Light/Dark + Olas SVG):** http://localhost:5000/dashboard_bi/dashboard.html
+- **Tienda Virtual (Buscador Predictivo IA):** http://localhost:5000/tienda_virtual/tienda.html
+- **Acceso para Personal Autorizado (Login / Registro):** `http://localhost:5000/?key=<TU_LLAVE>` *(ej. `http://localhost:5000/?key=784920` en modo H2 local)*.
 
-- **Portal Corporativo y Tienda:** [http://localhost:5000](http://localhost:5000)
-- **Acceso para Personal Autorizado (Login / Registro):** Agrega el parámetro `?key=` con la llave corporativa configurada en la base de datos (por defecto en modo local: `http://localhost:5000/?key=784920`).
+*(Si realizaste cambios en CSS/JS y no los ves reflejados, recarga con `Ctrl + F5`).*
 
 ---
 
@@ -98,21 +95,27 @@ Una vez veas el mensaje `Servidor activo en: http://localhost:5000` en la termin
 ```text
 alicorp v2/
 ├── src/main/java/pe/com/alicorp/bi/
-│   ├── AlicorpBiApplication.java                  # Punto de entrada Javalin, seguridad y rutas core
+│   ├── AlicorpBiApplication.java                  # Punto de entrada Javalin y alias de rutas web
 │   ├── config/
 │   │   └── DatabaseConfig.java                    # Pool HikariCP (Supabase PostgreSQL / H2 3FN)
-│   ├── application/
-│   │   ├── biometria/ServicioBiometriaJavaCV.java # Extracción de vectores 128-D y distancia euclidiana
-│   │   ├── ml/ServicioAnaliticaSmile.java         # K-Means y distribución normal (Smile ML)
-│   │   ├── ml/ServicioRedNeuronalDL4J.java        # Inferencia Deep Learning (DL4J + ND4J)
-│   │   └── security/ServicioSeguridadRelacional.java # Roles, auditoría, latidos y llaves 3FN
-│   └── infrastructure/web/
-│       ├── DashboardEndpointsRegistrar.java       # Endpoints de resumen, predicción y SuperAdmin
-│       └── TiendaAndSupportEndpointsRegistrar.java # Tienda 3FN, reportes, competencia, fallas y PNGs
-├── frontend_corporativo/                          # Portal HTML5 / CSS3 / JS (Clientes, Tienda, Dashboard)
+│   └── modulos/                                   # Código Java organizado por sección web
+│       ├── acceso_biometria/                      # Login 128-D, Registro, Llaves, Auditoría y Equipo
+│       ├── tienda_buscador_ia/                    # Tienda 3FN + Árbol Trie Recursivo + Ranking Smile ML
+│       ├── dashboard_prediccion/                  # Resumen, Keras DL4J, K-Means, Estadística, Reportes, PNGs
+│       ├── estrategia_comercial/                  # Filtrado Colaborativo + DecisionTree + Cross-Validation
+│       └── contacto_soporte/                      # Buzón de Contacto, Incidencias y Fallas Web
+├── frontend_corporativo/                          # Frontend HTML5/CSS3/JS organizado por sección
+│   ├── compartido/                                # estilos.css, ilustraciones.css, script.js, favicon
+│   ├── portal_institucional/                      # index.html, clientes.html, inversionistas.html, etica.html, sostenibilidad.html
+│   ├── acceso_seguridad/                          # admin_login.html, registro.html
+│   ├── tienda_virtual/                            # tienda.html, tienda.css, tienda.js, tienda_imagenes.js
+│   ├── contacto_soporte/                          # contacto.html
+│   └── dashboard_bi/                              # dashboard.html, dashboard_theme.css
 ├── database/
 │   ├── esquema_relacional_3fn.sql                 # DDL completo en 3ra Forma Normal (PostgreSQL / H2)
-│   └── oracle_3fn_ddl.sql                         # Script DDL compatible con Oracle XE
+│   ├── oracle_3fn_ddl.sql                         # Script DDL compatible con Oracle XE
+│   └── atencion_tickets_3fn.sql                   # Trazabilidad de tickets e incidencias
+├── docs/                                          # Manual Word y documentación técnica
 ├── tools/maven/                                   # Apache Maven 3.9.9 portátil
 ├── .env.example                                   # Plantilla de variables de entorno (copiar a .env)
 ├── iniciar_servidor_java.bat                      # Lanzador rápido para Windows

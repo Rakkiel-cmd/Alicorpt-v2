@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tienda | Alicorp</title>
+    <link rel="icon" type="image/x-icon" href="/compartido/favicon.ico">
+    <link rel="apple-touch-icon" href="/compartido/favicon.png">
+    <link rel="stylesheet" href="/compartido/estilos.css">
+    <link rel="stylesheet" href="/tienda_virtual/tienda.css">
+    <link rel="stylesheet" href="/chatbot/chatbot.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navbar (igual que el resto de la web) -->
+    <header class="navbar">
+        <div class="container nav-container">
+            <div class="logo">
+                <a href="/portal_institucional/index.html" style="text-decoration: none;">
+                    <span class="logo-red">à</span><span class="logo-blue">licorp</span>
+                </a>
+            </div>
+            <nav class="nav-links">
+                <a href="/portal_institucional/inversionistas.html">Inversionistas</a>
+                <a href="/portal_institucional/clientes.html">Clientes y proveedores</a>
+                <a href="/tienda_virtual/tienda.html" style="color: var(--color-secondary);">Comprar productos</a>
+                <a href="/contacto_soporte/contacto.html">Contacto</a>
+                <a href="/portal_institucional/etica.html">Unico Ética Alicorp</a>
+            </nav>
+            <div class="nav-derecha">
+                <!-- El carrito va FUERA de .nav-actions porque /compartido/script.js vacía ese bloque para los clientes -->
+                <button type="button" class="btn-pedido" id="btnPedido" aria-label="Consultar el estado de mi compra">📦 <span>Mi pedido</span></button>
+                <button type="button" class="btn-carrito" id="btnCarrito" aria-label="Abrir carrito">
+                    🛒 <span>Carrito</span> <span class="contador" id="contadorCarrito">0</span>
+                </button>
+                <div class="nav-actions" style="display: none;">
+                    <!-- Botón inyectado dinámicamente por /compartido/script.js solo con ?key=... o sesión activa -->
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Portada con buscador inteligente -->
+    <section class="tienda-hero">
+        <div class="container">
+            <h1>Compra productos Alicorp</h1>
+            <p>Más de 7 000 productos reales. Escribe lo que necesitas, como lo dirías normalmente.</p>
+            <div class="buscador-envoltura">
+                <form class="buscador-caja" id="formBuscar" autocomplete="off">
+                    <span class="lupa">🔎</span>
+                    <input type="text" id="cajaBuscar" maxlength="120" placeholder='Escribe un prefijo: "ace", "det", "fid", "har", "may"...'>
+                    <button type="button" class="limpiar" id="btnLimpiar" aria-label="Borrar búsqueda">✕</button>
+                    <button type="submit" class="buscar-btn">Buscar</button>
+                </form>
+                <div class="autocompletado-ia" id="autocompletadoIA" role="listbox" aria-label="Sugerencias predictivas del Árbol Trie"></div>
+            </div>
+            <div class="controles-buscador-ia">
+                <label class="selector-tienda-ia" for="selTiendaIA">
+                    <span>🏪 Tienda:</span>
+                    <select id="selTiendaIA" aria-label="Tienda para afinidad IA">
+                        <option value="">Todas las tiendas</option>
+                        <option value="Hipermercado Centro">Hipermercado Centro</option>
+                        <option value="Mayorista San Martín">Mayorista San Martín</option>
+                        <option value="Supermercado Lima Norte">Supermercado Lima Norte</option>
+                        <option value="Tienda Express Los Olivos">Tienda Express Los Olivos</option>
+                    </select>
+                </label>
+                <div class="switch-modo-ia" id="switchModoIA" role="group" aria-label="Modo de ordenamiento de búsqueda">
+                    <button type="button" class="modo-btn" data-modo="tradicional">🔤 Orden Tradicional (Alfabético)</button>
+                    <button type="button" class="modo-btn activo" data-modo="ia">🧠 Ranking Inteligente (IA)</button>
+                </div>
+                <span class="metrica-trie" id="metricaTrie" style="display:none;">⚡ Trie recursivo: 0.00 ms</span>
+            </div>
+            <div class="sugerencias" id="sugerencias">
+                <button type="button" data-q="aceite">aceite</button>
+                <button type="button" data-q="detergente">detergente</button>
+                <button type="button" data-q="fideos">fideos</button>
+                <button type="button" data-q="harina">harina</button>
+                <button type="button" data-q="mayonesa">mayonesa</button>
+                <button type="button" data-q="galletas">galletas</button>
+            </div>
+        </div>
+    </section>
+
+    <main class="container tienda-cuerpo">
+        <aside class="panel-categorias" id="panelCategorias">
+            <h3>Categorías</h3>
+        </aside>
+
+        <section>
+            <div class="cinta-inteligente" id="cintaInteligente"></div>
+            <div class="barra-herramientas">
+                <div class="titulo-lista"><span id="tituloLista">Todos los productos</span><span class="conteo" id="conteoLista"></span></div>
+                <div class="filtros" id="filtros">
+                    <select id="selMarca" aria-label="Marca"><option value="">Todas las marcas</option></select>
+                    <select id="selOrden" aria-label="Ordenar">
+                        <option value="">Orden normal</option>
+                        <option value="precio_asc">Precio: menor a mayor</option>
+                        <option value="precio_desc">Precio: mayor a menor</option>
+                        <option value="nombre">Nombre A-Z</option>
+                    </select>
+                </div>
+            </div>
+            <div class="rejilla" id="rejilla"></div>
+            <div class="paginacion" id="paginacion"></div>
+        </section>
+    </main>
+
+    <!-- Carrito -->
+    <div class="fondo-oscuro" id="fondoOscuro"></div>
+    <aside class="carrito-panel" id="carritoPanel" aria-label="Carrito de compras">
+        <header>
+            <h2>🛒 Tu carrito</h2>
+            <button type="button" class="cerrar" id="btnCerrarCarrito" aria-label="Cerrar">✕</button>
+        </header>
+        <div class="carrito-lista" id="carritoLista"></div>
+        <div class="carrito-pie">
+            <div class="resumen"><span>Productos distintos</span><span id="resLineas">0</span></div>
+            <div class="resumen"><span>Unidades</span><span id="resUnidades">0</span></div>
+            <div class="resumen total"><span>Total</span><span id="resTotal">S/ 0.00</span></div>
+            <button type="button" class="btn-grande" id="btnComprar" disabled>Finalizar compra</button>
+            <button type="button" class="btn-vaciar" id="btnVaciar">Vaciar carrito</button>
+        </div>
+    </aside>
+
+    <!-- Ventana para finalizar la compra -->
+    <div class="modal" id="modalCompra">
+        <div class="caja" id="cajaCompra"></div>
+    </div>
+
+    <div class="aviso" id="aviso"></div>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-bottom">
+                &copy; 2026 Alicorp S.A.A. Todos los derechos reservados.
+            </div>
+        </div>
+    </footer>
+    <script src="/compartido/script.js"></script>
+    <script src="/tienda_virtual/tienda_imagenes.js"></script>
+    <script src="/tienda_virtual/tienda.js"></script>
+    <script src="/chatbot/chatbot_base.js"></script>
+    <script src="/chatbot/chatbot_cliente.js"></script>
+</body>
+</html>
