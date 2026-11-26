@@ -2,11 +2,15 @@ package pe.com.alicorp.bi.modulos.acceso_biometria;
 
 import pe.com.alicorp.bi.config.DatabaseConfig;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Servicio de Seguridad y Administración Relacional en 3ra Forma Normal (3FN).
@@ -16,6 +20,62 @@ import java.util.*;
 public class ServicioSeguridadRelacional {
 
     private static final ZoneOffset ZONA_PERU = ZoneOffset.ofHours(-5);
+    private static final long TOKEN_REAUTH_TTL_MS = 5 * 60 * 1000L; // 5 minutos
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
+    private record TokenReauth(int idAdmin, String usuario, long expiraEnMs) {}
+
+    private final ConcurrentHashMap<String, TokenReauth> tokensReauth = new ConcurrentHashMap<>();
+
+    public static String hashPasswordSeguro(String passwordPlano) {
+        if (passwordPlano == null) return "";
+        try {
+            byte[] salt = new byte[16];
+            SECURE_RANDOM.nextBytes(salt);
+            String saltHex = bytesAHex(salt);
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] digest = md.digest((saltHex + ":" + passwordPlano).getBytes(StandardCharsets.UTF_8));
+            return "sha256$" + saltHex + "$" + bytesAHex(digest);
+        } catch (Exception e) {
+            return passwordPlano;
+        }
+    }
+
+    public static boolean verificarPassword(String passwordPlano, Object almacenadoObj) {
+        if (passwordPlano == null || almacenadoObj == null) return false;
+        String almacenado = String.valueOf(almacenadoObj);
+        if (almacenado.startsWith("sha256$")) {
+            String[] partes = almacenado.split("\\$");
+            if (partes.length != 3) return false;
+            try {
+                MessageDigest md = MessageDigest.getInstance("SHA-256");
+                byte[] calculado = md.digest((partes[1] + ":" + passwordPlano).getBytes(StandardCharsets.UTF_8));
+                byte[] esperado = hexABytes(partes[2]);
+                return MessageDigest.isEqual(calculado, esperado);
+            } catch (Exception e) {
+                return false;
+            }
+        }
+        return passwordPlano.equals(almacenado);
+    }
+
+    private static String bytesAHex(byte[] bytes) {
+        StringBuilder sb = new StringBuilder(bytes.length * 2);
+        for (byte b : bytes) {
+            sb.append(String.format("%02x", b));
+        }
+        return sb.toString();
+    }
+
+    private static byte[] hexABytes(String hex) {
+        int len = hex.length();
+        byte[] data = new byte[len / 2];
+        for (int i = 0; i < len; i += 2) {
+            data[i / 2] = (byte) ((Character.digit(hex.charAt(i), 16) << 4)
+                    + Character.digit(hex.charAt(i + 1), 16));
+        }
+        return data;
+    }
 
     public String obtenerClaveAccesoActual() {
         String sql = "SELECT valor_parametro FROM CONFIGURACION_SEGURIDAD WHERE clave_parametro = 'clave_acceso_personal'";
@@ -430,6 +490,251 @@ public class ServicioSeguridadRelacional {
             return nuevoTotal;
         } catch (Exception e) {
             return tiempoTotalCliente;
+        }
+    }
+
+    /**
+     * Re-verifica la identidad biométrica facial 128-D de un usuario activo contra su vector
+     * almacenado en ADMINISTRADORES y emite un token temporal (5 min) si distancia <= 0.78.
+     */
+    public Map<String, Object> reautenticarBiometriaUsuario(
+            String usuario,
+            String frameBase64,
+            ServicioBiometriaJavaCV motorBiometria) {
+        Map<String, Object> resp = new LinkedHashMap<>();
+        if (usuario == null || usuario.isBlank() || frameBase64 == null || frameBase64.isBlank()) {
+            resp.put("success", false);
+            resp.put("http_status", 400);
+            resp.put("message", "Usuario y captura facial son obligatorios.");
+            return resp;
+        }
+
+        Map<String, Object> perfil = obtenerPerfilUsuario3FN(usuario.trim());
+        if (perfil == null || !"activo".equalsIgnoreCase(String.valueOf(perfil.get("estado")))) {
+            resp.put("success", false);
+            resp.put("http_status", 401);
+            resp.put("message", "Usuario no encontrado o cuenta inactiva.");
+            return resp;
+        }
+
+        double[] embeddingActual = motorBiometria.parsearVectorJson(String.valueOf(perfil.get("face_encoding")));
+        if (embeddingActual == null) {
+            resp.put("success", false);
+            resp.put("http_status", 400);
+            resp.put("message", "Tu cuenta no cuenta con un vector biométrico 128-D registrado.");
+            return resp;
+        }
+
+        double[] nuevoEmbedding = motorBiometria.extraerEmbedding128D(frameBase64);
+        if (nuevoEmbedding == null) {
+            resp.put("success", false);
+            resp.put("http_status", 400);
+            resp.put("message", "No se pudo extraer un rostro válido. Mejora la iluminación e inténtalo de nuevo.");
+            return resp;
+        }
+
+        double distancia = motorBiometria.compararVectores(embeddingActual, nuevoEmbedding);
+        double distRedondeada = Math.round(distancia * 10000.0) / 10000.0;
+        if (distancia > ServicioBiometriaJavaCV.UMBRAL_DISTANCIA) {
+            resp.put("success", false);
+            resp.put("http_status", 401);
+            resp.put("distancia", distRedondeada);
+            resp.put("umbral", ServicioBiometriaJavaCV.UMBRAL_DISTANCIA);
+            resp.put("message", String.format("Identidad no verificada (distancia %.4f > %.2f).", distRedondeada, ServicioBiometriaJavaCV.UMBRAL_DISTANCIA));
+            return resp;
+        }
+
+        // Limpiar tokens expirados y emitir token temporal de verificación
+        long ahora = System.currentTimeMillis();
+        tokensReauth.entrySet().removeIf(e -> e.getValue().expiraEnMs() < ahora);
+
+        byte[] rawToken = new byte[24];
+        SECURE_RANDOM.nextBytes(rawToken);
+        String token = Base64.getUrlEncoder().withoutPadding().encodeToString(rawToken);
+        int idAdmin = (Integer) perfil.get("id_admin");
+        String usuarioCanon = String.valueOf(perfil.get("usuario"));
+        tokensReauth.put(token, new TokenReauth(idAdmin, usuarioCanon, ahora + TOKEN_REAUTH_TTL_MS));
+
+        double precision = Math.max(0.0, Math.min(99.9, Math.round((1.0 - (distancia / 1.5)) * 1000.0) / 10.0));
+        resp.put("success", true);
+        resp.put("http_status", 200);
+        resp.put("distancia", distRedondeada);
+        resp.put("umbral", ServicioBiometriaJavaCV.UMBRAL_DISTANCIA);
+        resp.put("precision", precision);
+        resp.put("token_verificacion", token);
+        resp.put("expira_segundos", (int) (TOKEN_REAUTH_TTL_MS / 1000L));
+        resp.put("message", "Identidad biométrica verificada. Formulario desbloqueado por 5 minutos.");
+        return resp;
+    }
+
+    /**
+     * Actualiza de forma atómica usuario, contraseña (hash SHA-256 con salt) y/o vector facial 128-D
+     * tras validar el token biométrico temporal, registrando trazabilidad en AMPLIACION_AUDITORIA.
+     */
+    public Map<String, Object> actualizarCredencialesCompletas(
+            String usuarioActual,
+            String tokenVerificacion,
+            String nuevoUsuario,
+            String nuevoPassword,
+            String nuevoFrameBase64,
+            ServicioBiometriaJavaCV motorBiometria) {
+
+        Map<String, Object> resp = new LinkedHashMap<>();
+        if (usuarioActual == null || usuarioActual.isBlank() || tokenVerificacion == null || tokenVerificacion.isBlank()) {
+            resp.put("success", false);
+            resp.put("http_status", 401);
+            resp.put("message", "Se requiere verificación biométrica vigente para modificar credenciales.");
+            return resp;
+        }
+
+        TokenReauth tok = tokensReauth.get(tokenVerificacion.trim());
+        long ahora = System.currentTimeMillis();
+        if (tok == null || tok.expiraEnMs() < ahora || !tok.usuario().equalsIgnoreCase(usuarioActual.trim())) {
+            tokensReauth.remove(tokenVerificacion.trim());
+            resp.put("success", false);
+            resp.put("http_status", 401);
+            resp.put("message", "Token de verificación biométrica inválido o expirado. Vuelve a escanear tu rostro.");
+            return resp;
+        }
+
+        String uNuevo = nuevoUsuario != null ? nuevoUsuario.trim() : "";
+        String pNuevo = nuevoPassword != null ? nuevoPassword : "";
+        String fNuevo = nuevoFrameBase64 != null ? nuevoFrameBase64.trim() : "";
+
+        boolean cambiaUsuario = !uNuevo.isEmpty() && !uNuevo.equals(tok.usuario());
+        boolean cambiaPassword = !pNuevo.isEmpty();
+        boolean cambiaBiometria = !fNuevo.isEmpty();
+
+        if (!cambiaUsuario && !cambiaPassword && !cambiaBiometria) {
+            resp.put("success", false);
+            resp.put("http_status", 400);
+            resp.put("message", "Debes modificar al menos un campo (usuario, contraseña o rostro 128-D).");
+            return resp;
+        }
+
+        if (cambiaUsuario && (uNuevo.length() < 3 || uNuevo.length() > 40 || !uNuevo.matches("[A-Za-z0-9._-]+"))) {
+            resp.put("success", false);
+            resp.put("http_status", 400);
+            resp.put("message", "El nuevo usuario debe tener entre 3 y 40 caracteres alfanuméricos (., _, -).");
+            return resp;
+        }
+
+        if (cambiaPassword) {
+            boolean largoOk = pNuevo.length() >= 8;
+            boolean mayusOk = pNuevo.matches(".*[A-Z].*");
+            boolean minusOk = pNuevo.matches(".*[a-z].*");
+            boolean numOk = pNuevo.matches(".*[0-9].*");
+            if (!largoOk || !mayusOk || !minusOk || !numOk) {
+                resp.put("success", false);
+                resp.put("http_status", 400);
+                resp.put("message", "La nueva contraseña debe tener mínimo 8 caracteres, una mayúscula, una minúscula y un número.");
+                return resp;
+            }
+        }
+
+        double[] nuevoVector = null;
+        String nuevoVectorJson = null;
+        double nuevaNormaL2 = 0.0;
+        if (cambiaBiometria) {
+            nuevoVector = motorBiometria.extraerEmbedding128D(fNuevo);
+            if (nuevoVector == null) {
+                resp.put("success", false);
+                resp.put("http_status", 400);
+                resp.put("message", "No se pudo extraer el nuevo vector facial 128-D. Intenta capturar con mejor luz.");
+                return resp;
+            }
+            nuevoVectorJson = motorBiometria.serializarVectorJson(nuevoVector);
+            nuevaNormaL2 = motorBiometria.calcularNormaL2(nuevoVector);
+        }
+
+        try (Connection conn = DatabaseConfig.getDataSource().getConnection()) {
+            boolean prevAuto = conn.getAutoCommit();
+            conn.setAutoCommit(false);
+            try {
+                // 1. Verificar colisión de nuevo usuario si cambió
+                if (cambiaUsuario) {
+                    try (PreparedStatement psDup = conn.prepareStatement(
+                            "SELECT 1 FROM ADMINISTRADORES WHERE UPPER(usuario) = UPPER(?) AND id_admin <> ?")) {
+                        psDup.setString(1, uNuevo);
+                        psDup.setInt(2, tok.idAdmin());
+                        try (ResultSet rs = psDup.executeQuery()) {
+                            if (rs.next()) {
+                                conn.rollback();
+                                resp.put("success", false);
+                                resp.put("http_status", 409);
+                                resp.put("message", "El nombre de usuario '" + uNuevo + "' ya está en uso.");
+                                return resp;
+                            }
+                        }
+                    }
+                }
+
+                // 2. Construir UPDATE dinámico sobre ADMINISTRADORES
+                List<String> sets = new ArrayList<>();
+                List<Object> params = new ArrayList<>();
+                if (cambiaUsuario) {
+                    sets.add("usuario = ?");
+                    params.add(uNuevo);
+                }
+                if (cambiaPassword) {
+                    sets.add("password_hash = ?");
+                    params.add(hashPasswordSeguro(pNuevo));
+                }
+                if (cambiaBiometria) {
+                    sets.add("face_encoding = ?");
+                    params.add(nuevoVectorJson);
+                    sets.add("l2_norm = ?");
+                    params.add(nuevaNormaL2);
+                }
+                params.add(tok.idAdmin());
+
+                String sqlUpd = "UPDATE ADMINISTRADORES SET " + String.join(", ", sets) + " WHERE id_admin = ?";
+                try (PreparedStatement psUpd = conn.prepareStatement(sqlUpd)) {
+                    for (int i = 0; i < params.size(); i++) {
+                        Object val = params.get(i);
+                        if (val instanceof Integer iv) psUpd.setInt(i + 1, iv);
+                        else if (val instanceof Double dv) psUpd.setDouble(i + 1, dv);
+                        else psUpd.setString(i + 1, String.valueOf(val));
+                    }
+                    psUpd.executeUpdate();
+                }
+
+                // 3. Registrar trazabilidad en AMPLIACION_AUDITORIA dentro de la misma transacción
+                try (PreparedStatement psAud = conn.prepareStatement(
+                        "INSERT INTO AMPLIACION_AUDITORIA (id_admin_ejecutor, id_admin_objetivo, accion, detalle) VALUES (?, ?, ?, ?)")) {
+                    psAud.setInt(1, tok.idAdmin());
+                    psAud.setInt(2, tok.idAdmin());
+                    psAud.setString(3, "MODIFICACION_CREDENCIALES_PROPIAS");
+                    psAud.setString(4, "Actualización de usuario/clave/biometría tras re-autenticación facial");
+                    psAud.executeUpdate();
+                }
+
+                conn.commit();
+                tokensReauth.remove(tokenVerificacion.trim());
+
+                String usuarioFinal = cambiaUsuario ? uNuevo : tok.usuario();
+                resp.put("success", true);
+                resp.put("http_status", 200);
+                resp.put("usuario", usuarioFinal);
+                resp.put("biometria_actualizada", cambiaBiometria);
+                resp.put("l2_norm", cambiaBiometria ? nuevaNormaL2 : null);
+                resp.put("mensaje", "Credenciales actualizadas exitosamente");
+                resp.put("message", "Credenciales actualizadas exitosamente");
+                return resp;
+            } catch (SQLException ex) {
+                try { conn.rollback(); } catch (SQLException ignored) {}
+                resp.put("success", false);
+                resp.put("http_status", 500);
+                resp.put("message", "Error transaccional al actualizar credenciales: " + ex.getMessage());
+                return resp;
+            } finally {
+                try { conn.setAutoCommit(prevAuto); } catch (SQLException ignored) {}
+            }
+        } catch (SQLException e) {
+            resp.put("success", false);
+            resp.put("http_status", 500);
+            resp.put("message", "Error de conexión con base de datos: " + e.getMessage());
+            return resp;
         }
     }
 }

@@ -1242,6 +1242,10 @@
                 <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
                 <span class="nav-label">Incidencias y SLA</span>
             </button>
+            <button type="button" data-go="perfil" id="btnMenuPerfil" data-tip="Mi Perfil y Seguridad" title="Mi Perfil y Seguridad">
+                <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4z"/><path d="M4 20a8 8 0 0 1 8-6"/><path d="M18 14l4 1.5V19c0 2-1.7 3.4-4 4-2.3-.6-4-2-4-4v-3.5L18 14z"/></svg></span>
+                <span class="nav-label">Mi Perfil y Seguridad</span>
+            </button>
             <button type="button" data-go="estrategia" id="btnMenuEstrategia" data-tip="Estrategia IA" title="Estrategia IA (SuperAdmin)" style="display:none;">
                 <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg></span>
                 <span class="nav-label">Estrategia IA</span>
@@ -2471,11 +2475,99 @@
             </div>
         </section>
 
+        <!-- ================= VISTA: MI PERFIL Y SEGURIDAD (TRANSVERSAL: TODOS LOS ROLES) ================= -->
+        <section id="vista-perfil" class="vista">
+            <div class="page-hero">
+                <div class="crumbs">Inicio / <b>Mi Perfil y Seguridad</b></div>
+                <span class="chip" style="margin-bottom:8px;">Doble Factor Biométrico 128-D · Analista &amp; SuperAdmin</span>
+                <h1>Mi Perfil y Seguridad</h1>
+                <p>Actualización de credenciales y renovación de huella facial 128-D.</p>
+            </div>
+            <div class="contenido">
+                <!-- Fase 1: Banner de Bloqueo de Seguridad -->
+                <div class="perfil-lock-banner" id="perfilLockBanner">
+                    <div class="perfil-lock-icon" id="perfilLockIcon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    </div>
+                    <div style="flex:1;">
+                        <strong id="perfilLockTitle" style="display:block; font-size:14px; color:var(--text-main);">Edición Bloqueada — Re-verificación Requerida</strong>
+                        <span id="perfilLockMsg" style="font-size:13px; color:var(--text-muted);">Por protocolo de seguridad corporativa, debes verificar tu identidad biométrica actual antes de modificar tus credenciales.</span>
+                    </div>
+                </div>
+
+                <div class="perfil-grid">
+                    <!-- Panel Izquierdo: Fase 2 — Re-verificación Facial en Vivo -->
+                    <div class="panel">
+                        <h3 style="margin:0 0 6px; font-size:16px;">1. Verificación Biométrica Actual</h3>
+                        <p style="margin:0 0 14px; font-size:13px; color:var(--text-muted);">Compara tu rostro en vivo contra el vector 128-D registrado (umbral euclidiano ≤ 0.78).</p>
+
+                        <div id="perfCamWrapper" style="display:none;">
+                            <div class="perfil-bio-viewport" id="perfBioViewport">
+                                <video id="perfVideo" autoplay playsinline></video>
+                                <svg class="perfil-bio-guide" viewBox="0 0 400 250" preserveAspectRatio="none" aria-hidden="true">
+                                    <defs>
+                                        <mask id="perfFaceCutout">
+                                            <rect width="400" height="250" fill="white"/>
+                                            <ellipse cx="200" cy="125" rx="72" ry="92" fill="black"/>
+                                        </mask>
+                                    </defs>
+                                    <rect width="400" height="250" fill="rgba(7,10,18,0.45)" mask="url(#perfFaceCutout)"/>
+                                    <ellipse cx="200" cy="125" rx="72" ry="92" fill="none" stroke="rgba(255,255,255,0.78)" stroke-width="2" stroke-dasharray="6 5"/>
+                                </svg>
+                                <div class="perfil-scan-line" id="perfScanLine"></div>
+                                <canvas id="perfCanvas" style="display:none;"></canvas>
+                            </div>
+                        </div>
+
+                        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                            <button type="button" class="btn-run" id="btnPerfIniciarEscaneo" style="flex:1;">Escanear Rostro para Desbloquear</button>
+                            <button type="button" class="btn-run" id="btnPerfValidarRostro" style="flex:1; display:none; background:linear-gradient(135deg,#059669,#10b981);">Validar Identidad Ahora</button>
+                        </div>
+                        <p id="perfStatusBio" class="hint" style="margin:12px 0 0;">Presiona el botón para activar tu cámara y validar tu identidad.</p>
+                    </div>
+
+                    <!-- Panel Derecho: Fase 3 & 4 — Edición de Credenciales y Biometría -->
+                    <div class="panel perfil-form-locked" id="perfFormPanel">
+                        <h3 style="margin:0 0 6px; font-size:16px;">2. Modificar Credenciales y Biometría</h3>
+                        <p style="margin:0 0 14px; font-size:13px; color:var(--text-muted);">Completa solo los campos que deseas actualizar.</p>
+
+                        <form id="formActualizarCredenciales" autocomplete="off">
+                            <div class="field" style="margin-bottom:12px;">
+                                <label for="perfNuevoUsuario">Nombre de Usuario</label>
+                                <input type="text" id="perfNuevoUsuario" placeholder="Nuevo usuario corporativo" maxlength="40" disabled>
+                            </div>
+                            <div class="field" style="margin-bottom:12px;">
+                                <label for="perfNuevoPass">Nueva Contraseña <small style="color:var(--text-muted);">(mín. 8 caracteres, mayúscula, minúscula y número)</small></label>
+                                <input type="password" id="perfNuevoPass" placeholder="Dejar vacío para mantener la actual" disabled>
+                            </div>
+                            <div class="field" style="margin-bottom:14px;">
+                                <label for="perfConfirmPass">Confirmar Nueva Contraseña</label>
+                                <input type="password" id="perfConfirmPass" placeholder="Repite la nueva contraseña" disabled>
+                            </div>
+
+                            <div style="padding:12px 14px; border-radius:12px; border:1px solid var(--border); background:var(--surface-subtle); margin-bottom:16px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+                                    <div>
+                                        <strong style="font-size:13px; color:var(--text-main);">Renovar Vector Biométrico 128-D (Opcional)</strong>
+                                        <div id="perfNuevoRostroEstado" style="font-size:12px; color:var(--text-muted); margin-top:2px;">Se conservará tu registro facial actual.</div>
+                                    </div>
+                                    <button type="button" class="btn-secundario" id="btnPerfCapturarNuevoRostro" style="padding:8px 14px; font-size:12.5px;" disabled>Capturar Nuevo Rostro</button>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn-run" id="btnPerfGuardar" style="width:100%;" disabled>Guardar Cambios de Seguridad</button>
+                            <p id="perfStatusGuardar" class="hint" style="margin:12px 0 0;"></p>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- ================= PIE DE PÁGINA ================= -->
         <footer class="footer">
             <div class="footer-grid">
                 <div><h5>Alicorp Intelligence</h5><p>Suite ejecutiva de Business Intelligence y Machine Learning conectada a Supabase PostgreSQL.</p></div>
-                <div><h5>Módulos</h5><button data-go="inicio">Resumen Ejecutivo</button><button data-go="productos">Portafolio y Stock</button><button data-go="compras">Órdenes Web</button><button data-go="prediccion">Pronóstico Lineal</button><button data-go="keras">Simulador Neuronal</button><button data-go="segmentacion">Clusters K-Means</button><button data-go="estadistica">Riesgo Estadístico</button><button data-go="reporte">Cierre Mensual</button><button data-go="incidencias">Incidencias y SLA</button></div>
+                <div><h5>Módulos</h5><button data-go="inicio">Resumen Ejecutivo</button><button data-go="productos">Portafolio y Stock</button><button data-go="compras">Órdenes Web</button><button data-go="prediccion">Pronóstico Lineal</button><button data-go="keras">Simulador Neuronal</button><button data-go="segmentacion">Clusters K-Means</button><button data-go="estadistica">Riesgo Estadístico</button><button data-go="reporte">Cierre Mensual</button><button data-go="incidencias">Incidencias y SLA</button><button data-go="perfil">Mi Perfil y Seguridad</button></div>
                 <div><h5>Arquitectura</h5><p>Java 21 · Javalin 6<br>DL4J · Smile ML · JavaCV<br>Supabase PostgreSQL · Chart.js</p></div>
             </div>
             <div class="copy">© 2026 Corporación Alicorp S.A.A. · Executive Business Intelligence Suite</div>
@@ -2575,6 +2667,7 @@
             'estadistica',
             'estrategia',
             'incidencias',
+            'perfil',
             'administracion',
             'seguridad'
         ];
@@ -2871,6 +2964,12 @@
                     // Control de refresco en vivo para el panel de usuarios de SuperAdmin y solicitudes de llave
                     if (typeof iniciarRefrescoPanelSuperAdmin === 'function') iniciarRefrescoPanelSuperAdmin();
                     break;
+                case 'perfil':
+                    if (typeof prepararVistaPerfil === 'function') prepararVistaPerfil();
+                    break;
+            }
+            if (nombre !== 'perfil' && typeof detenerCamaraPerfil === 'function') {
+                detenerCamaraPerfil();
             }
             if (nombre !== 'seguridad' && typeof detenerRefrescoPanelSuperAdmin === 'function') {
                 detenerRefrescoPanelSuperAdmin();
@@ -2914,6 +3013,254 @@
                 try { localStorage.setItem('alicorp_capsula_colapsada', siguiente ? '1' : '0'); } catch (e) {}
             });
         })();
+
+        // =========================================================================
+        // MÓDULO TRANSVERSAL: MI PERFIL Y SEGURIDAD (DOBLE FACTOR BIOMÉTRICO 128-D)
+        // =========================================================================
+        let perfStream = null;
+        let perfTokenVerificacion = null;
+        let perfNuevoFrameB64 = '';
+
+        function obtenerUsuarioActivoSeguro() {
+            try {
+                if (typeof sesionUsuario !== 'undefined' && sesionUsuario && sesionUsuario.usuario) {
+                    return String(sesionUsuario.usuario).trim();
+                }
+            } catch (e) {}
+            try {
+                const raw = sessionStorage.getItem('usuario_activo') || localStorage.getItem('usuario_activo');
+                if (raw) {
+                    const obj = JSON.parse(raw);
+                    if (obj && obj.usuario) return String(obj.usuario).trim();
+                }
+            } catch (e) {}
+            return '';
+        }
+
+        function detenerCamaraPerfil() {
+            if (perfStream) {
+                try { perfStream.getTracks().forEach(t => t.stop()); } catch (e) {}
+                perfStream = null;
+            }
+            if ($('perfVideo')) $('perfVideo').srcObject = null;
+        }
+
+        function bloquearFormularioPerfil(mantenerMensaje) {
+            perfTokenVerificacion = null;
+            perfNuevoFrameB64 = '';
+            const banner = $('perfilLockBanner');
+            const panel = $('perfFormPanel');
+            if (banner) banner.classList.remove('unlocked');
+            if (panel) panel.classList.remove('unlocked');
+            if ($('perfilLockTitle')) $('perfilLockTitle').textContent = 'Edición Bloqueada — Re-verificación Requerida';
+            if ($('perfilLockMsg') && !mantenerMensaje) {
+                $('perfilLockMsg').textContent = 'Por protocolo de seguridad corporativa, debes verificar tu identidad biométrica actual antes de modificar tus credenciales.';
+            }
+            ['perfNuevoUsuario', 'perfNuevoPass', 'perfConfirmPass', 'btnPerfCapturarNuevoRostro', 'btnPerfGuardar'].forEach(id => {
+                if ($(id)) $(id).disabled = true;
+            });
+            if ($('perfNuevoRostroEstado')) $('perfNuevoRostroEstado').textContent = 'Se conservará tu registro facial actual.';
+        }
+
+        function desbloquearFormularioPerfil(token, distancia, precision) {
+            perfTokenVerificacion = token;
+            const banner = $('perfilLockBanner');
+            const panel = $('perfFormPanel');
+            if (banner) banner.classList.add('unlocked');
+            if (panel) panel.classList.add('unlocked');
+            if ($('perfilLockTitle')) $('perfilLockTitle').textContent = 'Identidad Biométrica Verificada — Edición Habilitada';
+            if ($('perfilLockMsg')) {
+                $('perfilLockMsg').textContent = `Match 128-D confirmado (distancia ${distancia} · precisión ${precision}%). Tienes 5 minutos para guardar tus cambios.`;
+            }
+            ['perfNuevoUsuario', 'perfNuevoPass', 'perfConfirmPass', 'btnPerfCapturarNuevoRostro', 'btnPerfGuardar'].forEach(id => {
+                if ($(id)) $(id).disabled = false;
+            });
+            if ($('perfNuevoUsuario')) $('perfNuevoUsuario').value = obtenerUsuarioActivoSeguro();
+        }
+
+        function prepararVistaPerfil() {
+            if (!perfTokenVerificacion) {
+                bloquearFormularioPerfil(false);
+                if ($('perfNuevoUsuario')) $('perfNuevoUsuario').value = obtenerUsuarioActivoSeguro();
+            }
+        }
+
+        async function asegurarCamaraPerfil() {
+            if (perfStream) return true;
+            const wrap = $('perfCamWrapper');
+            if (wrap) wrap.style.display = 'block';
+            try {
+                perfStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                if ($('perfVideo')) $('perfVideo').srcObject = perfStream;
+                return true;
+            } catch (e) {
+                if ($('perfBioViewport')) {
+                    $('perfBioViewport').classList.remove('state-scanning', 'state-match');
+                    $('perfBioViewport').classList.add('state-error');
+                }
+                if ($('perfStatusBio')) $('perfStatusBio').innerHTML = '<span style="color:var(--danger);font-weight:700;">No se pudo acceder a la cámara. Revisa permisos del navegador.</span>';
+                return false;
+            }
+        }
+
+        function capturarFramePerfil() {
+            const v = $('perfVideo');
+            const c = $('perfCanvas');
+            if (!v || !c || !v.videoWidth) return '';
+            c.width = v.videoWidth;
+            c.height = v.videoHeight;
+            c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+            return c.toDataURL('image/jpeg');
+        }
+
+        if ($('btnPerfIniciarEscaneo')) {
+            $('btnPerfIniciarEscaneo').addEventListener('click', async () => {
+                $('perfStatusBio').textContent = 'Activando cámara biométrica...';
+                const ok = await asegurarCamaraPerfil();
+                if (ok) {
+                    $('btnPerfIniciarEscaneo').style.display = 'none';
+                    if ($('btnPerfValidarRostro')) $('btnPerfValidarRostro').style.display = 'inline-flex';
+                    $('perfStatusBio').textContent = 'Cámara lista. Ubica tu rostro dentro del óvalo guía y valida.';
+                }
+            });
+        }
+
+        if ($('btnPerfValidarRostro')) {
+            $('btnPerfValidarRostro').addEventListener('click', async () => {
+                const usuario = obtenerUsuarioActivoSeguro();
+                if (!usuario) {
+                    $('perfStatusBio').innerHTML = '<span style="color:var(--danger);font-weight:700;">No se detectó sesión activa.</span>';
+                    return;
+                }
+                const frame = capturarFramePerfil();
+                if (!frame) {
+                    $('perfStatusBio').innerHTML = '<span style="color:var(--danger);font-weight:700;">Espera un instante a que la cámara inicie.</span>';
+                    return;
+                }
+
+                const vp = $('perfBioViewport');
+                const sl = $('perfScanLine');
+                const btnVal = $('btnPerfValidarRostro');
+                btnVal.disabled = true;
+                if (vp) { vp.classList.remove('state-match', 'state-error'); vp.classList.add('state-scanning'); }
+                if (sl) sl.classList.add('scanning');
+                $('perfStatusBio').textContent = 'Comparando vector 128-D contra registro en Supabase...';
+
+                try {
+                    const res = await fetch('/api/usuario/reautenticar_biometria', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ usuario, frame_base64: frame })
+                    });
+                    const data = await res.json();
+                    if (sl) sl.classList.remove('scanning');
+                    btnVal.disabled = false;
+
+                    if (res.ok && data.success && data.token_verificacion) {
+                        if (vp) { vp.classList.remove('state-scanning', 'state-error'); vp.classList.add('state-match'); }
+                        $('perfStatusBio').innerHTML = `<span style="color:var(--success);font-weight:700;">Identidad confirmada (distancia ${data.distancia} ≤ 0.78).</span>`;
+                        desbloquearFormularioPerfil(data.token_verificacion, data.distancia, data.precision);
+                    } else {
+                        if (vp) { vp.classList.remove('state-scanning', 'state-match'); vp.classList.add('state-error'); }
+                        $('perfStatusBio').innerHTML = `<span style="color:var(--danger);font-weight:700;">${data.message || 'Verificación facial rechazada.'}</span>`;
+                    }
+                } catch (e) {
+                    if (sl) sl.classList.remove('scanning');
+                    btnVal.disabled = false;
+                    if (vp) { vp.classList.remove('state-scanning', 'state-match'); vp.classList.add('state-error'); }
+                    $('perfStatusBio').innerHTML = '<span style="color:var(--danger);font-weight:700;">Error de conexión al validar biometría.</span>';
+                }
+            });
+        }
+
+        if ($('btnPerfCapturarNuevoRostro')) {
+            $('btnPerfCapturarNuevoRostro').addEventListener('click', async () => {
+                const ok = await asegurarCamaraPerfil();
+                if (!ok) return;
+                const frame = capturarFramePerfil();
+                if (!frame) {
+                    $('perfNuevoRostroEstado').innerHTML = '<span style="color:var(--danger);">Aguarda 1 segundo y vuelve a capturar.</span>';
+                    return;
+                }
+                perfNuevoFrameB64 = frame;
+                $('perfNuevoRostroEstado').innerHTML = '<span style="color:var(--success);font-weight:700;">Nuevo fotograma capturado (se recalculará el vector 128-D y norma L2 al guardar).</span>';
+            });
+        }
+
+        if ($('formActualizarCredenciales')) {
+            $('formActualizarCredenciales').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const statusEl = $('perfStatusGuardar');
+                if (!perfTokenVerificacion) {
+                    statusEl.innerHTML = '<span style="color:var(--danger);font-weight:700;">Debes verificar tu rostro primero.</span>';
+                    return;
+                }
+                const usuarioActual = obtenerUsuarioActivoSeguro();
+                const nuevoUsuario = ($('perfNuevoUsuario')?.value || '').trim();
+                const nuevoPass = $('perfNuevoPass')?.value || '';
+                const confirmPass = $('perfConfirmPass')?.value || '';
+
+                if (nuevoPass && nuevoPass !== confirmPass) {
+                    statusEl.innerHTML = '<span style="color:var(--danger);font-weight:700;">Las contraseñas no coinciden.</span>';
+                    return;
+                }
+                if (nuevoPass && (nuevoPass.length < 8 || !/[A-Z]/.test(nuevoPass) || !/[a-z]/.test(nuevoPass) || !/[0-9]/.test(nuevoPass))) {
+                    statusEl.innerHTML = '<span style="color:var(--danger);font-weight:700;">La contraseña debe tener mínimo 8 caracteres, mayúscula, minúscula y número.</span>';
+                    return;
+                }
+
+                const btnGuardar = $('btnPerfGuardar');
+                btnGuardar.disabled = true;
+                statusEl.textContent = 'Actualizando credenciales en transacción segura...';
+
+                try {
+                    const res = await fetch('/api/usuario/actualizar_credenciales', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            usuario_actual: usuarioActual,
+                            token_verificacion: perfTokenVerificacion,
+                            nuevo_usuario: nuevoUsuario,
+                            nuevo_password: nuevoPass,
+                            nuevo_frame_base64: perfNuevoFrameB64
+                        })
+                    });
+                    const data = await res.json();
+                    if (res.ok && data.success) {
+                        const usuarioFinal = data.usuario || usuarioActual;
+                        // Sincronizar usuario_activo en sessionStorage/localStorage y cápsula flotante
+                        try {
+                            const raw = sessionStorage.getItem('usuario_activo') || localStorage.getItem('usuario_activo');
+                            const obj = raw ? JSON.parse(raw) : {};
+                            obj.usuario = usuarioFinal;
+                            const str = JSON.stringify(obj);
+                            sessionStorage.setItem('usuario_activo', str);
+                            localStorage.setItem('usuario_activo', str);
+                            localStorage.setItem('ultimo_usuario', usuarioFinal);
+                            if (typeof sesionUsuario !== 'undefined' && sesionUsuario) sesionUsuario.usuario = usuarioFinal;
+                        } catch (err) {}
+
+                        if ($('txtAliasUsuario')) $('txtAliasUsuario').textContent = '@' + usuarioFinal;
+                        if ($('perfNuevoPass')) $('perfNuevoPass').value = '';
+                        if ($('perfConfirmPass')) $('perfConfirmPass').value = '';
+
+                        detenerCamaraPerfil();
+                        if ($('perfCamWrapper')) $('perfCamWrapper').style.display = 'none';
+                        if ($('btnPerfIniciarEscaneo')) $('btnPerfIniciarEscaneo').style.display = 'inline-flex';
+                        if ($('btnPerfValidarRostro')) $('btnPerfValidarRostro').style.display = 'none';
+
+                        statusEl.innerHTML = `<span style="color:var(--success);font-weight:700;">${data.mensaje || 'Credenciales actualizadas exitosamente'}. Evento registrado en auditoría.</span>`;
+                        bloquearFormularioPerfil(false);
+                    } else {
+                        btnGuardar.disabled = false;
+                        statusEl.innerHTML = `<span style="color:var(--danger);font-weight:700;">${data.message || 'No se pudieron actualizar las credenciales.'}</span>`;
+                    }
+                } catch (err) {
+                    btnGuardar.disabled = false;
+                    statusEl.innerHTML = '<span style="color:var(--danger);font-weight:700;">Error de red al actualizar credenciales.</span>';
+                }
+            });
+        }
 
         // Cerrar sesión: limpia la sesión del navegador y vuelve al login (/portal_institucional/index.html)
         const limpiarSesionSalir = () => {

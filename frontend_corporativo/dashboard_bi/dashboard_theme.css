@@ -1517,6 +1517,135 @@ table tbody tr:hover {
     }
 }
 
+/* ===== MÓDULO TRANSVERSAL: MI PERFIL Y SEGURIDAD (RE-VERIFICACIÓN BIOMÉTRICA) ===== */
+.perfil-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 20px;
+    align-items: start;
+}
+
+.perfil-lock-banner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 20px;
+    border-radius: var(--radius);
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.36);
+    color: var(--text-main);
+    margin-bottom: 20px;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    transition: all 0.28s ease;
+}
+
+.perfil-lock-banner.unlocked {
+    background: rgba(16, 185, 129, 0.14);
+    border-color: rgba(16, 185, 129, 0.42);
+}
+
+.perfil-lock-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(245, 158, 11, 0.18);
+    color: var(--warning);
+}
+
+.perfil-lock-banner.unlocked .perfil-lock-icon {
+    background: rgba(16, 185, 129, 0.2);
+    color: var(--success);
+}
+
+.perfil-lock-icon svg {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.perfil-bio-viewport {
+    position: relative;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #070a12;
+    height: 250px;
+    border: 2px solid var(--border-strong);
+    margin-bottom: 12px;
+    transition: border-color 0.28s ease, box-shadow 0.28s ease;
+}
+
+.perfil-bio-viewport.state-scanning {
+    border-color: #0ea5e9;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.28);
+}
+
+.perfil-bio-viewport.state-match {
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.3);
+}
+
+.perfil-bio-viewport.state-error {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.28);
+}
+
+.perfil-bio-viewport video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.perfil-bio-guide {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 4;
+}
+
+.perfil-scan-line {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #38bdf8, transparent);
+    box-shadow: 0 0 12px #38bdf8;
+    display: none;
+    z-index: 8;
+}
+
+.perfil-scan-line.scanning {
+    display: block;
+    animation: perfilScan 2s infinite ease-in-out;
+}
+
+@keyframes perfilScan {
+    0%   { top: 4%; }
+    50%  { top: 94%; }
+    100% { top: 4%; }
+}
+
+.perfil-form-locked {
+    opacity: 0.62;
+    transition: opacity 0.25s ease;
+}
+
+.perfil-form-locked.unlocked {
+    opacity: 1;
+}
+
 @media print {
     .top-shell,
     .profile-capsule,

@@ -3,112 +3,160 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acceso Personal Autorizado | Alicorp</title>
+    <title>Acceso Personal Autorizado | Alicorp BI</title>
     <link rel="icon" type="image/x-icon" href="/compartido/favicon.ico">
     <link rel="apple-touch-icon" href="/compartido/favicon.png">
-    <link rel="stylesheet" href="/compartido/estilos.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
-    <style>
-        /* Animación del escáner láser */
-        .scan-line {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: rgba(2, 132, 199, 0.8);
-            box-shadow: 0 0 10px rgba(2, 132, 199, 1), 0 0 20px rgba(2, 132, 199, 0.8);
-            display: none;
-            z-index: 10;
-        }
-        @keyframes scan {
-            0% { top: 0%; }
-            50% { top: calc(100% - 4px); }
-            100% { top: 0%; }
-        }
-        .scanning {
-            display: block !important;
-            animation: scan 2s infinite ease-in-out; /* Velocidad acoplada al tiempo de la IA */
-        }
-        
-        /* Marco guía para el rostro */
-        .face-guide {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 140px;
-            height: 180px;
-            border: 2px dashed rgba(255, 255, 255, 0.7);
-            border-radius: 50%; /* Forma ovalada */
-            pointer-events: none; /* Que no interfiera con clicks */
-            z-index: 5;
-            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.4); /* Oscurece el fondo alrededor */
-        }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        (function() {
+            try {
+                if (localStorage.getItem('alicorp_tema') === 'dark') {
+                    document.documentElement.classList.add('dark-mode');
+                }
+            } catch (e) {}
+        })();
+    </script>
+    <link rel="stylesheet" href="/acceso_seguridad/acceso_theme.css">
 </head>
 <body>
-    <div class="login-container">
-        <div class="login-box">
-            <h2 style="color: var(--color-primary); margin-bottom: 20px;">Personal Autorizado</h2>
-            <p>Acceso restringido para personal autorizado.</p>
-            
-            <div style="display: flex; flex-direction: column; gap: 20px;">
-                <!-- SECCIÓN: LOGIN TRADICIONAL -->
-                <div style="border: 1px solid #e2e8f0; padding: 20px; border-radius: 10px; text-align: left;" id="seccionTradicional">
-                    <h3 style="color: var(--color-primary); margin-bottom: 15px; font-size: 1.1rem;">👤 Ingreso Clásico (Requiere Foto)</h3>
-                    <input type="text" id="inputUsuario" placeholder="Usuario" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #cbd5e1; border-radius: 5px;">
-                    
-                    <div style="position: relative; width: 100%; margin-bottom: 15px;">
-                        <input type="password" id="inputPassword" placeholder="Contraseña" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 5px; padding-right: 40px;">
-                        <button id="btnTogglePassword" type="button" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 1.2rem; color: #64748b;">👁️</button>
-                    </div>
-
-                    <button id="btnTradicional" class="btn-primary" style="width: 100%; border: none; cursor: pointer;">Siguiente: Verificación Facial</button>
-                    <p id="statusTradicional" style="font-size: 0.85rem; margin-top: 10px;"></p>
-                </div>
-
-                <div style="text-align: center; color: #94a3b8; font-weight: bold;">O ACCESO DIRECTO</div>
-
-                <!-- SECCIÓN: LOGIN BIOMÉTRICO -->
-                <div style="border: 1px solid #e2e8f0; padding: 20px; border-radius: 10px;" id="seccionBiometrica">
-                    <h3 style="color: var(--color-primary); margin-bottom: 15px; font-size: 1.1rem;">📷 Reconocimiento Facial</h3>
-                    
-                    <button id="btnEncenderCamara" class="btn-admin" style="width: 100%; cursor: pointer; margin-bottom: 15px;">📹 Activar Cámara</button>
-
-                    <div id="contenedorVideo" style="display: none; position: relative;">
-                        <div class="video-container" style="position: relative; border: 2px dashed var(--color-primary); border-radius: 10px; overflow: hidden; background-color: #000; height: 250px;">
-                            <video id="videoElement" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover; display: block;"></video>
-                            <div class="face-guide"></div>
-                            <div class="scan-line" id="scanLine"></div>
-                            <canvas id="canvasElement" style="display: none;"></canvas>
-                        </div>
-                        
-                        <p id="statusMensaje" style="font-size: 0.9rem; color: #666; margin-bottom: 20px; margin-top: 10px;">
-                            Cargando cámara...
-                        </p>
-
-                        <button id="btnCapturar" class="btn-primary" style="width: 100%; border: none; cursor: pointer; background-color: var(--color-primary);">Validar Identidad</button>
-                    </div>
-                </div>
+    <!-- Fondo Fijo Global de Olas Marinas SVG (Light & Dark) -->
+    <div class="ocean-waves-bg" aria-hidden="true">
+        <div class="wave-layer wave-layer-1">
+            <div class="wave-track wave-track-1">
+                <svg class="wave-svg" viewBox="0 0 2880 320" preserveAspectRatio="none">
+                    <defs><linearGradient id="authWave1" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" class="wave-stop-1-start"/><stop offset="100%" class="wave-stop-1-end"/></linearGradient></defs>
+                    <path fill="url(#authWave1)" d="M0,110 Q360,20 720,110 T1440,110 T2160,110 T2880,110 L2880,320 L0,320 Z"/>
+                </svg>
             </div>
-
-            <div style="margin-top: 30px; display: flex; justify-content: space-between; align-items: center;">
-                <a href="/portal_institucional/index.html" class="btn-admin" style="display: inline-block;">← Volver al Inicio</a>
-                <a href="/acceso_seguridad/registro.html" style="color: var(--color-primary); text-decoration: none; font-weight: 600;">✚ Nuevo Registro</a>
+        </div>
+        <div class="wave-layer wave-layer-2">
+            <div class="wave-track wave-track-2">
+                <svg class="wave-svg" viewBox="0 0 2880 320" preserveAspectRatio="none">
+                    <defs><linearGradient id="authWave2" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" class="wave-stop-2-start"/><stop offset="100%" class="wave-stop-2-end"/></linearGradient></defs>
+                    <path fill="url(#authWave2)" d="M0,130 Q180,210 360,130 T720,130 T1080,130 T1440,130 T1800,130 T2160,130 T2520,130 T2880,130 L2880,320 L0,320 Z"/>
+                </svg>
+            </div>
+        </div>
+        <div class="wave-layer wave-layer-3">
+            <div class="wave-track wave-track-3">
+                <svg class="wave-svg" viewBox="0 0 2880 320" preserveAspectRatio="none">
+                    <defs><linearGradient id="authWave3" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" class="wave-stop-3-start"/><stop offset="100%" class="wave-stop-3-end"/></linearGradient></defs>
+                    <path fill="url(#authWave3)" d="M0,155 C240,65 480,245 720,155 C960,65 1200,245 1440,155 C1680,65 1920,245 2160,155 C2400,65 2640,245 2880,155 L2880,320 L0,320 Z"/>
+                </svg>
             </div>
         </div>
     </div>
 
-    <!-- Script para ambos métodos de login -->
+    <!-- Barra Superior Minimalista -->
+    <header class="auth-topbar">
+        <a href="/portal_institucional/index.html" class="auth-brand-pill" title="Volver al portal institucional">
+            <span class="auth-brand-mark" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            </span>
+            <span>Alicorp BI</span>
+        </a>
+        <button type="button" class="theme-toggle-pill" id="themeToggleBtn" aria-label="Alternar tema claro u oscuro">
+            <span id="themeIcon" aria-hidden="true"></span>
+            <span id="themeText">Modo Oscuro</span>
+        </button>
+    </header>
+
+    <main class="auth-shell">
+        <div class="auth-card login-box">
+            <div class="auth-header">
+                <span class="auth-chip">Seguridad Biométrica 128-D</span>
+                <h1>Personal Autorizado</h1>
+                <p>Acceso corporativo restringido a la suite Alicorp BI.</p>
+            </div>
+
+            <!-- SECCIÓN: LOGIN TRADICIONAL -->
+            <div class="auth-bento-box" id="seccionTradicional">
+                <h2 class="auth-bento-title">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    Ingreso con Credenciales
+                </h2>
+                <label class="auth-label" for="inputUsuario">Usuario corporativo</label>
+                <input type="text" id="inputUsuario" class="auth-input" placeholder="Ej: LPerez" autocomplete="username">
+
+                <label class="auth-label" for="inputPassword">Contraseña</label>
+                <div class="auth-pass-wrap">
+                    <input type="password" id="inputPassword" class="auth-input" placeholder="Ingresa tu contraseña" autocomplete="current-password">
+                    <button id="btnTogglePassword" type="button" class="auth-eye-btn" title="Mostrar u ocultar contraseña" aria-label="Mostrar u ocultar contraseña">
+                        <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                </div>
+
+                <button id="btnTradicional" type="button" class="auth-btn-primary">Siguiente: Verificación Facial</button>
+                <p id="statusTradicional" class="auth-status" style="margin-bottom:0;"></p>
+            </div>
+
+            <div class="auth-divider">o acceso directo biométrico</div>
+
+            <!-- SECCIÓN: LOGIN BIOMÉTRICO -->
+            <div class="auth-bento-box" id="seccionBiometrica">
+                <h2 class="auth-bento-title">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="10" r="3"/><path d="M7 18a5 5 0 0 1 10 0"/></svg>
+                    Reconocimiento Facial 128-D
+                </h2>
+
+                <button id="btnEncenderCamara" type="button" class="auth-btn-secondary">Activar Cámara Biométrica</button>
+
+                <div id="contenedorVideo" style="display: none; position: relative;">
+                    <div class="bio-viewport" id="bioViewportLogin">
+                        <video id="videoElement" autoplay playsinline></video>
+                        <svg class="bio-svg-guide" viewBox="0 0 400 260" preserveAspectRatio="none" aria-hidden="true">
+                            <defs>
+                                <mask id="faceCutoutLogin">
+                                    <rect width="400" height="260" fill="white"/>
+                                    <ellipse cx="200" cy="130" rx="74" ry="96" fill="black"/>
+                                </mask>
+                            </defs>
+                            <rect width="400" height="260" fill="rgba(7,10,18,0.46)" mask="url(#faceCutoutLogin)"/>
+                            <ellipse cx="200" cy="130" rx="74" ry="96" fill="none" stroke="rgba(255,255,255,0.78)" stroke-width="2" stroke-dasharray="6 5"/>
+                        </svg>
+                        <div class="scan-line" id="scanLine"></div>
+                        <canvas id="canvasElement" style="display: none;"></canvas>
+                    </div>
+
+                    <p id="statusMensaje" class="auth-status">Cargando cámara...</p>
+
+                    <button id="btnCapturar" type="button" class="auth-btn-primary">Validar Identidad</button>
+                </div>
+            </div>
+
+            <div class="auth-footer-links">
+                <a href="/portal_institucional/index.html" class="auth-link">← Volver al Portal</a>
+                <a href="/acceso_seguridad/registro.html" class="auth-link">Nuevo Registro →</a>
+            </div>
+        </div>
+    </main>
+
     <script>
+        // --- MOTOR DE TEMA LIGHT/DARK SINCRONIZADO CON DASHBOARD ---
+        (function initTheme() {
+            const SVG_SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
+            const SVG_MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+            const btn = document.getElementById('themeToggleBtn');
+            const ico = document.getElementById('themeIcon');
+            const txt = document.getElementById('themeText');
+
+            function aplicar(dark, guardar) {
+                document.documentElement.classList.toggle('dark-mode', dark);
+                document.body.classList.toggle('dark-mode', dark);
+                if (ico) ico.innerHTML = dark ? SVG_SUN : SVG_MOON;
+                if (txt) txt.textContent = dark ? 'Modo Claro' : 'Modo Oscuro';
+                if (guardar) { try { localStorage.setItem('alicorp_tema', dark ? 'dark' : 'light'); } catch (e) {} }
+            }
+            const inicial = document.documentElement.classList.contains('dark-mode');
+            aplicar(inicial, false);
+            if (btn) btn.addEventListener('click', () => aplicar(!document.documentElement.classList.contains('dark-mode'), true));
+        })();
+
         // --- PROTECCIÓN DE ACCESO: VERIFICAR LLAVE O SESIÓN ACTIVA ---
         (async function verificarAccesoAdmin() {
-            // 1. ¿Tiene sesión iniciada?
             const ses = sessionStorage.getItem('usuario_activo') || localStorage.getItem('usuario_activo');
-            if (ses) return; // Permitido
+            if (ses) return;
 
-            // 2. ¿Tiene la llave en la URL (?key=...)?
             const urlObj = new URL(window.location.href);
             const keyParam = urlObj.searchParams.get('key') || urlObj.searchParams.get('clave') || urlObj.searchParams.get('access') || urlObj.searchParams.get('token');
             if (keyParam) {
@@ -132,40 +180,32 @@
                         urlObj.searchParams.delete('access');
                         urlObj.searchParams.delete('token');
                         window.history.replaceState({}, document.title, urlObj.pathname + (urlObj.search ? urlObj.search : ''));
-                        return; // Permitido
+                        return;
                     }
                 } catch (e) {
                     console.warn("Aviso validando llave en login:", e);
                 }
             }
 
-            // 3. ¿Fue desbloqueado previamente en esta sesión activa (sessionStorage o localStorage)?
-            if (sessionStorage.getItem('empleado_desbloqueado') === 'true') {
-                return; // Permitido
-            }
-
+            if (sessionStorage.getItem('empleado_desbloqueado') === 'true') return;
             if (localStorage.getItem('empleado_desbloqueado') === 'true') {
                 const ts = parseInt(localStorage.getItem('empleado_desbloqueado_timestamp') || '0', 10);
                 if (ts && (Date.now() - ts) < 8 * 3600 * 1000) {
                     sessionStorage.setItem('empleado_desbloqueado', 'true');
-                    return; // Permitido
+                    return;
                 }
             }
 
-            // 4. Si es un cliente común o acceso no autorizado:
             document.body.innerHTML = `
-                <div style="font-family:'Inter',sans-serif; min-height:100vh; display:flex; align-items:center; justify-content:center; background:#f8fafc; color:#0f172a; text-align:center; padding:20px;">
-                    <div style="background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:36px; max-width:440px; box-shadow:0 10px 25px rgba(0,0,0,0.08);">
-                        <div style="font-size:42px; margin-bottom:12px;">🔒</div>
-                        <h2 style="color:#e31b23; margin-bottom:8px; font-weight:800;">Acceso Restringido</h2>
-                        <p style="color:#64748b; font-size:14px; margin-bottom:24px;">Esta sección es exclusiva para personal autorizado de Corporación Alicorp. Redirigiendo al portal público...</p>
-                        <a href="/portal_institucional/index.html" style="background:#0284c7; color:#fff; padding:10px 24px; border-radius:30px; text-decoration:none; font-weight:700; font-size:13.5px; display:inline-block;">Ir a Inicio</a>
+                <div style="font-family:'Plus Jakarta Sans',sans-serif; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;">
+                    <div class="auth-card" style="max-width:440px; text-align:center;">
+                        <h2 style="color:var(--danger); margin:0 0 8px; font-weight:800;">Acceso Restringido</h2>
+                        <p style="color:var(--text-muted); font-size:14px; margin:0 0 22px;">Esta sección es exclusiva para personal autorizado de Corporación Alicorp. Redirigiendo al portal público...</p>
+                        <a href="/portal_institucional/index.html" class="auth-btn-primary">Ir al Portal Público</a>
                     </div>
                 </div>
             `;
-            setTimeout(() => {
-                window.location.replace("/portal_institucional/index.html");
-            }, 1800);
+            setTimeout(() => { window.location.replace("/portal_institucional/index.html"); }, 1800);
         })();
 
         // --- LÓGICA TRADICIONAL ---
@@ -175,33 +215,22 @@
         const statusTradicional = document.getElementById('statusTradicional');
         const btnTogglePassword = document.getElementById('btnTogglePassword');
 
-        // Mostrar/Ocultar contraseña
         btnTogglePassword.addEventListener('click', () => {
-            if (inputPassword.type === 'password') {
-                inputPassword.type = 'text';
-                btnTogglePassword.innerHTML = '🙈'; // Cambiar icono
-            } else {
-                inputPassword.type = 'password';
-                btnTogglePassword.innerHTML = '👁️';
-            }
+            inputPassword.type = inputPassword.type === 'password' ? 'text' : 'password';
         });
 
         btnTradicional.addEventListener('click', () => {
-            statusTradicional.innerHTML = "Verificando... ⏳";
+            statusTradicional.textContent = "Verificando credenciales...";
             btnTradicional.disabled = true;
 
             fetch('/api/login_password', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    usuario: inputUsuario.value,
-                    password: inputPassword.value
-                })
+                body: JSON.stringify({ usuario: inputUsuario.value, password: inputPassword.value })
             })
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    // Guardar perfil y vector de sesión
                     try {
                         const datosSesion = JSON.stringify({
                             usuario: data.usuario || inputUsuario.value.trim(),
@@ -215,20 +244,20 @@
                         localStorage.setItem('ultimo_usuario', data.usuario || inputUsuario.value.trim());
                     } catch (e) {}
 
-                    statusTradicional.innerHTML = `<span style='color:green;'>✅ Credenciales válidas para <strong>${data.nombre_completo || data.usuario}</strong>. Pase a validación facial...</span>`;
+                    statusTradicional.innerHTML = `<span style="color:var(--success);font-weight:700;">Credenciales válidas para ${data.nombre_completo || data.usuario}. Continúa con verificación facial...</span>`;
                     setTimeout(() => {
-                        document.getElementById('seccionTradicional').style.opacity = '0.5';
+                        document.getElementById('seccionTradicional').style.opacity = '0.55';
                         document.getElementById('seccionTradicional').style.pointerEvents = 'none';
                         btnEncenderCamara.click();
                         document.getElementById('seccionBiometrica').scrollIntoView({ behavior: 'smooth' });
-                    }, 1000);
+                    }, 900);
                 } else {
-                    statusTradicional.innerHTML = `<span style='color:red;'>❌ ${data.message}</span>`;
+                    statusTradicional.innerHTML = `<span style="color:var(--danger);font-weight:700;">${data.message}</span>`;
                     btnTradicional.disabled = false;
                 }
             })
-            .catch(err => {
-                statusTradicional.innerHTML = `<span style='color:red;'>❌ Error de red.</span>`;
+            .catch(() => {
+                statusTradicional.innerHTML = `<span style="color:var(--danger);font-weight:700;">Error de conexión con el servidor.</span>`;
                 btnTradicional.disabled = false;
             });
         });
@@ -241,52 +270,52 @@
         const btnEncenderCamara = document.getElementById('btnEncenderCamara');
         const contenedorVideo = document.getElementById('contenedorVideo');
         const scanLine = document.getElementById('scanLine');
+        const bioViewport = document.getElementById('bioViewportLogin');
 
-        // Evento para encender la cámara manualmente
+        const setEstadoViewport = (estado) => {
+            if (!bioViewport) return;
+            bioViewport.classList.remove('state-scanning', 'state-match', 'state-error');
+            if (estado) bioViewport.classList.add('state-' + estado);
+        };
+
         btnEncenderCamara.addEventListener('click', () => {
-            btnEncenderCamara.style.display = 'none'; // Ocultar boton de encender
-            contenedorVideo.style.display = 'block'; // Mostrar el video
-            statusMensaje.innerHTML = "Solicitando permisos de cámara... ⏳";
+            btnEncenderCamara.style.display = 'none';
+            contenedorVideo.style.display = 'block';
+            statusMensaje.textContent = "Solicitando permisos de cámara...";
 
             navigator.mediaDevices.getUserMedia({ video: true })
                 .then(stream => {
                     video.srcObject = stream;
-                    statusMensaje.innerHTML = "Cámara lista. Ubica tu rostro y valida.";
+                    statusMensaje.textContent = "Cámara activa. Centra tu rostro en la guía y valida.";
                 })
-                .catch(err => {
-                    console.error("Error accediendo a la cámara: ", err);
-                    statusMensaje.innerHTML = "<span style='color:red;'>No se pudo acceder a la cámara. Revisa los permisos de tu navegador.</span>";
+                .catch(() => {
+                    setEstadoViewport('error');
+                    statusMensaje.innerHTML = '<span style="color:var(--danger);font-weight:700;">No se pudo acceder a la cámara. Revisa permisos del navegador.</span>';
                     btnCapturar.disabled = true;
                 });
         });
 
-        // Evento al dar clic en validar
         btnCapturar.addEventListener('click', () => {
-            statusMensaje.innerHTML = "Iniciando escaneo biométrico... 🤖";
+            statusMensaje.textContent = "Escaneando vector facial 128-D...";
             btnCapturar.disabled = true;
-            scanLine.classList.add('scanning'); // Activar efecto láser
+            setEstadoViewport('scanning');
+            scanLine.classList.add('scanning');
 
-            // Dibujar el fotograma actual del video en el canvas
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
+            canvas.width = video.videoWidth || 640;
+            canvas.height = video.videoHeight || 480;
             canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-            
-            // Convertir la imagen a Base64 para enviarla
             const imageData = canvas.toDataURL('image/jpeg');
 
-            // Enviar la imagen al backend en Python (Flask)
             fetch('/api/login_facial', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ image: imageData })
             })
             .then(response => response.json())
             .then(data => {
-                scanLine.classList.remove('scanning'); // Detener láser
+                scanLine.classList.remove('scanning');
                 if (data.success) {
-                    // Guardar perfil y vector
+                    setEstadoViewport('match');
                     try {
                         const datosSesion = JSON.stringify({
                             usuario: data.usuario,
@@ -301,24 +330,23 @@
                         localStorage.setItem('ultimo_usuario', data.usuario);
                     } catch (e) {}
 
-                    statusMensaje.innerHTML = `<span style='color:green;'>✅ ${data.message}<br><strong style="font-size:1.1rem; color:#0284c7;">Precisión IA: ${data.porcentaje}%</strong></span>`;
-                    // Redirigir al dashboard tras 1.5 segundos para que vean el %
-                    setTimeout(() => {
-                        window.location.href = data.redirect;
-                    }, 1500);
+                    statusMensaje.innerHTML = `<span style="color:var(--success);font-weight:700;">${data.message} · Precisión: ${data.porcentaje}%</span>`;
+                    setTimeout(() => { window.location.href = data.redirect; }, 1300);
                 } else {
-                    statusMensaje.innerHTML = `<span style='color:red;'>❌ ${data.message}</span>`;
+                    setEstadoViewport('error');
+                    statusMensaje.innerHTML = `<span style="color:var(--danger);font-weight:700;">${data.message}</span>`;
                     btnCapturar.disabled = false;
                 }
             })
-            .catch(error => {
-                scanLine.classList.remove('scanning'); // Detener láser
-                statusMensaje.innerHTML = `<span style='color:red;'>❌ Error de red con el servidor Python.</span>`;
+            .catch(() => {
+                scanLine.classList.remove('scanning');
+                setEstadoViewport('error');
+                statusMensaje.innerHTML = '<span style="color:var(--danger);font-weight:700;">Error de red con el servidor Java.</span>';
                 btnCapturar.disabled = false;
             });
         });
 
-        // --- DETECCIÓN DE SESIÓN ACTIVA (AL NAVEGAR ATRÁS DESDE EL DASHBOARD) ---
+        // --- DETECCIÓN DE SESIÓN ACTIVA ---
         function verificarSesionActiva() {
             try {
                 const raw = sessionStorage.getItem('usuario_activo') || localStorage.getItem('usuario_activo');
@@ -330,18 +358,14 @@
                 if (!document.getElementById('bannerSesionActiva')) {
                     const banner = document.createElement('div');
                     banner.id = 'bannerSesionActiva';
-                    banner.style.cssText = 'background:#f0f9ff; border:1.5px solid #0284c7; border-radius:12px; padding:14px 16px; margin-bottom:20px; text-align:center; box-shadow:0 4px 12px rgba(2,132,199,0.12);';
+                    banner.className = 'session-banner';
                     banner.innerHTML = `
-                        <div style="font-size:13.5px; font-weight:700; color:#0369a1; margin-bottom:8px;">
-                            👋 Sesión activa detectada: <strong>${nombre}</strong>
+                        <div style="font-size:13px; font-weight:700; color:var(--text-main); margin-bottom:10px;">
+                            Sesión activa detectada: <strong>${nombre}</strong>
                         </div>
                         <div style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap;">
-                            <a href="/dashboard_bi/dashboard.html" style="background:#0284c7; color:#ffffff; padding:7px 18px; border-radius:20px; text-decoration:none; font-weight:700; font-size:13px; display:inline-flex; align-items:center; gap:6px;">
-                                <span>📊</span> Volver al Dashboard
-                            </a>
-                            <button type="button" id="btnCerrarSesionEnLogin" style="background:#fff; color:#dc2626; border:1px solid #fca5a5; padding:7px 14px; border-radius:20px; font-weight:600; font-size:13px; cursor:pointer;">
-                                🚪 Cerrar sesión
-                            </button>
+                            <a href="/dashboard_bi/dashboard.html" class="auth-btn-primary" style="width:auto; padding:8px 16px; font-size:12.5px;">Volver al Dashboard</a>
+                            <button type="button" id="btnCerrarSesionEnLogin" class="auth-btn-secondary" style="width:auto; padding:8px 14px; font-size:12.5px; color:var(--danger);">Cerrar sesión</button>
                         </div>
                     `;
                     const box = document.querySelector('.login-box');

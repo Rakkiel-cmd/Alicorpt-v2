@@ -1,0 +1,531 @@
+/* ============================================================================
+   ALICORP INTELLIGENCE — TEMA HOMOGÉNEO DE ACCESO Y REGISTRO BIOMÉTRICO
+   Comparte variables Light/Dark, Olas SVG y Glassmorphism con dashboard_theme.css
+   ============================================================================ */
+
+:root,
+[data-theme="light"],
+.light {
+    --bg-main: #ffffff;
+    --bg-gradient: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    --surface: rgba(255, 255, 255, 0.88);
+    --surface-subtle: rgba(248, 250, 252, 0.86);
+    --glass-bg: rgba(255, 255, 255, 0.88);
+    --glass-border: rgba(15, 23, 42, 0.12);
+    --accent: #0284c7;
+    --accent-hover: #0369a1;
+    --accent-soft: rgba(2, 132, 199, 0.12);
+    --accent-gradient: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    --success: #059669;
+    --danger: #dc2626;
+    --text-main: #0f172a;
+    --text-muted: #475569;
+    --border: rgba(15, 23, 42, 0.12);
+    --border-strong: rgba(15, 23, 42, 0.2);
+    --input-bg: rgba(255, 255, 255, 0.94);
+    --input-border: rgba(15, 23, 42, 0.18);
+    --shadow-card: 0 20px 50px -14px rgba(15, 23, 42, 0.18), 0 2px 8px rgba(15, 23, 42, 0.06);
+    --radius: 22px;
+
+    --wave-1-start: #475569;
+    --wave-1-end: #1e293b;
+    --wave-1-opacity: 0.18;
+    --wave-2-start: #1e293b;
+    --wave-2-end: #0f172a;
+    --wave-2-opacity: 0.35;
+    --wave-3-start: #1e293b;
+    --wave-3-end: #090d16;
+    --wave-3-opacity: 0.78;
+}
+
+html.dark-mode,
+body.dark-mode,
+[data-theme="dark"] {
+    --bg-main: #070a12;
+    --bg-gradient: linear-gradient(180deg, #070a12 0%, #0d1321 100%);
+    --surface: rgba(15, 20, 32, 0.78);
+    --surface-subtle: rgba(11, 16, 28, 0.76);
+    --glass-bg: rgba(15, 20, 32, 0.84);
+    --glass-border: rgba(255, 255, 255, 0.12);
+    --accent: #38bdf8;
+    --accent-hover: #0ea5e9;
+    --accent-soft: rgba(56, 189, 248, 0.15);
+    --accent-gradient: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%);
+    --success: #34d399;
+    --danger: #f87171;
+    --text-main: #f8fafc;
+    --text-muted: #cbd5e1;
+    --border: rgba(255, 255, 255, 0.12);
+    --border-strong: rgba(255, 255, 255, 0.22);
+    --input-bg: rgba(9, 13, 22, 0.88);
+    --input-border: rgba(255, 255, 255, 0.18);
+    --shadow-card: 0 24px 60px -12px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+
+    --wave-1-start: #cbd5e1;
+    --wave-1-end: #475569;
+    --wave-1-opacity: 0.10;
+    --wave-2-start: #e2e8f0;
+    --wave-2-end: #64748b;
+    --wave-2-opacity: 0.20;
+    --wave-3-start: #ffffff;
+    --wave-3-end: #94a3b8;
+    --wave-3-opacity: 0.38;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg-main);
+    background-image: var(--bg-gradient);
+    background-attachment: fixed;
+    color: var(--text-main);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ===== FONDO FIJO GLOBAL DE OLAS MARINAS SVG (MITAD INFERIOR) ===== */
+.ocean-waves-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+    background: var(--bg-gradient);
+    transition: background 0.35s ease;
+}
+
+.ocean-waves-bg .wave-layer {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    overflow: hidden;
+    will-change: transform;
+}
+
+.ocean-waves-bg .wave-layer-1 { height: 50vh; opacity: var(--wave-1-opacity); animation: waveSwellA 9s ease-in-out infinite alternate; }
+.ocean-waves-bg .wave-layer-2 { height: 42vh; opacity: var(--wave-2-opacity); animation: waveSwellB 7.5s ease-in-out infinite alternate; }
+.ocean-waves-bg .wave-layer-3 { height: 34vh; opacity: var(--wave-3-opacity); animation: waveSwellC 6.5s ease-in-out infinite alternate; }
+
+.ocean-waves-bg .wave-track {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 200%;
+    height: 100%;
+    will-change: transform;
+}
+
+.ocean-waves-bg .wave-track-1 { animation: waveFlow 24s linear infinite; }
+.ocean-waves-bg .wave-track-2 { animation: waveFlow 18s linear infinite reverse; }
+.ocean-waves-bg .wave-track-3 { animation: waveFlow 12s linear infinite; }
+
+.ocean-waves-bg .wave-svg { display: block; width: 100%; height: 100%; }
+
+.wave-stop-1-start { stop-color: var(--wave-1-start); transition: stop-color 0.4s ease; }
+.wave-stop-1-end   { stop-color: var(--wave-1-end);   transition: stop-color 0.4s ease; }
+.wave-stop-2-start { stop-color: var(--wave-2-start); transition: stop-color 0.4s ease; }
+.wave-stop-2-end   { stop-color: var(--wave-2-end);   transition: stop-color 0.4s ease; }
+.wave-stop-3-start { stop-color: var(--wave-3-start); transition: stop-color 0.4s ease; }
+.wave-stop-3-end   { stop-color: var(--wave-3-end);   transition: stop-color 0.4s ease; }
+
+@keyframes waveFlow {
+    0%   { transform: translate3d(0, 0, 0); }
+    100% { transform: translate3d(-50%, 0, 0); }
+}
+@keyframes waveSwellA { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(0, 10px, 0); } }
+@keyframes waveSwellB { 0% { transform: translate3d(0, 8px, 0); } 100% { transform: translate3d(0, -6px, 0); } }
+@keyframes waveSwellC { 0% { transform: translate3d(0, -4px, 0); } 100% { transform: translate3d(0, 9px, 0); } }
+
+@media (prefers-reduced-motion: reduce) {
+    .ocean-waves-bg .wave-track,
+    .ocean-waves-bg .wave-layer { animation: none !important; }
+}
+
+/* ===== BARRA SUPERIOR FLOTANTE (MARCA + TOGGLE TEMA) ===== */
+.auth-topbar {
+    position: fixed;
+    top: 16px;
+    left: 20px;
+    right: 20px;
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    pointer-events: none;
+}
+
+.auth-brand-pill,
+.theme-toggle-pill {
+    pointer-events: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 15px;
+    border-radius: 999px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--glass-border);
+    color: var(--text-main);
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+    transition: all 0.2s ease;
+}
+
+.auth-brand-pill:hover,
+.theme-toggle-pill:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: translateY(-1px);
+}
+
+.auth-brand-pill:focus-visible,
+.theme-toggle-pill:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+.auth-brand-mark {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    background: var(--accent-gradient);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.theme-toggle-pill svg { width: 16px; height: 16px; }
+
+/* ===== CONTENEDOR Y TARJETA GLASSMORPHISM ===== */
+.auth-shell {
+    position: relative;
+    z-index: 2;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 82px 18px 40px;
+}
+
+.auth-card {
+    width: 100%;
+    max-width: 520px;
+    background: var(--surface);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 30px 28px 26px;
+    box-shadow: var(--shadow-card);
+}
+
+.auth-header {
+    text-align: center;
+    margin-bottom: 22px;
+}
+
+.auth-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border: 1px solid rgba(2, 132, 199, 0.28);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+}
+
+.auth-header h1 {
+    margin: 0 0 6px;
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--text-main);
+}
+
+.auth-header p {
+    margin: 0;
+    font-size: 13.5px;
+    color: var(--text-muted);
+}
+
+.auth-bento-box {
+    background: var(--surface-subtle);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px;
+    text-align: left;
+}
+
+.auth-bento-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 14px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.auth-bento-title svg {
+    width: 17px;
+    height: 17px;
+    stroke: var(--accent);
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 16px 0;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+}
+
+.auth-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+}
+
+.auth-input {
+    width: 100%;
+    padding: 11px 14px;
+    border-radius: 11px;
+    border: 1px solid var(--input-border);
+    background: var(--input-bg);
+    color: var(--text-main);
+    font-family: inherit;
+    font-size: 13.5px;
+    margin-bottom: 12px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.auth-input:focus,
+.auth-input:focus-visible {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.auth-pass-wrap {
+    position: relative;
+    margin-bottom: 14px;
+}
+
+.auth-pass-wrap .auth-input {
+    margin-bottom: 0;
+    padding-right: 42px;
+}
+
+.auth-eye-btn {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: inline-flex;
+    padding: 4px;
+    border-radius: 8px;
+}
+
+.auth-eye-btn:hover { color: var(--accent); }
+.auth-eye-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+.auth-btn-primary,
+.auth-btn-secondary {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 11px 16px;
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.auth-btn-primary {
+    border: none;
+    background: var(--accent-gradient);
+    color: #ffffff;
+    box-shadow: 0 8px 20px -6px rgba(2, 132, 199, 0.45);
+}
+
+.auth-btn-primary:hover:not(:disabled) {
+    filter: brightness(1.06);
+    transform: translateY(-1px);
+}
+
+.auth-btn-primary:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.auth-btn-primary.success {
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    box-shadow: 0 8px 20px -6px rgba(16, 185, 129, 0.45);
+}
+
+.auth-btn-secondary {
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--text-main);
+}
+
+.auth-btn-secondary:hover:not(:disabled) {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-soft);
+}
+
+.auth-btn-primary:focus-visible,
+.auth-btn-secondary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+/* ===== VIEWPORT BIOMÉTRICO CON GUÍA SVG Y ESTADOS EN TIEMPO REAL ===== */
+.bio-viewport {
+    position: relative;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #070a12;
+    height: 256px;
+    border: 2px solid var(--border-strong);
+    transition: border-color 0.28s ease, box-shadow 0.28s ease;
+}
+
+.bio-viewport.state-scanning {
+    border-color: #0ea5e9;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.28), 0 0 24px rgba(14, 165, 233, 0.25);
+}
+
+.bio-viewport.state-match {
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.3), 0 0 26px rgba(16, 185, 129, 0.3);
+}
+
+.bio-viewport.state-error {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.28), 0 0 22px rgba(239, 68, 68, 0.25);
+}
+
+.bio-viewport video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.bio-svg-guide {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.scan-line {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #38bdf8, transparent);
+    box-shadow: 0 0 14px #38bdf8;
+    display: none;
+    z-index: 10;
+}
+
+@keyframes scanLaser {
+    0%   { top: 4%; }
+    50%  { top: 94%; }
+    100% { top: 4%; }
+}
+
+.scanning {
+    display: block !important;
+    animation: scanLaser 2s infinite ease-in-out;
+}
+
+.auth-status {
+    font-size: 13px;
+    margin: 10px 0 14px;
+    min-height: 18px;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.auth-footer-links {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.auth-link {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.auth-link:hover { text-decoration: underline; }
+
+.session-banner {
+    background: var(--accent-soft);
+    border: 1px solid rgba(2, 132, 199, 0.35);
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 18px;
+    text-align: center;
+}

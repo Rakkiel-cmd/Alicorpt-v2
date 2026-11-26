@@ -58,7 +58,7 @@ public class AccesoBiometriaController {
                 ctx.status(403).json(Map.of("success", false, "message", "Cuenta suspendida por un Super Administrador."));
                 return;
             }
-            if (!password.equals(perfil.get("password_hash"))) {
+            if (!ServicioSeguridadRelacional.verificarPassword(password, perfil.get("password_hash"))) {
                 ctx.status(401).json(Map.of("success", false, "message", "Contraseña incorrecta."));
                 return;
             }
@@ -449,7 +449,7 @@ public class AccesoBiometriaController {
                 ctx.status(403).json(Map.of("success", false, "message", "No autorizado."));
                 return;
             }
-            if (!pass.isEmpty() && !pass.equals(perfil.get("password_hash"))) {
+            if (!pass.isEmpty() && !ServicioSeguridadRelacional.verificarPassword(pass, perfil.get("password_hash"))) {
                 ctx.status(401).json(Map.of("success", false, "message", "Contraseña de Super Admin incorrecta."));
                 return;
             }
@@ -467,7 +467,7 @@ public class AccesoBiometriaController {
             }
             String pass = String.valueOf(body.getOrDefault("password", ""));
             Map<String, Object> perfil = motorSeguridad.obtenerPerfilUsuario3FN(admin);
-            if (perfil != null && !pass.isEmpty() && !pass.equals(perfil.get("password_hash"))) {
+            if (perfil != null && !pass.isEmpty() && !ServicioSeguridadRelacional.verificarPassword(pass, perfil.get("password_hash"))) {
                 ctx.status(401).json(Map.of("success", false, "message", "Contraseña de confirmación incorrecta."));
                 return;
             }
@@ -494,6 +494,50 @@ public class AccesoBiometriaController {
                 return;
             }
             ctx.json(Map.of("success", true, "message", "Solicitud rechazada."));
+        });
+
+        // --- MÓDULO TRANSVERSAL: MI PERFIL Y SEGURIDAD (ANALISTA Y SUPERADMIN) ---
+        app.post("/api/usuario/reautenticar_biometria", ctx -> {
+            try {
+                Map<String, Object> body = ctx.bodyAsClass(Map.class);
+                Object sesionUser = ctx.req().getSession(false) != null
+                        ? ctx.req().getSession(false).getAttribute("usuario")
+                        : null;
+                String usuario = String.valueOf(body.getOrDefault("usuario", sesionUser != null ? sesionUser : "")).trim();
+                String frameB64 = String.valueOf(body.getOrDefault("frame_base64", body.getOrDefault("image", "")));
+
+                Map<String, Object> resultado = motorSeguridad.reautenticarBiometriaUsuario(usuario, frameB64, motorBiometria);
+                int status = resultado.get("http_status") instanceof Number n ? n.intValue() : 200;
+                resultado.remove("http_status");
+                ctx.status(status).json(resultado);
+            } catch (Exception e) {
+                ctx.status(500).json(Map.of("success", false, "message", "Error al re-verificar biometría facial."));
+            }
+        });
+
+        app.post("/api/usuario/actualizar_credenciales", ctx -> {
+            try {
+                Map<String, Object> body = ctx.bodyAsClass(Map.class);
+                Object sesionUser = ctx.req().getSession(false) != null
+                        ? ctx.req().getSession(false).getAttribute("usuario")
+                        : null;
+                String usuarioActual = String.valueOf(body.getOrDefault("usuario_actual", sesionUser != null ? sesionUser : "")).trim();
+                String tokenVerif = String.valueOf(body.getOrDefault("token_verificacion", "")).trim();
+                String nuevoUsuario = body.get("nuevo_usuario") != null ? String.valueOf(body.get("nuevo_usuario")).trim() : "";
+                String nuevoPassword = body.get("nuevo_password") != null ? String.valueOf(body.get("nuevo_password")) : "";
+                String nuevoFrame = body.get("nuevo_frame_base64") != null ? String.valueOf(body.get("nuevo_frame_base64")) : "";
+
+                Map<String, Object> resultado = motorSeguridad.actualizarCredencialesCompletas(
+                        usuarioActual, tokenVerif, nuevoUsuario, nuevoPassword, nuevoFrame, motorBiometria);
+                int status = resultado.get("http_status") instanceof Number n ? n.intValue() : 200;
+                resultado.remove("http_status");
+                if (Boolean.TRUE.equals(resultado.get("success")) && resultado.get("usuario") != null) {
+                    ctx.req().getSession(true).setAttribute("usuario", String.valueOf(resultado.get("usuario")));
+                }
+                ctx.status(status).json(resultado);
+            } catch (Exception e) {
+                ctx.status(500).json(Map.of("success", false, "message", "Error interno al actualizar credenciales."));
+            }
         });
     }
 }

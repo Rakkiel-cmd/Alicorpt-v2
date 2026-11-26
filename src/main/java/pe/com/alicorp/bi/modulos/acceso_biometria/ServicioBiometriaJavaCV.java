@@ -103,6 +103,21 @@ public class ServicioBiometriaJavaCV {
         return Math.sqrt(suma);
     }
 
+    public double compararVectores(double[] a, double[] b) {
+        return calcularDistanciaEuclidiana(a, b);
+    }
+
+    public String serializarVectorJson(double[] vector) {
+        if (vector == null || vector.length != DIMENSIONES) return null;
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < vector.length; i++) {
+            if (i > 0) sb.append(',');
+            sb.append(vector[i]);
+        }
+        sb.append(']');
+        return sb.toString();
+    }
+
     public double calcularNormaL2(double[] vector) {
         if (vector == null) return 0.0;
         double suma = 0.0;

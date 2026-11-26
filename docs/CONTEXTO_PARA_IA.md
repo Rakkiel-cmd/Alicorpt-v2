@@ -95,7 +95,7 @@ pe/com/alicorp/bi/
 frontend_corporativo/
 ├── compartido/              # estilos.css, ilustraciones.css, script.js, favicon.ico, favicon.png
 ├── portal_institucional/    # index.html, clientes.html, inversionistas.html, etica.html, sostenibilidad.html, portada.{css,js}, institucional.{css,js}
-├── acceso_seguridad/        # admin_login.html, registro.html
+├── acceso_seguridad/        # admin_login.html, registro.html, acceso_theme.css (homogeneizado con olas SVG + glassmorphism)
 ├── tienda_virtual/          # tienda.html, comparativa_busqueda.html, tienda.css, tienda_v2.css, tienda.js, tienda_imagenes.js, historial_busqueda.js
 ├── chatbot/                 # chatbot.css, chatbot_base.js, chatbot_cliente.js, chatbot_dashboard.js
 ├── contacto_soporte/        # contacto.html
@@ -109,7 +109,7 @@ frontend_corporativo/
 - **Fondo Global Animado de Olas Marinas SVG (`.ocean-waves-bg`):** 3 capas SVG sinuosas superpuestas (`#oceanWaveGrad1/2/3`) en la mitad inferior (`38vh–54vh`) con bucle horizontal infinito (`@keyframes waveFlow`). Reacciona dinámicamente a Modo Claro/Oscuro mediante variables CSS (`--wave-1-start/end`, `--wave-2-start/end`, `--wave-3-start/end`).
   - **Modo Claro:** Fondo superior `#ffffff` → `#f8fafc`; olas carbón/negro (`#475569` → `#090d16`); tarjetas `rgba(255, 255, 255, 0.88)` con `backdrop-filter: blur(14px)`.
   - **Modo Oscuro:** Fondo superior obsidiana (`#070a12` → `#0d1321`); olas blanco perla/plata (`#ffffff` → `#475569`); tarjetas `rgba(15, 20, 32, 0.78)` con `backdrop-filter: blur(14px)`.
-- **Mapeo de Títulos Ejecutivos de Pestañas (mismos `data-go`):** `inicio` (*Resumen Ejecutivo*), `productos` (*Portafolio y Stock*), `compras` (*Órdenes Web*), `prediccion` (*Pronóstico Lineal*), `keras` (*Simulador Neuronal*), `segmentacion` (*Clusters K-Means*), `estadistica` (*Riesgo Estadístico*), `reporte` (*Cierre Mensual*), `incidencias` (*Incidencias y SLA*), `estrategia` (*Estrategia IA* — Solo SuperAdmin), `administracion` (*Gestión de Equipo* — Solo SuperAdmin), `seguridad` (*Seguridad y Llaves* — Solo SuperAdmin).
+- **Mapeo de Títulos Ejecutivos de Pestañas (mismos `data-go`):** `inicio` (*Resumen Ejecutivo*), `productos` (*Portafolio y Stock*), `compras` (*Órdenes Web*), `prediccion` (*Pronóstico Lineal*), `keras` (*Simulador Neuronal*), `segmentacion` (*Clusters K-Means*), `estadistica` (*Riesgo Estadístico*), `reporte` (*Cierre Mensual*), `incidencias` (*Incidencias y SLA*), `perfil` (*Mi Perfil y Seguridad* — transversal para `analista` y `superadmin`, edición bloqueada hasta re-verificación facial 128-D), `estrategia` (*Estrategia IA* — Solo SuperAdmin), `administracion` (*Gestión de Equipo* — Solo SuperAdmin), `seguridad` (*Seguridad y Llaves* — Solo SuperAdmin).
 
 ---
 
@@ -168,6 +168,7 @@ Definido en `database/esquema_relacional_3fn.sql` (y migración incremental auto
 
 - **Acceso, Biometría, Actividad y SuperAdmin (`AccesoBiometriaController`):**
   - `POST /api/seguridad/validar_key`, `POST /api/login_password`, `POST /api/login_facial`, `POST /api/verificar_rostro`, `POST /api/registrar_admin_web`, `POST /api/logout`, `GET /api/usuario_perfil`
+  - `POST /api/usuario/reautenticar_biometria`, `POST /api/usuario/actualizar_credenciales` *(re-verificación 128-D + token temporal + hash SHA-256 con salt + auditoría 3FN, disponible para `analista` y `superadmin`)*
   - `GET /api/actividad/hoy`, `POST /api/actividad/latido`, `GET /api/actividad/historial`
   - `GET /api/seguridad/info_clave`, `GET /api/seguridad/generar_clave_random`
   - `GET /api/superadmin/usuarios`, `GET /api/superadmin/vector`, `GET /api/superadmin/auditoria`, `GET /api/superadmin/auditoria_filtrada`, `GET /api/superadmin/equipo`
