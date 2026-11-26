@@ -310,6 +310,7 @@ public class ServicioSeguridadRelacional {
 
     public List<Map<String, Object>> obtenerHistorialActividad3FN(String usuario) {
         List<Map<String, Object>> hist = new ArrayList<>();
+        if (usuario == null || usuario.isBlank()) return hist;
         String sql = """
             SELECT act.fecha_sesion, act.tiempo_segundos, act.primer_ingreso, act.ultimo_latido
             FROM ACTIVIDAD_USUARIOS act
@@ -320,18 +321,23 @@ public class ServicioSeguridadRelacional {
             """;
         try (Connection conn = DatabaseConfig.getDataSource().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, usuario);
+            ps.setString(1, usuario.trim());
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
+                    java.sql.Date fecha = rs.getDate("fecha_sesion");
+                    Timestamp primer = rs.getTimestamp("primer_ingreso");
+                    Timestamp ultimo = rs.getTimestamp("ultimo_latido");
                     Map<String, Object> f = new LinkedHashMap<>();
-                    f.put("fecha", rs.getDate("fecha_sesion").toString());
+                    f.put("fecha", fecha != null ? fecha.toString() : "");
                     f.put("tiempo_segundos", rs.getInt("tiempo_segundos"));
-                    f.put("primer_ingreso", rs.getTimestamp("primer_ingreso").toInstant().toString());
-                    f.put("ultimo_latido", rs.getTimestamp("ultimo_latido").toInstant().toString());
+                    f.put("primer_ingreso", primer != null ? primer.toInstant().toString() : null);
+                    f.put("ultimo_latido", ultimo != null ? ultimo.toInstant().toString() : null);
                     hist.add(f);
                 }
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            System.err.println("[!] Error consultando historial de actividad 3FN: " + e.getMessage());
+        }
         return hist;
     }
 

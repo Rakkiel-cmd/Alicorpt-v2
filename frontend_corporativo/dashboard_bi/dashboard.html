@@ -5382,12 +5382,16 @@ function rfComparar() {
                         }).join('');
                     } else if (tbody) {
                         const extra = esUnoMismo ? ` con ${formatearTiempoTexto(segundosActividadHoy)}` : '';
-                        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #94a3b8; padding: 16px;">Sin registros de actividad previa${extra}.</td></tr>`;
+                        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 16px;">Sin registros de actividad previa${extra}.</td></tr>`;
                     }
+                } else if (tbody) {
+                    let msgErr = `Error del servidor (HTTP ${res.status}).`;
+                    try { const errJson = await res.json(); if (errJson && errJson.message) msgErr = errJson.message; } catch (ignore) {}
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--danger); padding: 16px;">${esc(msgErr)}</td></tr>`;
                 }
             } catch (e) {
                 if (tbody) {
-                    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #ef4444; padding: 16px;">Error consultando base de datos.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--danger); padding: 16px;">No se pudo conectar con el servidor Java local. Verifica que esté encendido e intenta de nuevo.</td></tr>`;
                 }
             }
         }

@@ -296,36 +296,57 @@ public class AccesoBiometriaController {
         });
 
         app.get("/api/actividad/hoy", ctx -> {
-            String usuario = ctx.queryParam("usuario");
-            String fechaPeru = OffsetDateTime.now(ZONA_PERU).toLocalDate().toString();
-            int segs = usuario != null ? motorSeguridad.obtenerTiempoHoy3FN(usuario, fechaPeru) : 0;
-            ctx.json(Map.of("success", true, "fecha", fechaPeru, "tiempo_segundos", segs));
+            try {
+                Object sesUser = ctx.req().getSession(false) != null ? ctx.req().getSession(false).getAttribute("usuario") : null;
+                String usuario = ctx.queryParam("usuario");
+                if ((usuario == null || usuario.isBlank()) && sesUser != null) usuario = String.valueOf(sesUser);
+                String fechaPeru = OffsetDateTime.now(ZONA_PERU).toLocalDate().toString();
+                int segs = (usuario != null && !usuario.isBlank()) ? motorSeguridad.obtenerTiempoHoy3FN(usuario.trim(), fechaPeru) : 0;
+                ctx.json(Map.of("success", true, "fecha", fechaPeru, "tiempo_segundos", segs));
+            } catch (Exception e) {
+                ctx.status(500).json(Map.of("success", false, "message", "Error consultando actividad del día."));
+            }
         });
 
         app.post("/api/actividad/latido", ctx -> {
-            Map<String, Object> body = ctx.bodyAsClass(Map.class);
-            String usuario = String.valueOf(body.getOrDefault("usuario", "")).trim();
-            String fechaCliente = String.valueOf(body.getOrDefault("fecha", "")).trim();
-            String fechaHoyPeru = OffsetDateTime.now(ZONA_PERU).toLocalDate().toString();
-            int delta = ((Number) body.getOrDefault("segundos_delta", 15)).intValue();
-            int totalCli = ((Number) body.getOrDefault("tiempo_total_hoy", 0)).intValue();
+            try {
+                Map<String, Object> body = ctx.bodyAsClass(Map.class);
+                String usuario = String.valueOf(body.getOrDefault("usuario", "")).trim();
+                String fechaCliente = String.valueOf(body.getOrDefault("fecha", "")).trim();
+                String fechaHoyPeru = OffsetDateTime.now(ZONA_PERU).toLocalDate().toString();
+                int delta = ((Number) body.getOrDefault("segundos_delta", 15)).intValue();
+                int totalCli = ((Number) body.getOrDefault("tiempo_total_hoy", 0)).intValue();
 
-            boolean cambioDia = !fechaCliente.isEmpty() && !fechaCliente.equals(fechaHoyPeru);
-            String fechaGuardar = cambioDia ? fechaHoyPeru : (fechaCliente.isEmpty() ? fechaHoyPeru : fechaCliente);
-            int deltaGuardar = cambioDia ? 0 : delta;
-            int totalBD = motorSeguridad.registrarLatido3FN(usuario, fechaGuardar, deltaGuardar, cambioDia ? 0 : totalCli);
+                boolean cambioDia = !fechaCliente.isEmpty() && !fechaCliente.equals(fechaHoyPeru);
+                String fechaGuardar = cambioDia ? fechaHoyPeru : (fechaCliente.isEmpty() ? fechaHoyPeru : fechaCliente);
+                int deltaGuardar = cambioDia ? 0 : delta;
+                int totalBD = motorSeguridad.registrarLatido3FN(usuario, fechaGuardar, deltaGuardar, cambioDia ? 0 : totalCli);
 
-            ctx.json(Map.of(
-                    "success", true,
-                    "fecha", fechaHoyPeru,
-                    "tiempo_segundos", totalBD,
-                    "reset_medianoche", cambioDia
-            ));
+                ctx.json(Map.of(
+                        "success", true,
+                        "fecha", fechaHoyPeru,
+                        "tiempo_segundos", totalBD,
+                        "reset_medianoche", cambioDia
+                ));
+            } catch (Exception e) {
+                ctx.status(500).json(Map.of("success", false, "message", "Error registrando latido de sesión."));
+            }
         });
 
         app.get("/api/actividad/historial", ctx -> {
-            String usuario = ctx.queryParam("usuario");
-            ctx.json(Map.of("success", true, "historial", motorSeguridad.obtenerHistorialActividad3FN(usuario)));
+            try {
+                Object sesUser = ctx.req().getSession(false) != null ? ctx.req().getSession(false).getAttribute("usuario") : null;
+                String usuario = ctx.queryParam("usuario");
+                if ((usuario == null || usuario.isBlank()) && sesUser != null) usuario = String.valueOf(sesUser);
+                String fechaHoyPeru = OffsetDateTime.now(ZONA_PERU).toLocalDate().toString();
+                ctx.json(Map.of(
+                        "success", true,
+                        "fecha_hoy", fechaHoyPeru,
+                        "historial", motorSeguridad.obtenerHistorialActividad3FN(usuario)
+                ));
+            } catch (Exception e) {
+                ctx.status(500).json(Map.of("success", false, "message", "Error consultando historial en base de datos."));
+            }
         });
 
         app.post("/api/superadmin/suspender", ctx -> {
