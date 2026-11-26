@@ -1493,22 +1493,98 @@
                     body.dark-mode .btn-compra-estado.active-atendido { background: rgba(16, 185, 129, 0.24); color: #34d399; border-color: rgba(52, 211, 153, 0.55); }
                     body.dark-mode .btn-compra-estado.active-devolucion { background: rgba(139, 92, 246, 0.26); color: #c4b5fd; border-color: rgba(167, 139, 250, 0.55); }
                     body.dark-mode .btn-compra-estado.active-cancelacion { background: rgba(239, 68, 68, 0.24); color: #f87171; border-color: rgba(248, 113, 113, 0.55); }
+                    .pedidos-list { display:grid; gap:11px; }
+                    .cliente-card { border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:14px; background:var(--surface); overflow:hidden; box-shadow:0 3px 12px rgba(15,23,42,.035); transition:border-color .18s ease, box-shadow .18s ease; }
+                    .cliente-card:hover { box-shadow:0 8px 20px rgba(15,23,42,.07); }
+                    .cliente-card > summary { list-style:none; display:flex; align-items:center; gap:16px; padding:14px 16px; cursor:pointer; min-width:0; }
+                    .cliente-card > summary::-webkit-details-marker, .pedido-card > summary::-webkit-details-marker { display:none; }
+                    .cliente-identidad { flex:1 1 230px; min-width:0; }
+                    .cliente-identidad strong, .cliente-identidad small { display:block; }
+                    .cliente-identidad strong { font-size:14px; color:var(--text-main); }
+                    .cliente-identidad small { color:var(--text-muted); font-size:11px; margin-top:3px; overflow-wrap:anywhere; }
+                    .cliente-resumen { display:flex; align-items:center; justify-content:flex-end; gap:18px; flex:0 1 auto; margin-left:auto; }
+                    .cliente-dato { text-align:right; white-space:nowrap; }
+                    .cliente-dato strong { display:block; font-size:13px; color:var(--text-main); }
+                    .cliente-dato small { display:block; color:var(--text-muted); font-size:10px; margin-top:2px; }
+                    .pedido-label { display:block; color:var(--text-muted); font-size:9px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
+                    .cliente-toggle, .pedido-toggle { color:var(--accent); font-size:11px; font-weight:800; white-space:nowrap; flex:0 0 auto; }
+                    .cliente-toggle::before, .pedido-toggle::before { content:"+ "; }
+                    .cliente-toggle-abierto, .pedido-toggle-abierto { display:none; }
+                    .cliente-card[open] .cliente-toggle::before, .pedido-card[open] .pedido-toggle::before { content:"- "; }
+                    .cliente-card[open] .cliente-toggle-cerrado, .pedido-card[open] .pedido-toggle-cerrado { display:none; }
+                    .cliente-card[open] .cliente-toggle-abierto, .pedido-card[open] .pedido-toggle-abierto { display:inline; }
+                    .cliente-pedidos { display:grid; gap:8px; padding:0 12px 12px; }
+                    .pedido-card { border:1px solid var(--border); border-radius:10px; background:var(--surface-subtle); overflow:hidden; min-width:0; }
+                    .pedido-card > summary { list-style:none; display:flex; flex-wrap:wrap; align-items:center; gap:8px 16px; padding:11px 13px; cursor:pointer; min-width:0; }
+                    .pedido-ident { flex:1 1 130px; }
+                    .pedido-fecha { flex:1 1 165px; }
+                    .pedido-fecha small { display:block; color:var(--text-muted); font-size:11px; margin-top:3px; }
+                    .pedido-items-count { color:var(--text-muted); font-size:11px; white-space:nowrap; }
+                    .pedido-total { white-space:nowrap; font-size:13px; }
+                    .pedido-status { flex:0 0 auto; }
+                    .pedido-estado { display:inline-flex; border-radius:20px; padding:4px 9px; font-size:10px; font-weight:800; white-space:nowrap; }
+                    .pedido-estado-pendiente { background:rgba(245,158,11,.16); color:#b45309; }
+                    .pedido-estado-atendido { background:rgba(16,185,129,.15); color:#047857; }
+                    .pedido-estado-devolucion { background:rgba(124,58,237,.14); color:#6d28d9; }
+                    .pedido-estado-cancelacion { background:rgba(239,68,68,.14); color:#b91c1c; }
+                    .pedido-estado-desconocido { background:rgba(100,116,139,.14); color:var(--text-muted); }
+                    body.dark-mode .pedido-estado-pendiente { color:#fcd34d; }
+                    body.dark-mode .pedido-estado-atendido { color:#6ee7b7; }
+                    body.dark-mode .pedido-estado-devolucion { color:#c4b5fd; }
+                    body.dark-mode .pedido-estado-cancelacion { color:#fca5a5; }
+                    .pedido-detalle { border-top:1px solid var(--border); padding:8px 12px 12px; }
+                    .pedido-detalle table { min-width:0; font-size:12px; }
+                    .pedido-detalle th { padding:7px 8px; }
+                    .pedido-detalle td { padding:8px; }
+                    .pedido-acciones { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; border-top:1px solid var(--border); padding-top:10px; margin-top:6px; }
+                    .pedido-acciones > span { color:var(--text-muted); font-size:11px; font-weight:700; }
+                    .radar-alertas { display: grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); gap: 10px; }
+                    .radar-alerta { border: 1px solid var(--border); border-left: 4px solid #10b981; border-radius: 10px; padding: 12px; background: var(--surface-subtle); }
+                    .radar-alerta.critico { border-left-color: #ef4444; }
+                    .radar-alerta.atencion { border-left-color: #f59e0b; }
+                    .radar-alerta b, .radar-alerta small { display: block; }
+                    .radar-alerta small { color: var(--text-muted); margin-top: 5px; line-height: 1.45; }
+                    .radar-pill { display: inline-flex; border-radius: 20px; padding: 3px 8px; font-size: 10px; font-weight: 800; text-transform: uppercase; background: rgba(16,185,129,.14); color: #059669; }
+                    .radar-pill.critico { background: rgba(239,68,68,.14); color: #dc2626; }
+                    .radar-pill.atencion { background: rgba(245,158,11,.16); color: #b45309; }
+                    .radar-pedido { display: block; color: #b45309; font-size: 10.5px; font-weight: 700; margin-top: 4px; }
+                    body.dark-mode .radar-pill.critico { color: #fca5a5; }
+                    body.dark-mode .radar-pill.atencion, body.dark-mode .radar-pedido { color: #fcd34d; }
+                    @media (max-width:600px) {
+                        .cliente-card > summary { align-items:flex-start; flex-wrap:wrap; gap:10px; padding:12px; }
+                        .cliente-identidad { flex-basis:calc(100% - 110px); }
+                        .cliente-resumen { width:100%; margin-left:0; justify-content:space-between; gap:8px; }
+                        .cliente-dato { text-align:left; }
+                        .cliente-toggle { margin-left:auto; }
+                        .cliente-pedidos { padding:0 8px 8px; }
+                        .pedido-card > summary { gap:8px 12px; padding:10px; }
+                        .pedido-ident { flex-basis:calc(50% - 12px); }
+                        .pedido-fecha { flex-basis:calc(50% - 12px); }
+                        .pedido-toggle { margin-left:auto; }
+                        .pedido-detalle { padding:8px; }
+                        .pedido-detalle .table-wrap { overflow-x:auto; }
+                        .pedido-detalle table { min-width:420px; }
+                        .pedido-acciones { align-items:flex-start; }
+                    }
                 </style>
                 <div class="metrics-grid">
                     <div class="metric-card" style="--accent:#0284c7;"><h4>Órdenes Registradas</h4><p id="comprasCantidad">--</p><small>Pedidos recientes en Supabase</small></div>
                     <div class="metric-card" style="--accent:#10b981;"><h4>Monto Acumulado</h4><p id="comprasMonto">S/. --</p><small>Facturación del periodo mostrado</small></div>
                 </div>
+                <div class="chart-card full" style="margin-bottom:18px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+                        <div><h4 style="margin:0 0 4px;">Radar inteligente de abastecimiento</h4><small style="color:var(--text-muted);">Detecta productos con stock para 21 días o menos y señala pedidos pendientes relacionados.</small></div>
+                        <span class="radar-pill" id="radarPedidosResumen">Analizando inventario…</span>
+                    </div>
+                    <div class="radar-alertas" id="radarPedidosLista"><p class="hint">Calculando cobertura con ventas históricas…</p></div>
+                    <p class="hint" id="radarPedidosFuente" style="margin-bottom:0;">La cobertura es una estimación basada en el historial disponible.</p>
+                </div>
                 <div class="chart-card full">
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
                         <h4 style="margin:0;">Registro de Pedidos E-Commerce</h4>
-                        <button type="button" class="btn-run" style="padding:8px 16px; font-size:12.5px;" onclick="cargarComprasClientes()">Sincronizar Pedidos</button>
+                        <button type="button" class="btn-run" style="padding:8px 16px; font-size:12.5px;" onclick="cargarComprasClientes(true)">Sincronizar Pedidos</button>
                     </div>
-                    <div class="table-wrap">
-                        <table>
-                            <thead><tr><th>Cliente</th><th>Fecha</th><th>Producto</th><th class="num">Cantidad</th><th class="num">Precio unitario</th><th class="num">Subtotal</th><th class="num">Total orden</th><th>Estado Operativo</th></tr></thead>
-                            <tbody id="tablaCompras"><tr><td colspan="8">Cargando órdenes...</td></tr></tbody>
-                        </table>
-                    </div>
+                    <div class="pedidos-list" id="tablaCompras"><p class="hint">Cargando órdenes...</p></div>
                     <p class="hint" id="comprasFuente">Fuente: Supabase PostgreSQL</p>
                 </div>
             </div>
@@ -1819,11 +1895,67 @@
                         <h4>Segmentos Activos</h4><p id="segCantidad">--</p><small>Clusters identificados</small>
                     </div>
                     <div class="metric-card" style="--accent:#10b981;">
-                        <h4>Índice Silueta</h4><p id="segSilueta">--</p><small>Cohesión y separación</small>
+                        <h4>Índice Silueta</h4><p id="segSilueta">--</p><small id="segSiluetaAyuda">Cohesión y separación · calculado con datos</small>
                     </div>
                     <div class="metric-card" style="--accent:#ea580c;">
                         <h4>Origen de Datos</h4><p id="segFuente" style="font-size:15px;">--</p><small>Fuente consolidada</small>
                     </div>
+                </div>
+                <style>
+                    .k-control { display:grid; grid-template-columns:minmax(180px,1fr) minmax(180px,2fr) auto; gap:8px 18px; align-items:center; }
+                    .k-control input { width:100%; accent-color:#0284c7; cursor:pointer; }
+                    .k-control strong { color:var(--accent); font-size:18px; white-space:nowrap; }
+                    .k-control .k-status { grid-column:1/-1; color:var(--text-muted); }
+                    .segmento-fila { cursor:pointer; transition:background-color .2s ease, box-shadow .2s ease; }
+                    .segmento-fila:hover { background:rgba(2,132,199,.07); }
+                    .segmento-fila.seleccionado { background:rgba(2,132,199,.12); box-shadow:inset 3px 0 #0284c7; }
+                    body.dark-mode .segmento-fila.seleccionado { background:rgba(56,189,248,.14); }
+                    .radar-compact summary { list-style:none; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+                    .radar-compact summary::-webkit-details-marker { display:none; }
+                    .radar-compact summary h4 { margin:0 0 4px; }
+                    .radar-compact summary small { color:var(--text-muted); }
+                    .radar-toggle { color:var(--accent); font-size:12px; font-weight:800; white-space:nowrap; }
+                    .radar-toggle::before { content:"+ Ver top 5"; }
+                    .radar-compact[open] .radar-toggle::before { content:"- Ocultar"; }
+                    .radar-compact .table-wrap { margin-top:12px; }
+                    @media (max-width:640px) {
+                        .k-control { grid-template-columns:1fr auto; gap:8px 12px; }
+                        .k-control > div { grid-column:1/-1; }
+                        .k-control input { grid-column:1; grid-row:2; }
+                        .k-control strong { grid-column:2; grid-row:2; }
+                        .k-control .k-status { grid-column:1/-1; }
+                        .radar-compact summary { align-items:flex-start; flex-wrap:wrap; }
+                    }
+                </style>
+                <div class="chart-card full" style="margin-bottom:18px;">
+                    <div class="k-control">
+                        <div>
+                            <h4 style="margin:0 0 4px;">Explora el número de segmentos</h4>
+                            <small style="color:var(--text-muted);">Mueve el control para recalcular K-Means y la silueta del valor elegido.</small>
+                        </div>
+                        <input id="sliderClusters" type="range" min="2" max="6" step="1" value="3" aria-label="Número de segmentos K, de 2 a 6">
+                        <strong id="kSeleccionado">K = 3</strong>
+                        <small id="segEstadoCalculo" class="k-status">Al cambiar K se actualizarán el gráfico y la tabla.</small>
+                    </div>
+                </div>
+                <div class="chart-card full radar-compact" style="margin-bottom:18px;">
+                    <details id="radarReposicionDetalle">
+                        <summary>
+                            <div>
+                                <h4>Acciones inteligentes de reposición</h4>
+                                <small>Revisa solo los productos que necesitan atención prioritaria.</small>
+                            </div>
+                            <span class="radar-pill" id="radarSegmentacionResumen">Cargando…</span>
+                            <span class="radar-toggle" aria-hidden="true"></span>
+                        </summary>
+                        <div class="table-wrap">
+                            <table>
+                                <thead><tr><th>SKU</th><th>Producto</th><th class="num">Stock</th><th class="num">Unid./día</th><th class="num">Cobertura</th><th>Riesgo</th><th>Acción sugerida</th></tr></thead>
+                                <tbody id="tablaRadarAbastecimiento"><tr><td colspan="7">Calculando cobertura de inventario…</td></tr></tbody>
+                            </table>
+                        </div>
+                        <p class="hint" id="radarSegmentacionFuente" style="margin-bottom:0;">La cobertura es orientativa; no representa una predicción garantizada.</p>
+                    </details>
                 </div>
                 <div class="charts-grid">
                     <div class="chart-card full">
@@ -2649,6 +2781,7 @@
     <script>
         const charts = {};
         const COLORES = ['#0284c7', '#2563eb', '#7c3aed', '#10b981', '#ea580c'];
+        const COLORES_CLUSTER = ['#0284c7', '#2563eb', '#7c3aed', '#10b981', '#ea580c', '#e11d48'];
         const ICONOS = { 
             'Aceite': 'https://plazavea.vteximg.com.br/arquivos/ids/36303074-450-450/20281566.jpg?v=639264188955000000',
             'Fideos': 'https://metroio.vtexassets.com/arquivos/ids/461368-800-auto?v=638285960612770000&width=800&height=auto&aspect=true',
@@ -2843,6 +2976,13 @@
         let explicacionLista = false;
         let kerasListo = false;
         let segmentacionLista = false;
+        let segmentacionSeq = 0;
+        let segmentacionTimer = null;
+        let segmentacionEventosConectados = false;
+        let segmentacionSeleccionada = null;
+        let radarAbastecimientoCache = null;
+        let radarAbastecimientoPromise = null;
+        let radarProductosPorNombre = new Map();
         let reporteListo = false; // Integrante 6
         let estadisticaLista = false; // Integrante 3
         let incidenciasLista = false;
@@ -2931,6 +3071,7 @@
                     if (!segmentacionLista) {
                         inicializarSegmentacion();
                     }
+                    cargarRadarAbastecimiento();
                     break;
 
                 case 'reporte':
@@ -3428,8 +3569,119 @@
             inicioListo = true;
         }
 
+        function nombreRadarNormalizado(valor) {
+            return String(valor || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+        }
+
+        function pintarRadarAbastecimiento(datos) {
+            const alertas = datos.alertas || [];
+            radarProductosPorNombre = new Map((datos.productos || []).map(p => [nombreRadarNormalizado(p.nombre), p]));
+
+            const resumen = $('radarPedidosResumen');
+            if (resumen) {
+                resumen.textContent = `${Number(datos.productos_criticos || 0)} críticos · ${Number(datos.productos_atencion || 0)} por atender`;
+                resumen.className = 'radar-pill' + (Number(datos.productos_criticos || 0) ? ' critico' : Number(datos.productos_atencion || 0) ? ' atencion' : '');
+            }
+
+            const lista = $('radarPedidosLista');
+            if (lista) {
+                lista.innerHTML = alertas.length
+                    ? alertas.map(p => `<article class="radar-alerta ${esc(p.riesgo)}">
+                        <b>${esc(p.nombre)} <span class="radar-pill ${esc(p.riesgo)}">${p.riesgo === 'critico' ? 'Crítico' : 'Atención'}</span></b>
+                        <small>Stock: ${Number(p.stock || 0).toLocaleString('es-PE')} · Cobertura: ${p.cobertura_dias == null ? 'sin datos suficientes' : esc(String(p.cobertura_dias)) + ' días'}</small>
+                        <small>${esc(p.recomendacion)}</small>
+                    </article>`).join('')
+                    : '<p class="hint">No hay productos con riesgo crítico o de atención según el historial disponible.</p>';
+            }
+
+            const fuente = $('radarPedidosFuente');
+            if (fuente) fuente.textContent = `${datos.metodo}. ${datos.nota} Productos analizados: ${Number(datos.productos_analizados || 0).toLocaleString('es-PE')}.`;
+
+            const tabla = $('tablaRadarAbastecimiento');
+            if (tabla) {
+                const productos = (datos.productos || []).slice(0, 5);
+                tabla.innerHTML = productos.length ? productos.map(p => {
+                    const etiqueta = p.riesgo === 'critico' ? 'Crítico'
+                        : p.riesgo === 'atencion' ? 'Atención'
+                            : p.riesgo === 'datos_limitados' ? 'Datos limitados' : 'Estable';
+                    return `<tr>
+                        <td>${esc(p.sku)}</td>
+                        <td>${esc(p.nombre)}</td>
+                        <td class="num">${Number(p.stock || 0).toLocaleString('es-PE')}</td>
+                        <td class="num">${Number(p.unidades_por_dia || 0).toLocaleString('es-PE', { maximumFractionDigits: 2 })}</td>
+                        <td class="num">${p.cobertura_dias == null ? '—' : esc(String(p.cobertura_dias)) + ' días'}</td>
+                        <td><span class="radar-pill ${esc(p.riesgo)}">${etiqueta}</span></td>
+                        <td>${esc(p.recomendacion)}</td>
+                    </tr>`;
+                }).join('') : '<tr><td colspan="7">No hay productos activos para analizar.</td></tr>';
+            }
+
+            const resumenSegmentacion = $('radarSegmentacionResumen');
+            if (resumenSegmentacion) {
+                resumenSegmentacion.textContent = `${Number(datos.productos_criticos || 0)} críticos · ${Number(datos.productos_atencion || 0)} por atender`;
+                resumenSegmentacion.className = 'radar-pill' + (Number(datos.productos_criticos || 0) ? ' critico' : Number(datos.productos_atencion || 0) ? ' atencion' : '');
+            }
+            const fuenteSegmentacion = $('radarSegmentacionFuente');
+            if (fuenteSegmentacion) fuenteSegmentacion.textContent = `${datos.metodo}. ${datos.nota}`;
+        }
+
+        async function cargarRadarAbastecimiento(forzar = false) {
+            if (!forzar && radarAbastecimientoCache) return radarAbastecimientoCache;
+            if (radarAbastecimientoPromise) return radarAbastecimientoPromise;
+
+            radarAbastecimientoPromise = (async () => {
+                const respuesta = await fetch('/api/inventario/radar-abastecimiento');
+                const datos = await respuesta.json();
+                if (!respuesta.ok || !datos.success) {
+                    throw new Error(datos.error || 'No se pudo calcular el radar de abastecimiento.');
+                }
+                radarAbastecimientoCache = datos;
+                pintarRadarAbastecimiento(datos);
+                return datos;
+            })();
+
+            try {
+                return await radarAbastecimientoPromise;
+            } catch (error) {
+                console.error('Error cargando radar de abastecimiento:', error);
+                const mensaje = `<p class="hint">${esc(error.message)}</p>`;
+                if ($('radarPedidosLista')) $('radarPedidosLista').innerHTML = mensaje;
+                if ($('tablaRadarAbastecimiento')) $('tablaRadarAbastecimiento').innerHTML = `<tr><td colspan="7">${esc(error.message)}</td></tr>`;
+                if ($('radarPedidosResumen')) $('radarPedidosResumen').textContent = 'No disponible';
+                if ($('radarSegmentacionResumen')) $('radarSegmentacionResumen').textContent = 'No disponible';
+                return null;
+            } finally {
+                radarAbastecimientoPromise = null;
+            }
+        }
+
+        function alertaInventarioEnPedido(nombreProducto, estadoCompra) {
+            const estado = String(estadoCompra || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            if (estado !== 'pendiente') return '';
+            const producto = radarProductosPorNombre.get(nombreRadarNormalizado(nombreProducto));
+            if (!producto || !['critico', 'atencion'].includes(producto.riesgo)) return '';
+            const cobertura = producto.cobertura_dias == null ? 'sin stock' : `${esc(String(producto.cobertura_dias))} días`;
+            return `<small class="radar-pedido">⚠ ${producto.riesgo === 'critico' ? 'Priorizar' : 'Revisar'}: cobertura ${cobertura}</small>`;
+        }
+
+        function normalizarEstadoCompra(estadoActual) {
+            const estado = String(estadoActual || 'pendiente').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            return ['pendiente', 'atendido', 'devolucion', 'cancelacion'].includes(estado) ? estado : 'desconocido';
+        }
+
+        function etiquetaEstadoCompra(estadoActual) {
+            const etiquetas = {
+                pendiente: 'Pendiente',
+                atendido: 'Atendido',
+                devolucion: 'Devolución',
+                cancelacion: 'Cancelación',
+                desconocido: 'Sin estado'
+            };
+            return etiquetas[normalizarEstadoCompra(estadoActual)];
+        }
+
         function renderizarBotonesEstadoCompra(compraId, estadoActual) {
-            const est = String(estadoActual || 'pendiente').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            const est = normalizarEstadoCompra(estadoActual);
             const idSafe = esc(String(compraId));
             return `
                 <div class="compra-estado-group" data-compra-grupo="${idSafe}">
@@ -3448,6 +3700,12 @@
             grupos.forEach(g => {
                 g.outerHTML = renderizarBotonesEstadoCompra(compraId, nuevoEstado);
             });
+            const estadoResumen = document.querySelector(`[data-compra-estado-resumen="${CSS.escape(String(compraId))}"]`);
+            if (estadoResumen) {
+                const estado = normalizarEstadoCompra(nuevoEstado);
+                estadoResumen.textContent = etiquetaEstadoCompra(nuevoEstado);
+                estadoResumen.className = `pedido-estado pedido-status pedido-estado-${estado}`;
+            }
 
             try {
                 const resp = await fetch('/api/tienda/compras/estado', {
@@ -3465,42 +3723,106 @@
             }
         }
 
-        async function cargarComprasClientes() {
+        async function cargarComprasClientes(actualizarRadar = false) {
             try {
                 const respuesta = await fetch('/api/tienda/compras?limite=500');
                 if (!respuesta.ok) throw new Error('Servidor retornó ' + respuesta.status);
                 const datos = await respuesta.json();
                 if (!datos.ok) throw new Error(datos.error || 'No se pudieron cargar las compras.');
 
+                await cargarRadarAbastecimiento(actualizarRadar);
                 const compras = datos.compras || [];
-                const filas = compras.flatMap(compra => {
-                    const items = compra.items && compra.items.length ? compra.items : [{
-                        producto: 'Sin detalle',
-                        cantidad: 0,
-                        precio_unitario: 0,
-                        subtotal: 0
-                    }];
-                    return items.map(item => `
-                        <tr>
-                            <td><b>${esc(compra.cliente_nombre || 'Sin nombre')}</b><small style="display:block;color:var(--text-muted);">${esc(compra.cliente_correo || '')}</small></td>
-                            <td>${esc(compra.fecha_compra ? new Date(compra.fecha_compra).toLocaleString('es-PE') : '--')}</td>
-                            <td>${esc(item.producto || item.nombre || 'Sin producto')}</td>
-                            <td class="num">${Number(item.cantidad || 0).toLocaleString('es-PE')}</td>
-                            <td class="num">S/. ${fmt(item.precio_unitario || 0)}</td>
-                            <td class="num">S/. ${fmt(item.subtotal || 0)}</td>
-                            <td class="num"><b>S/. ${fmt(compra.total || 0)}</b></td>
-                            <td>${renderizarBotonesEstadoCompra(compra.id, compra.estado || 'pendiente')}</td>
-                        </tr>
-                    `);
+                const clientes = new Map();
+                compras.forEach(compra => {
+                    const nombre = String(compra.cliente_nombre || 'Sin nombre').trim();
+                    const correo = String(compra.cliente_correo || '').trim();
+                    const claveCliente = correo
+                        ? `correo:${correo.toLocaleLowerCase()}`
+                        : `nombre:${nombre.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ')}`;
+                    if (!clientes.has(claveCliente)) {
+                        clientes.set(claveCliente, { nombre, correo, compras: [], total: 0 });
+                    }
+                    const cliente = clientes.get(claveCliente);
+                    cliente.compras.push(compra);
+                    cliente.total += Number(compra.total || 0);
+                });
+
+                const filas = Array.from(clientes.values()).map(cliente => {
+                    const totalPedidos = cliente.compras.length;
+                    const etiquetaPedidos = totalPedidos === 1 ? '1 pedido' : `${totalPedidos} pedidos`;
+                    const pedidos = cliente.compras.map(compra => {
+                        const items = compra.items && compra.items.length ? compra.items : [{
+                            producto: 'Sin detalle',
+                            cantidad: 0,
+                            precio_unitario: 0,
+                            subtotal: 0
+                        }];
+                        const idSafe = esc(String(compra.id));
+                        const estado = normalizarEstadoCompra(compra.estado);
+                        const fecha = compra.fecha_compra ? new Date(compra.fecha_compra).toLocaleString('es-PE') : '--';
+                        const cantidadItems = compra.items && compra.items.length ? compra.items.length : 0;
+                        const etiquetaItems = cantidadItems === 1 ? '1 producto' : `${cantidadItems} productos`;
+                        const filasDetalle = items.map(item => {
+                            const nombreProducto = item.producto || item.nombre || 'Sin producto';
+                            return `
+                                <tr>
+                                    <td>${esc(nombreProducto)}${alertaInventarioEnPedido(nombreProducto, compra.estado)}</td>
+                                    <td class="num">${Number(item.cantidad || 0).toLocaleString('es-PE')}</td>
+                                    <td class="num">S/. ${fmt(item.precio_unitario || 0)}</td>
+                                    <td class="num">S/. ${fmt(item.subtotal || 0)}</td>
+                                </tr>`;
+                        }).join('');
+                        return `
+                            <details class="pedido-card">
+                                <summary>
+                                    <div class="pedido-ident">
+                                        <span class="pedido-label">Pedido #${idSafe}</span>
+                                    </div>
+                                    <div class="pedido-fecha"><span class="pedido-label">Fecha</span><small>${esc(fecha)}</small></div>
+                                    <span class="pedido-items-count">${cantidadItems ? etiquetaItems : 'Sin detalle'}</span>
+                                    <b class="pedido-total">S/. ${fmt(compra.total || 0)}</b>
+                                    <span class="pedido-estado pedido-status pedido-estado-${estado}" data-compra-estado-resumen="${idSafe}">${esc(etiquetaEstadoCompra(compra.estado))}</span>
+                                    <span class="pedido-toggle"><span class="pedido-toggle-cerrado">Ver detalle</span><span class="pedido-toggle-abierto">Ocultar detalle</span></span>
+                                </summary>
+                                <div class="pedido-detalle">
+                                    <div class="table-wrap">
+                                        <table>
+                                            <thead><tr><th>Producto</th><th class="num">Cantidad</th><th class="num">Precio unitario</th><th class="num">Subtotal</th></tr></thead>
+                                            <tbody>${filasDetalle}</tbody>
+                                        </table>
+                                    </div>
+                                    <div class="pedido-acciones">
+                                        <span>Estado operativo del pedido</span>
+                                        ${renderizarBotonesEstadoCompra(compra.id, compra.estado)}
+                                    </div>
+                                </div>
+                            </details>`;
+                    }).join('');
+                    return `
+                        <details class="cliente-card">
+                            <summary>
+                                <div class="cliente-identidad">
+                                    <span class="pedido-label">Cliente</span>
+                                    <strong>${esc(cliente.nombre)}</strong>
+                                    ${cliente.correo ? `<small>${esc(cliente.correo)}</small>` : ''}
+                                </div>
+                                <div class="cliente-resumen">
+                                    <div class="cliente-dato"><strong>${etiquetaPedidos}</strong><small>compras registradas</small></div>
+                                    <div class="cliente-dato"><strong>S/. ${fmt(cliente.total)}</strong><small>total acumulado</small></div>
+                                </div>
+                                <span class="cliente-toggle"><span class="cliente-toggle-cerrado">Ver pedidos</span><span class="cliente-toggle-abierto">Ocultar pedidos</span></span>
+                            </summary>
+                            <div class="cliente-pedidos">${pedidos}</div>
+                        </details>`;
                 }).join('');
 
-                $('tablaCompras').innerHTML = filas || '<tr><td colspan="8">No hay compras registradas.</td></tr>';
+                $('tablaCompras').innerHTML = filas || '<p class="hint">No hay compras registradas.</p>';
                 $('comprasCantidad').textContent = compras.length.toLocaleString('es-PE');
                 $('comprasMonto').textContent = 'S/. ' + compras.reduce((total, compra) => total + Number(compra.total || 0), 0).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                 $('comprasFuente').textContent = `Fuente: ${datos.fuente === 'supabase' ? 'Supabase PostgreSQL (tablas compras y detalle_compra)' : 'archivo local'} · Se muestran hasta 500 compras recientes.`;
                 comprasLista = true;
             } catch (error) {
-                $('tablaCompras').innerHTML = `<tr><td colspan="8">${esc(error.message)}</td></tr>`;
+                $('tablaCompras').innerHTML = `<p class="hint">${esc(error.message)}</p>`;
                 $('comprasFuente').textContent = 'No se pudo consultar el historial de compras.';
             }
         }
@@ -4004,57 +4326,139 @@
 
         /* ---------- Aprendizaje no supervisado: segmentación K-Means ---------- */
         async function inicializarSegmentacion() {
+            if (!segmentacionEventosConectados) {
+                $('tablaSegmentacion').addEventListener('click', e => {
+                    const fila = e.target.closest('tr[data-segmento]');
+                    if (fila) seleccionarSegmento(fila.dataset.segmento);
+                });
+                $('tablaSegmentacion').addEventListener('keydown', e => {
+                    if (e.key !== 'Enter' && e.key !== ' ') return;
+                    const fila = e.target.closest('tr[data-segmento]');
+                    if (!fila) return;
+                    e.preventDefault();
+                    seleccionarSegmento(fila.dataset.segmento);
+                });
+                $('sliderClusters').addEventListener('input', () => {
+                    const k = Number($('sliderClusters').value);
+                    $('kSeleccionado').textContent = `K = ${k}`;
+                    $('segEstadoCalculo').textContent = `Recalculando K-Means para K = ${k}…`;
+                    segmentacionSeq++;
+                    clearTimeout(segmentacionTimer);
+                    segmentacionTimer = setTimeout(() => cargarSegmentacionK(k), 300);
+                });
+                segmentacionEventosConectados = true;
+            }
+            await cargarSegmentacionK(Number($('sliderClusters').value));
+        }
+
+        async function cargarSegmentacionK(k) {
+            const solicitud = ++segmentacionSeq;
             try {
-                const respuesta = await fetch('/api/segmentacion?clusters=3&limite=3000');
+                const parametros = new URLSearchParams({ clusters: k, limite: 3000, curva: false });
+                const respuesta = await fetch('/api/segmentacion?' + parametros.toString());
                 if (!respuesta.ok) throw new Error('Servidor retornó ' + respuesta.status);
                 const datos = await respuesta.json();
                 if (!datos.success) throw new Error(datos.message || 'No se pudo segmentar el dataset.');
+                if (solicitud !== segmentacionSeq) return;
+                renderizarSegmentacion(datos);
+            } catch (error) {
+                if (solicitud !== segmentacionSeq) return;
+                segmentacionLista = false;
+                $('segEstadoCalculo').textContent = 'No se pudo recalcular la segmentación.';
+                $('tablaSegmentacion').innerHTML = `<tr><td colspan="11">${esc(error.message)}</td></tr>`;
+            }
+        }
 
-                segmentacionLista = true;
-                $('segMetodo').textContent = datos.metodo;
-                $('segCantidad').textContent = datos.clusters;
-                $('segSilueta').textContent = Number(datos.silueta).toFixed(4);
-                $('segFuente').textContent = datos.fuente_datos || 'No disponible';
-                $('tablaSegmentacion').innerHTML = datos.segmentos.map(segmento => `
-                    <tr>
-                        <td><b>${esc(segmento.segmento)}</b></td>
-                        <td>${esc(segmento.significado)}</td>
-                        <td class="num">${segmento.registros.toLocaleString('es-PE')}</td>
-                        <td class="num">S/. ${fmt(segmento.ventas_promedio)}</td>
-                        <td class="num">S/. ${fmt(segmento.ventas_mediana)}</td>
-                        <td class="num">${segmento.ventas_moda === null ? 'Sin moda' : 'S/. ' + fmt(segmento.ventas_moda)}</td>
-                        <td class="num">${fmt(segmento.stock_promedio)}</td>
-                        <td class="num">${fmt(segmento.cantidad_promedio)}</td>
-                        <td class="num">S/. ${fmt(segmento.precio_promedio)}</td>
-                        <td class="num">S/. ${fmt(segmento.precio_predictivo)}</td>
-                        <td>${esc(segmento.recomendacion)}</td>
-                    </tr>
-                `).join('');
+        function renderizarSegmentacion(datos) {
+            segmentacionLista = true;
+            segmentacionSeleccionada = null;
+            $('segMetodo').textContent = datos.metodo;
+            $('segCantidad').textContent = datos.clusters;
+            $('segSilueta').textContent = Number(datos.silueta).toFixed(4);
+            $('segSiluetaAyuda').textContent = `Muestra de hasta ${Number(datos.muestra_silueta || 0).toLocaleString('es-PE')} transacciones`;
+            $('segFuente').textContent = datos.fuente_datos || 'No disponible';
+            $('kSeleccionado').textContent = `K = ${datos.clusters}`;
+            $('sliderClusters').value = datos.clusters;
+            $('segEstadoCalculo').textContent = `K = ${datos.clusters}: silueta ${Number(datos.silueta).toFixed(4)} · ${Number(datos.registros_analizados || 0).toLocaleString('es-PE')} transacciones analizadas.`;
 
-                const nombres = datos.segmentos.map(segmento => segmento.segmento);
-                const puntosPorSegmento = nombres.map((nombre, indice) => ({
+            $('tablaSegmentacion').innerHTML = datos.segmentos.map(segmento => `
+                <tr class="segmento-fila" data-segmento="${esc(segmento.segmento)}" tabindex="0" aria-label="Resaltar ${esc(segmento.segmento)}">
+                    <td><b>${esc(segmento.segmento)}</b></td>
+                    <td>${esc(segmento.significado)}</td>
+                    <td class="num">${segmento.registros.toLocaleString('es-PE')}</td>
+                    <td class="num">S/. ${fmt(segmento.ventas_promedio)}</td>
+                    <td class="num">S/. ${fmt(segmento.ventas_mediana)}</td>
+                    <td class="num">${segmento.ventas_moda === null ? 'Sin moda' : 'S/. ' + fmt(segmento.ventas_moda)}</td>
+                    <td class="num">${fmt(segmento.stock_promedio)}</td>
+                    <td class="num">${fmt(segmento.cantidad_promedio)}</td>
+                    <td class="num">S/. ${fmt(segmento.precio_promedio)}</td>
+                    <td class="num">S/. ${fmt(segmento.precio_predictivo)}</td>
+                    <td>${esc(segmento.recomendacion)}</td>
+                </tr>
+            `).join('');
+
+            const nombres = datos.segmentos.map(segmento => segmento.segmento);
+            const puntosPorSegmento = nombres.map((nombre, indice) => {
+                const color = COLORES_CLUSTER[indice % COLORES_CLUSTER.length];
+                return {
                     label: nombre,
                     data: datos.puntos
                         .filter(punto => punto.segmento === nombre)
                         .map(punto => ({ x: punto.stock, y: punto.ventas })),
-                    backgroundColor: COLORES[indice % COLORES.length],
-                    pointRadius: 3
-                }));
-                dibujar('chartSegmentacion', {
-                    type: 'scatter',
-                    data: { datasets: puntosPorSegmento },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            x: { title: { display: true, text: 'Stock actual' } },
-                            y: { title: { display: true, text: 'Ventas totales (S/.)' } }
+                    backgroundColor: color,
+                    pointBackgroundColor: color,
+                    pointBorderColor: color,
+                    pointRadius: 3,
+                    clusterColor: color
+                };
+            });
+            dibujar('chartSegmentacion', {
+                type: 'scatter',
+                data: { datasets: puntosPorSegmento },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    onClick: (event, elementos, chart) => {
+                        const puntos = elementos.length
+                            ? elementos
+                            : chart.getElementsAtEventForMode(event, 'nearest', { intersect: true }, false);
+                        if (puntos.length) seleccionarSegmento(chart.data.datasets[puntos[0].datasetIndex].label);
+                    },
+                    plugins: {
+                        legend: {
+                            onClick: (_event, elemento) => seleccionarSegmento(elemento.text)
                         }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: 'Stock actual' } },
+                        y: { title: { display: true, text: 'Ventas totales (S/.)' } }
                     }
-                });
-            } catch (error) {
-                $('tablaSegmentacion').innerHTML = `<tr><td colspan="11">${esc(error.message)}</td></tr>`;
-            }
+                }
+            });
+
+        }
+
+        function seleccionarSegmento(nombre) {
+            segmentacionSeleccionada = segmentacionSeleccionada === nombre ? null : nombre;
+            document.querySelectorAll('#tablaSegmentacion tr[data-segmento]').forEach(fila => {
+                fila.classList.toggle('seleccionado', fila.dataset.segmento === segmentacionSeleccionada);
+            });
+
+            const chart = charts.chartSegmentacion;
+            if (!chart) return;
+            chart.data.datasets.forEach(dataset => {
+                const activo = !segmentacionSeleccionada || dataset.label === segmentacionSeleccionada;
+                const rgb = dataset.clusterColor.match(/^#([0-9a-f]{6})$/i);
+                const color = rgb
+                    ? `rgba(${parseInt(rgb[1].slice(0, 2), 16)},${parseInt(rgb[1].slice(2, 4), 16)},${parseInt(rgb[1].slice(4, 6), 16)},${activo ? 0.9 : 0.12})`
+                    : dataset.clusterColor;
+                dataset.pointBackgroundColor = color;
+                dataset.pointBorderColor = color;
+                dataset.pointRadius = segmentacionSeleccionada && activo ? 5 : segmentacionSeleccionada ? 2 : 3;
+                dataset.pointHoverRadius = segmentacionSeleccionada && activo ? 7 : 5;
+            });
+            chart.options.animation = { duration: 350, easing: 'easeOutQuart' };
+            chart.update();
         }
 
           /* ================= INICIO DE LO MÍO (Reporte mensual - Integrante 6) ================= */

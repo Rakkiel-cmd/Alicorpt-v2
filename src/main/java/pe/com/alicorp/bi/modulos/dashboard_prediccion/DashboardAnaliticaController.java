@@ -11,6 +11,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.List;
 
@@ -399,10 +401,21 @@ public class DashboardAnaliticaController {
         app.get("/api/segmentacion", ctx -> {
             int clusters = ctx.queryParamAsClass("clusters", Integer.class).getOrDefault(3);
             int limite = ctx.queryParamAsClass("limite", Integer.class).getOrDefault(2500);
+            String curvaParam = ctx.queryParam("curva");
+            boolean incluirCurvaSilueta = curvaParam != null && Boolean.parseBoolean(curvaParam);
             try (Connection conn = DatabaseConfig.getDataSource().getConnection()) {
-                ctx.json(motorSmile.ejecutarSegmentacionKMeans(conn, clusters, limite));
+                ctx.json(motorSmile.ejecutarSegmentacionKMeans(conn, clusters, limite, incluirCurvaSilueta));
             } catch (Exception e) {
                 ctx.status(500).json(Map.of("error", e.getMessage()));
+            }
+        });
+
+        app.get("/api/inventario/radar-abastecimiento", ctx -> {
+            try (Connection conn = DatabaseConfig.getDataSource().getConnection()) {
+                ctx.json(calcularRadarAbastecimiento(conn));
+            } catch (SQLException e) {
+                System.err.println("[!] Error calculando radar de abastecimiento: " + e.getMessage());
+                ctx.status(500).json(Map.of("success", false, "error", "No se pudo calcular el radar de abastecimiento."));
             }
         });
 
@@ -682,5 +695,115 @@ public class DashboardAnaliticaController {
         } catch (NumberFormatException e) {
             return def;
         }
+    }
+
+    private static Map<String, Object> calcularRadarAbastecimiento(Connection conn) throws SQLException {
+        String sql = """
+            SELECT p.sku_codigo,
+                   p.nombre_producto,
+                   p.stock_disponible,
+                   COALESCE(SUM(t.cantidad_vendida), 0) AS unidades_historicas,
+                   MIN(t.fecha_operacion) AS fecha_desde,
+                   MAX(t.fecha_operacion) AS fecha_hasta
+            FROM PRODUCTOS p
+            LEFT JOIN TRANSACCIONES_ALICORP t ON t.id_producto = p.id_producto
+            WHERE p.activo = 'S'
+            GROUP BY p.sku_codigo, p.nombre_producto, p.stock_disponible
+            """;
+
+        List<Map<String, Object>> productos = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                int stock = rs.getInt("stock_disponible");
+                long unidadesHistoricas = Math.max(0L, rs.getLong("unidades_historicas"));
+                java.sql.Date desdeSql = rs.getDate("fecha_desde");
+                java.sql.Date hastaSql = rs.getDate("fecha_hasta");
+                LocalDate desde = desdeSql != null ? desdeSql.toLocalDate() : null;
+                LocalDate hasta = hastaSql != null ? hastaSql.toLocalDate() : null;
+                long periodoDias = desde != null && hasta != null
+                        ? ChronoUnit.DAYS.between(desde, hasta) + 1
+                        : 0;
+                double unidadesPorDia = periodoDias >= 7
+                        ? (double) unidadesHistoricas / periodoDias
+                        : 0.0;
+                Double coberturaDias = unidadesPorDia > 0.0 ? stock / unidadesPorDia : null;
+
+                String riesgo;
+                String recomendacion;
+                if (stock <= 0) {
+                    riesgo = "critico";
+                    recomendacion = "Sin stock: revisar reposición antes de aceptar nuevos pedidos.";
+                } else if (coberturaDias == null) {
+                    riesgo = "datos_limitados";
+                    recomendacion = "Historial menor a 7 días o sin ventas; no se estima cobertura.";
+                } else if (coberturaDias <= 7.0) {
+                    riesgo = "critico";
+                    recomendacion = "Priorizar reposición; el stock cubriría aproximadamente "
+                            + Math.max(0, Math.round(coberturaDias)) + " días de demanda histórica.";
+                } else if (coberturaDias <= 21.0) {
+                    riesgo = "atencion";
+                    recomendacion = "Programar reposición; quedan aproximadamente "
+                            + Math.round(coberturaDias) + " días de cobertura.";
+                } else {
+                    riesgo = "estable";
+                    recomendacion = "Stock estable según el ritmo de ventas histórico.";
+                }
+
+                Map<String, Object> producto = new LinkedHashMap<>();
+                producto.put("sku", rs.getString("sku_codigo"));
+                producto.put("nombre", rs.getString("nombre_producto"));
+                producto.put("stock", stock);
+                producto.put("unidades_historicas", unidadesHistoricas);
+                producto.put("unidades_por_dia", Math.round(unidadesPorDia * 100.0) / 100.0);
+                producto.put("periodo_dias", periodoDias);
+                producto.put("cobertura_dias", coberturaDias == null
+                        ? null
+                        : Math.round(coberturaDias * 10.0) / 10.0);
+                producto.put("riesgo", riesgo);
+                producto.put("recomendacion", recomendacion);
+                productos.add(producto);
+            }
+        }
+
+        productos.sort((a, b) -> {
+            int porRiesgo = Integer.compare(
+                    prioridadRiesgo(String.valueOf(a.get("riesgo"))),
+                    prioridadRiesgo(String.valueOf(b.get("riesgo"))));
+            if (porRiesgo != 0) return porRiesgo;
+            return Double.compare(coberturaOrden(a), coberturaOrden(b));
+        });
+
+        List<Map<String, Object>> alertas = productos.stream()
+                .filter(p -> "critico".equals(p.get("riesgo")) || "atencion".equals(p.get("riesgo")))
+                .limit(8)
+                .toList();
+        long criticos = productos.stream().filter(p -> "critico".equals(p.get("riesgo"))).count();
+        long atencion = productos.stream().filter(p -> "atencion".equals(p.get("riesgo"))).count();
+
+        Map<String, Object> respuesta = new LinkedHashMap<>();
+        respuesta.put("success", true);
+        respuesta.put("productos_analizados", productos.size());
+        respuesta.put("productos_criticos", criticos);
+        respuesta.put("productos_atencion", atencion);
+        respuesta.put("alertas", alertas);
+        respuesta.put("productos", productos.stream().limit(100).toList());
+        respuesta.put("metodo", "Cobertura estimada = stock actual / promedio histórico diario");
+        respuesta.put("nota", "Estimación orientativa basada en fechas disponibles; no es una predicción garantizada.");
+        return respuesta;
+    }
+
+    private static int prioridadRiesgo(String riesgo) {
+        return switch (riesgo) {
+            case "critico" -> 0;
+            case "atencion" -> 1;
+            case "datos_limitados" -> 2;
+            default -> 3;
+        };
+    }
+
+    private static double coberturaOrden(Map<String, Object> producto) {
+        Object cobertura = producto.get("cobertura_dias");
+        return cobertura instanceof Number n ? n.doubleValue() : Double.MAX_VALUE;
     }
 }
