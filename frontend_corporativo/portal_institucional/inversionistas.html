@@ -20,6 +20,7 @@
         .brand-card img { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin-bottom: 15px; }
         .stat-box { background: var(--color-primary); color: white; padding: 40px; border-radius: 15px; text-align: center; margin-bottom: 30px; }
     </style>
+    <link rel="stylesheet" href="/portal_institucional/institucional.css">
 </head>
 <body>
     <header class="navbar">
@@ -28,45 +29,55 @@
             <nav class="nav-links">
                 <a href="/portal_institucional/inversionistas.html" style="color: var(--color-secondary);">Inversionistas</a>
                 <a href="/portal_institucional/clientes.html">Clientes y proveedores</a>
+                <a href="/tienda_virtual/tienda.html" style="color: var(--color-secondary); font-weight: 700;">Comprar productos</a>
                 <a href="/contacto_soporte/contacto.html">Contacto</a>
                 <a href="/portal_institucional/etica.html">Unico Ética Alicorp</a>
-                <a href="#">Perú ▾</a>
+                <span class="pais-label" title="País" style="padding:0 6px;opacity:.85;">Perú</span>
             </nav>
             <div class="nav-actions" style="display: none;"></div>
         </div>
     </header>
 
-    <section class="section container">
-        <h1 class="section-title">Relación con Inversionistas</h1>
-        <div class="stat-box">
-            <h2 style="font-size: 3rem; margin-bottom: 10px;">+15%</h2>
-            <p style="font-size: 1.2rem; font-weight: 300;">Crecimiento de EBITDA en el último trimestre impulsado por nuestras marcas líderes.</p>
-        </div>
+    <section class="inst-hero">
+        <span class="inst-burbuja a" aria-hidden="true"></span><span class="inst-burbuja b" aria-hidden="true"></span>
+        <div class="container"><div class="inst-in">
+            <span class="inst-kick">Inversionistas</span>
+            <h1>Relación con Inversionistas</h1>
+            <p class="inst-sub">Resultados y marcas líderes que impulsan el crecimiento de Alicorp.</p>
+            
+        </div></div>
+    </section>
 
-        <h2 style="color: var(--color-primary); margin-top: 50px;">Nuestras Marcas (Portafolio de Inversión)</h2>
-        <div class="brand-grid">
-            <div class="brand-card">
-                <img src="https://plazavea.vteximg.com.br/arquivos/ids/36303008-450-450/20235718.jpg" alt="Primor" referrerpolicy="no-referrer" style="object-fit: contain; background: #fff;">
-                <h3>Primor</h3>
-                <p style="color: #666; font-size: 0.9rem;">Aceites vegetales para la cocina de todos los días.</p>
-            </div>
-            <div class="brand-card">
-                <img src="https://plazavea.vteximg.com.br/arquivos/ids/35462839-450-450/20501452.jpg" alt="Don Vittorio" referrerpolicy="no-referrer" style="object-fit: contain; background: #fff;">
-                <h3>Don Vittorio</h3>
-                <p style="color: #666; font-size: 0.9rem;">Fideos y pastas para toda la familia.</p>
-            </div>
-            <div class="brand-card">
-                <img src="https://plazavea.vteximg.com.br/arquivos/ids/31918829-450-450/20506750.jpg" alt="Alacena" referrerpolicy="no-referrer" style="object-fit: contain; background: #fff;">
-                <h3>Alacena</h3>
-                <p style="color: #666; font-size: 0.9rem;">Mayonesas, salsas y aderezos.</p>
-            </div>
-            <div class="brand-card">
-                <img src="https://plazavea.vteximg.com.br/arquivos/ids/36303497-450-450/20464560.jpg" alt="Bolívar" referrerpolicy="no-referrer" style="object-fit: contain; background: #fff;">
-                <h3>Bolívar</h3>
-                <p style="color: #666; font-size: 0.9rem;">Detergentes y cuidado de la ropa.</p>
+    <section class="inst-sec">
+        <div class="container">
+            <div class="inst-stat inst-rev">
+                <div><div class="num" data-contar="15" data-pre="+" data-suf="%">+15%</div><p>Crecimiento de EBITDA en el último trimestre impulsado por nuestras marcas líderes.</p></div>
+                <div class="inst-barras" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
             </div>
         </div>
     </section>
+
+    <section class="inst-sec gris">
+        <div class="container">
+            <h2 class="inst-h2 inst-rev">Nuestras marcas</h2>
+            <p class="inst-lead inst-rev">Portafolio de inversión. Pulsa una marca para ver sus productos en la tienda.</p>
+            <div class="inst-marcas">
+            <article class="inst-marca inst-rev" style="--d:0.00s"><div class="foto"><img src="https://plazavea.vteximg.com.br/arquivos/ids/36303008-450-450/20235718.jpg" alt="Primor" referrerpolicy="no-referrer" loading="lazy"></div><h3>Primor</h3><p>Aceites vegetales para la cocina de todos los días.</p><a href="/tienda_virtual/tienda.html?q=Primor">Ver en la tienda &rarr;</a></article>
+            <article class="inst-marca inst-rev" style="--d:0.08s"><div class="foto"><img src="https://plazavea.vteximg.com.br/arquivos/ids/35462839-450-450/20501452.jpg" alt="Don Vittorio" referrerpolicy="no-referrer" loading="lazy"></div><h3>Don Vittorio</h3><p>Fideos y pastas para toda la familia.</p><a href="/tienda_virtual/tienda.html?q=Don%20Vittorio">Ver en la tienda &rarr;</a></article>
+            <article class="inst-marca inst-rev" style="--d:0.16s"><div class="foto"><img src="https://plazavea.vteximg.com.br/arquivos/ids/31918829-450-450/20506750.jpg" alt="Alacena" referrerpolicy="no-referrer" loading="lazy"></div><h3>Alacena</h3><p>Mayonesas, salsas y aderezos.</p><a href="/tienda_virtual/tienda.html?q=Alacena">Ver en la tienda &rarr;</a></article>
+            <article class="inst-marca inst-rev" style="--d:0.24s"><div class="foto"><img src="https://plazavea.vteximg.com.br/arquivos/ids/36303497-450-450/20464560.jpg" alt="Bolívar" referrerpolicy="no-referrer" loading="lazy"></div><h3>Bolívar</h3><p>Detergentes y cuidado de la ropa.</p><a href="/tienda_virtual/tienda.html?q=Bolívar">Ver en la tienda &rarr;</a></article>
+            </div>
+        </div>
+    </section>
+
+    <section class="inst-cta inst-rev">
+        <div class="container">
+            <h2>Conoce nuestros productos</h2>
+            <p>Compra en la tienda en línea de Alicorp y sigue tu pedido desde la web.</p>
+            <a class="inst-btn" href="/tienda_virtual/tienda.html">Ir a la tienda</a>
+        </div>
+    </section>
     <script src="/compartido/script.js"></script>
+    <script src="/portal_institucional/institucional.js"></script>
 </body>
 </html>

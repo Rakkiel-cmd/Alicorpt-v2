@@ -58,7 +58,7 @@ public class AccesoBiometriaController {
                 ctx.status(403).json(Map.of("success", false, "message", "Cuenta suspendida por un Super Administrador."));
                 return;
             }
-            if (!password.equals(perfil.get("password_hash"))) {
+            if (!ServicioSeguridadRelacional.verificarPassword(password, perfil.get("password_hash"))) {
                 ctx.status(401).json(Map.of("success", false, "message", "Contraseña incorrecta."));
                 return;
             }
@@ -83,26 +83,27 @@ public class AccesoBiometriaController {
             }
 
             Map<String, Object> mejorAdmin = null;
-            double mejorDist = Double.MAX_VALUE;
+            double mejorScore = -Double.MAX_VALUE;
             double[] mejorVec = null;
 
             for (Map<String, Object> u : motorSeguridad.listarUsuariosConEstado3FN()) {
                 if (!"activo".equalsIgnoreCase(String.valueOf(u.get("estado")))) continue;
                 Map<String, Object> p = motorSeguridad.obtenerPerfilUsuario3FN(String.valueOf(u.get("usuario")));
-                double[] vecGuardado = motorBiometria.parsearVectorJson(String.valueOf(p.get("face_encoding")));
+                double[] vecGuardado = p != null ? motorBiometria.parsearVectorJson(String.valueOf(p.get("face_encoding"))) : null;
                 if (vecGuardado != null) {
-                    double dist = motorBiometria.calcularDistanciaEuclidiana(vectorVivo, vecGuardado);
-                    if (dist < mejorDist) {
-                        mejorDist = dist;
+                    double score = motorBiometria.puntajeSimilitud(vectorVivo, vecGuardado);
+                    if (score > mejorScore) {
+                        mejorScore = score;
                         mejorAdmin = p;
                         mejorVec = vecGuardado;
                     }
                 }
             }
 
-            if (mejorAdmin != null && mejorVec != null && mejorDist <= ServicioBiometriaJavaCV.UMBRAL_DISTANCIA) {
+            if (mejorAdmin != null && mejorVec != null && motorBiometria.esMatchBiometrico(vectorVivo, mejorVec)) {
                 ctx.req().getSession(true).setAttribute("usuario", mejorAdmin.get("usuario"));
-                double porcentaje = Math.max(70.0, Math.min(99.9, Math.round((1.0 - mejorDist / 1.5) * 1000.0) / 10.0));
+                double mejorDist = motorBiometria.calcularDistanciaEuclidiana(vectorVivo, mejorVec);
+                double porcentaje = motorBiometria.calcularPorcentajeConfianza(vectorVivo, mejorVec);
                 List<Double> vecLista = new ArrayList<>();
                 for (double v : mejorVec) vecLista.add(v);
                 Map<String, Object> resp = new LinkedHashMap<>();
@@ -114,7 +115,9 @@ public class AccesoBiometriaController {
                 resp.put("es_superadmin", mejorAdmin.get("es_superadmin"));
                 resp.put("face_encoding", vecLista);
                 resp.put("distancia", Math.round(mejorDist * 10000.0) / 10000.0);
+                resp.put("similitud_coseno", Math.round(motorBiometria.calcularSimilitudCoseno(vectorVivo, mejorVec) * 10000.0) / 10000.0);
                 resp.put("porcentaje", porcentaje);
+                resp.put("motor_neural", motorBiometria.isMotorNeuralActivo() ? "YuNet + SFace 128-D (ONNX)" : "Spatial ROI");
                 resp.put("redirect", "/dashboard_bi/dashboard.html");
                 ctx.json(resp);
                 return;
@@ -210,7 +213,16 @@ public class AccesoBiometriaController {
         app.get("/api/superadmin/vector", ctx -> {
             String solicitante = ctx.queryParam("usuario");
             String objetivo = ctx.queryParam("objetivo");
+            if (solicitante == null || solicitante.isBlank()) {
+                ctx.status(403).json(Map.of("success", false, "message", "Acceso denegado: sesión requerida."));
+                return;
+            }
             if (objetivo == null || objetivo.isBlank()) objetivo = solicitante;
+            boolean esPropio = objetivo.trim().equalsIgnoreCase(solicitante.trim());
+            if (!esPropio && !motorSeguridad.esSuperAdminActivo(solicitante)) {
+                ctx.status(403).json(Map.of("success", false, "message", "Exclusivo para Super Administradores."));
+                return;
+            }
 
             Map<String, Object> p = motorSeguridad.obtenerPerfilUsuario3FN(objetivo);
             if (p == null) {
@@ -287,54 +299,83 @@ public class AccesoBiometriaController {
         });
 
         app.get("/api/actividad/hoy", ctx -> {
-            String usuario = ctx.queryParam("usuario");
-            String fechaPeru = OffsetDateTime.now(ZONA_PERU).toLocalDate().toString();
-            int segs = usuario != null ? motorSeguridad.obtenerTiempoHoy3FN(usuario, fechaPeru) : 0;
-            ctx.json(Map.of("success", true, "fecha", fechaPeru, "tiempo_segundos", segs));
+            try {
+                Object sesUser = ctx.req().getSession(false) != null ? ctx.req().getSession(false).getAttribute("usuario") : null;
+                String usuario = ctx.queryParam("usuario");
+                if ((usuario == null || usuario.isBlank()) && sesUser != null) usuario = String.valueOf(sesUser);
+                String fechaPeru = OffsetDateTime.now(ZONA_PERU).toLocalDate().toString();
+                int segs = (usuario != null && !usuario.isBlank()) ? motorSeguridad.obtenerTiempoHoy3FN(usuario.trim(), fechaPeru) : 0;
+                ctx.json(Map.of("success", true, "fecha", fechaPeru, "tiempo_segundos", segs));
+            } catch (Exception e) {
+                ctx.status(500).json(Map.of("success", false, "message", "Error consultando actividad del día."));
+            }
         });
 
         app.post("/api/actividad/latido", ctx -> {
-            Map<String, Object> body = ctx.bodyAsClass(Map.class);
-            String usuario = String.valueOf(body.getOrDefault("usuario", "")).trim();
-            String fechaCliente = String.valueOf(body.getOrDefault("fecha", "")).trim();
-            String fechaHoyPeru = OffsetDateTime.now(ZONA_PERU).toLocalDate().toString();
-            int delta = ((Number) body.getOrDefault("segundos_delta", 15)).intValue();
-            int totalCli = ((Number) body.getOrDefault("tiempo_total_hoy", 0)).intValue();
+            try {
+                Map<String, Object> body = ctx.bodyAsClass(Map.class);
+                String usuario = String.valueOf(body.getOrDefault("usuario", "")).trim();
+                String fechaCliente = String.valueOf(body.getOrDefault("fecha", "")).trim();
+                String fechaHoyPeru = OffsetDateTime.now(ZONA_PERU).toLocalDate().toString();
+                int delta = ((Number) body.getOrDefault("segundos_delta", 15)).intValue();
+                int totalCli = ((Number) body.getOrDefault("tiempo_total_hoy", 0)).intValue();
 
-            boolean cambioDia = !fechaCliente.isEmpty() && !fechaCliente.equals(fechaHoyPeru);
-            String fechaGuardar = cambioDia ? fechaHoyPeru : (fechaCliente.isEmpty() ? fechaHoyPeru : fechaCliente);
-            int deltaGuardar = cambioDia ? 0 : delta;
-            int totalBD = motorSeguridad.registrarLatido3FN(usuario, fechaGuardar, deltaGuardar, cambioDia ? 0 : totalCli);
+                boolean cambioDia = !fechaCliente.isEmpty() && !fechaCliente.equals(fechaHoyPeru);
+                String fechaGuardar = cambioDia ? fechaHoyPeru : (fechaCliente.isEmpty() ? fechaHoyPeru : fechaCliente);
+                int deltaGuardar = cambioDia ? 0 : delta;
+                int totalBD = motorSeguridad.registrarLatido3FN(usuario, fechaGuardar, deltaGuardar, cambioDia ? 0 : totalCli);
 
-            ctx.json(Map.of(
-                    "success", true,
-                    "fecha", fechaHoyPeru,
-                    "tiempo_segundos", totalBD,
-                    "reset_medianoche", cambioDia
-            ));
+                ctx.json(Map.of(
+                        "success", true,
+                        "fecha", fechaHoyPeru,
+                        "tiempo_segundos", totalBD,
+                        "reset_medianoche", cambioDia
+                ));
+            } catch (Exception e) {
+                ctx.status(500).json(Map.of("success", false, "message", "Error registrando latido de sesión."));
+            }
         });
 
         app.get("/api/actividad/historial", ctx -> {
-            String usuario = ctx.queryParam("usuario");
-            ctx.json(Map.of("success", true, "historial", motorSeguridad.obtenerHistorialActividad3FN(usuario)));
+            try {
+                Object sesUser = ctx.req().getSession(false) != null ? ctx.req().getSession(false).getAttribute("usuario") : null;
+                String usuario = ctx.queryParam("usuario");
+                if ((usuario == null || usuario.isBlank()) && sesUser != null) usuario = String.valueOf(sesUser);
+                String fechaHoyPeru = OffsetDateTime.now(ZONA_PERU).toLocalDate().toString();
+                ctx.json(Map.of(
+                        "success", true,
+                        "fecha_hoy", fechaHoyPeru,
+                        "historial", motorSeguridad.obtenerHistorialActividad3FN(usuario)
+                ));
+            } catch (Exception e) {
+                ctx.status(500).json(Map.of("success", false, "message", "Error consultando historial en base de datos."));
+            }
         });
 
         app.post("/api/superadmin/suspender", ctx -> {
             Map<String, Object> body = ctx.bodyAsClass(Map.class);
-            String admin = String.valueOf(body.getOrDefault("usuario", body.getOrDefault("admin_usuario", body.getOrDefault("solicitante", ""))));
+            String admin = String.valueOf(body.getOrDefault("usuario", body.getOrDefault("admin_usuario", body.getOrDefault("solicitante", "")))).trim();
+            if (!motorSeguridad.esSuperAdminActivo(admin)) {
+                ctx.status(403).json(Map.of("success", false, "message", "Exclusivo para Super Administradores."));
+                return;
+            }
             String objetivo = String.valueOf(body.getOrDefault("objetivo", body.getOrDefault("usuario_objetivo", "")));
             Object motivoRaw = body.get("motivo");
             String motivo = motivoRaw == null ? "" : String.valueOf(motivoRaw).trim();
             boolean ok = motorSeguridad.cambiarEstadoUsuario3FN(admin, objetivo, 2, "SUSPENSION", motivo);
-            ctx.json(Map.of("success", ok, "message", ok ? "Usuario suspendido correctamente." : "No autorizado."));
+            ctx.json(Map.of("success", ok, "message", ok ? "Usuario suspendido correctamente." : "No se pudo suspender el usuario."));
         });
 
         app.post("/api/superadmin/reactivar", ctx -> {
             Map<String, Object> body = ctx.bodyAsClass(Map.class);
-            String admin = String.valueOf(body.getOrDefault("usuario", body.getOrDefault("admin_usuario", body.getOrDefault("solicitante", ""))));
+            String admin = String.valueOf(body.getOrDefault("usuario", body.getOrDefault("admin_usuario", body.getOrDefault("solicitante", "")))).trim();
+            if (!motorSeguridad.esSuperAdminActivo(admin)) {
+                ctx.status(403).json(Map.of("success", false, "message", "Exclusivo para Super Administradores."));
+                return;
+            }
             String objetivo = String.valueOf(body.getOrDefault("objetivo", body.getOrDefault("usuario_objetivo", "")));
             boolean ok = motorSeguridad.cambiarEstadoUsuario3FN(admin, objetivo, 1, "REACTIVACION");
-            ctx.json(Map.of("success", ok, "message", ok ? "Usuario reactivado correctamente." : "No autorizado."));
+            ctx.json(Map.of("success", ok, "message", ok ? "Usuario reactivado correctamente." : "No se pudo reactivar el usuario."));
         });
 
         app.post("/api/superadmin/ascender_rol", ctx -> {
@@ -432,7 +473,7 @@ public class AccesoBiometriaController {
                 ctx.status(403).json(Map.of("success", false, "message", "No autorizado."));
                 return;
             }
-            if (!pass.isEmpty() && !pass.equals(perfil.get("password_hash"))) {
+            if (!pass.isEmpty() && !ServicioSeguridadRelacional.verificarPassword(pass, perfil.get("password_hash"))) {
                 ctx.status(401).json(Map.of("success", false, "message", "Contraseña de Super Admin incorrecta."));
                 return;
             }
@@ -444,9 +485,13 @@ public class AccesoBiometriaController {
             Map<String, Object> body = ctx.bodyAsClass(Map.class);
             int id = Integer.parseInt(String.valueOf(body.getOrDefault("id", "0")).trim());
             String admin = String.valueOf(body.getOrDefault("usuario", "")).trim();
+            if (!motorSeguridad.esSuperAdminActivo(admin)) {
+                ctx.status(403).json(Map.of("success", false, "message", "Exclusivo para Super Administradores."));
+                return;
+            }
             String pass = String.valueOf(body.getOrDefault("password", ""));
             Map<String, Object> perfil = motorSeguridad.obtenerPerfilUsuario3FN(admin);
-            if (perfil != null && !pass.isEmpty() && !pass.equals(perfil.get("password_hash"))) {
+            if (perfil != null && !pass.isEmpty() && !ServicioSeguridadRelacional.verificarPassword(pass, perfil.get("password_hash"))) {
                 ctx.status(401).json(Map.of("success", false, "message", "Contraseña de confirmación incorrecta."));
                 return;
             }
@@ -463,12 +508,60 @@ public class AccesoBiometriaController {
             Map<String, Object> body = ctx.bodyAsClass(Map.class);
             int id = Integer.parseInt(String.valueOf(body.getOrDefault("id", "0")).trim());
             String admin = String.valueOf(body.getOrDefault("usuario", "")).trim();
+            if (!motorSeguridad.esSuperAdminActivo(admin)) {
+                ctx.status(403).json(Map.of("success", false, "message", "Exclusivo para Super Administradores."));
+                return;
+            }
             String err = motorSeguridad.resolverSolicitudClave3FN(id, admin, false);
             if (err != null) {
                 ctx.status(400).json(Map.of("success", false, "message", err));
                 return;
             }
             ctx.json(Map.of("success", true, "message", "Solicitud rechazada."));
+        });
+
+        // --- MÓDULO TRANSVERSAL: MI PERFIL Y SEGURIDAD (ANALISTA Y SUPERADMIN) ---
+        app.post("/api/usuario/reautenticar_biometria", ctx -> {
+            try {
+                Map<String, Object> body = ctx.bodyAsClass(Map.class);
+                Object sesionUser = ctx.req().getSession(false) != null
+                        ? ctx.req().getSession(false).getAttribute("usuario")
+                        : null;
+                String usuario = String.valueOf(body.getOrDefault("usuario", sesionUser != null ? sesionUser : "")).trim();
+                String frameB64 = String.valueOf(body.getOrDefault("frame_base64", body.getOrDefault("image", "")));
+
+                Map<String, Object> resultado = motorSeguridad.reautenticarBiometriaUsuario(usuario, frameB64, motorBiometria);
+                int status = resultado.get("http_status") instanceof Number n ? n.intValue() : 200;
+                resultado.remove("http_status");
+                ctx.status(status).json(resultado);
+            } catch (Exception e) {
+                ctx.status(500).json(Map.of("success", false, "message", "Error al re-verificar biometría facial."));
+            }
+        });
+
+        app.post("/api/usuario/actualizar_credenciales", ctx -> {
+            try {
+                Map<String, Object> body = ctx.bodyAsClass(Map.class);
+                Object sesionUser = ctx.req().getSession(false) != null
+                        ? ctx.req().getSession(false).getAttribute("usuario")
+                        : null;
+                String usuarioActual = String.valueOf(body.getOrDefault("usuario_actual", sesionUser != null ? sesionUser : "")).trim();
+                String tokenVerif = String.valueOf(body.getOrDefault("token_verificacion", "")).trim();
+                String nuevoUsuario = body.get("nuevo_usuario") != null ? String.valueOf(body.get("nuevo_usuario")).trim() : "";
+                String nuevoPassword = body.get("nuevo_password") != null ? String.valueOf(body.get("nuevo_password")) : "";
+                String nuevoFrame = body.get("nuevo_frame_base64") != null ? String.valueOf(body.get("nuevo_frame_base64")) : "";
+
+                Map<String, Object> resultado = motorSeguridad.actualizarCredencialesCompletas(
+                        usuarioActual, tokenVerif, nuevoUsuario, nuevoPassword, nuevoFrame, motorBiometria);
+                int status = resultado.get("http_status") instanceof Number n ? n.intValue() : 200;
+                resultado.remove("http_status");
+                if (Boolean.TRUE.equals(resultado.get("success")) && resultado.get("usuario") != null) {
+                    ctx.req().getSession(true).setAttribute("usuario", String.valueOf(resultado.get("usuario")));
+                }
+                ctx.status(status).json(resultado);
+            } catch (Exception e) {
+                ctx.status(500).json(Map.of("success", false, "message", "Error interno al actualizar credenciales."));
+            }
         });
     }
 }

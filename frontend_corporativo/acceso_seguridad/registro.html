@@ -3,93 +3,160 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro de Personal | Alicorp</title>
+    <title>Registro de Personal | Alicorp BI</title>
     <link rel="icon" type="image/x-icon" href="/compartido/favicon.ico">
     <link rel="apple-touch-icon" href="/compartido/favicon.png">
-    <link rel="stylesheet" href="/compartido/estilos.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
-    <style>
-        .scan-line {
-            position: absolute; top: 0; left: 0; width: 100%; height: 4px;
-            background: rgba(2, 132, 199, 0.8); box-shadow: 0 0 10px rgba(2, 132, 199, 1);
-            display: none; z-index: 10;
-        }
-        @keyframes scan {
-            0% { top: 0%; } 50% { top: calc(100% - 4px); } 100% { top: 0%; }
-        }
-        .scanning { display: block !important; animation: scan 2s infinite ease-in-out; }
-        .face-guide {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 140px; height: 180px; border: 2px dashed rgba(255, 255, 255, 0.7);
-            border-radius: 50%; pointer-events: none; z-index: 5;
-            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.4);
-        }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        (function() {
+            try {
+                if (localStorage.getItem('alicorp_tema') === 'dark') {
+                    document.documentElement.classList.add('dark-mode');
+                }
+            } catch (e) {}
+        })();
+    </script>
+    <link rel="stylesheet" href="/acceso_seguridad/acceso_theme.css">
 </head>
 <body>
-    <div class="login-container">
-        <div class="login-box">
-            <h2 style="color: var(--color-primary); margin-bottom: 20px;">Registro de Personal</h2>
-            <p>Registro de credenciales y biometría.</p>
-            
-            <div id="paso1">
-                <div style="border: 1px solid #e2e8f0; padding: 20px; border-radius: 10px; text-align: left;">
-                    <h3 style="color: var(--color-primary); margin-bottom: 15px; font-size: 1.1rem;">1. Credenciales y Datos Personales</h3>
-                    
-                    <label for="inputNombreCompleto" style="display:block; font-size:0.85rem; font-weight:600; color:#475569; margin-bottom:4px;">Nombres y Apellidos Completos:</label>
-                    <input type="text" id="inputNombreCompleto" placeholder="Ej: Manuel Jesús Sánchez Paredes" style="width: 100%; padding: 10px; margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 5px;" required>
-
-                    <label for="inputUsuario" style="display:block; font-size:0.85rem; font-weight:600; color:#475569; margin-bottom:4px;">Usuario (Para el inicio de sesión):</label>
-                    <input type="text" id="inputUsuario" placeholder="Crea tu Usuario (ej: msanchez)" style="width: 100%; padding: 10px; margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 5px;" required>
-
-                    <label for="inputPassword" style="display:block; font-size:0.85rem; font-weight:600; color:#475569; margin-bottom:4px;">Contraseña:</label>
-                    <input type="password" id="inputPassword" placeholder="Crea una contraseña segura" style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #cbd5e1; border-radius: 5px;" required>
-
-                    <button id="btnSiguiente" class="btn-primary" style="width: 100%; border: none; cursor: pointer;">Siguiente: Tomar Foto Facial</button>
-                    <p id="errorCredenciales" style="color: red; font-size: 0.85rem; margin-top: 10px; display: none;"></p>
-                </div>
+    <!-- Fondo Fijo Global de Olas Marinas SVG (Light & Dark) -->
+    <div class="ocean-waves-bg" aria-hidden="true">
+        <div class="wave-layer wave-layer-1">
+            <div class="wave-track wave-track-1">
+                <svg class="wave-svg" viewBox="0 0 2880 320" preserveAspectRatio="none">
+                    <defs><linearGradient id="regWave1" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" class="wave-stop-1-start"/><stop offset="100%" class="wave-stop-1-end"/></linearGradient></defs>
+                    <path fill="url(#regWave1)" d="M0,110 Q360,20 720,110 T1440,110 T2160,110 T2880,110 L2880,320 L0,320 Z"/>
+                </svg>
             </div>
-
-            <div id="paso2" style="display: none;">
-                <div style="border: 1px solid #e2e8f0; padding: 20px; border-radius: 10px;">
-                    <h3 style="color: var(--color-primary); margin-bottom: 15px; font-size: 1.1rem;">2. Captura Facial (Obligatorio)</h3>
-                    
-                    <div class="video-container" style="position: relative; border: 2px dashed var(--color-primary); border-radius: 10px; overflow: hidden; background-color: #000; height: 250px;">
-                        <video id="videoElement" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover; display: block;"></video>
-                        <div class="face-guide"></div>
-                        <div class="scan-line" id="scanLine"></div>
-                        <canvas id="canvasElement" style="display: none;"></canvas>
-                    </div>
-                    
-                    <p id="statusMensaje" style="font-size: 0.9rem; color: #666; margin-bottom: 20px; margin-top: 10px;">
-                        Ubica tu rostro dentro del óvalo.
-                    </p>
-
-                    <div id="botonesCaptura">
-                        <button id="btnTomarFoto" class="btn-primary" style="width: 100%; border: none; cursor: pointer;">Analizar Calidad del Rostro</button>
-                    </div>
-
-                    <div id="botonesConfirmacion" style="display: none; gap: 10px;">
-                        <button id="btnReintentar" class="btn-admin" style="width: 48%; cursor: pointer;">Tomar Otra</button>
-                        <button id="btnGuardar" class="btn-primary" style="width: 48%; border: none; cursor: pointer; background-color: green;">✔ Guardar Registro</button>
-                    </div>
-                </div>
+        </div>
+        <div class="wave-layer wave-layer-2">
+            <div class="wave-track wave-track-2">
+                <svg class="wave-svg" viewBox="0 0 2880 320" preserveAspectRatio="none">
+                    <defs><linearGradient id="regWave2" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" class="wave-stop-2-start"/><stop offset="100%" class="wave-stop-2-end"/></linearGradient></defs>
+                    <path fill="url(#regWave2)" d="M0,130 Q180,210 360,130 T720,130 T1080,130 T1440,130 T1800,130 T2160,130 T2520,130 T2880,130 L2880,320 L0,320 Z"/>
+                </svg>
             </div>
-
-            <div style="margin-top: 30px;">
-                <a href="/acceso_seguridad/admin_login.html" class="btn-admin" style="display: inline-block;">← Cancelar y volver al Login</a>
+        </div>
+        <div class="wave-layer wave-layer-3">
+            <div class="wave-track wave-track-3">
+                <svg class="wave-svg" viewBox="0 0 2880 320" preserveAspectRatio="none">
+                    <defs><linearGradient id="regWave3" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" class="wave-stop-3-start"/><stop offset="100%" class="wave-stop-3-end"/></linearGradient></defs>
+                    <path fill="url(#regWave3)" d="M0,155 C240,65 480,245 720,155 C960,65 1200,245 1440,155 C1680,65 1920,245 2160,155 C2400,65 2640,245 2880,155 L2880,320 L0,320 Z"/>
+                </svg>
             </div>
         </div>
     </div>
 
+    <header class="auth-topbar">
+        <a href="/portal_institucional/index.html" class="auth-brand-pill" title="Volver al portal institucional">
+            <span class="auth-brand-mark" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            </span>
+            <span>Alicorp BI</span>
+        </a>
+        <button type="button" class="theme-toggle-pill" id="themeToggleBtn" aria-label="Alternar tema claro u oscuro">
+            <span id="themeIcon" aria-hidden="true"></span>
+            <span id="themeText">Modo Oscuro</span>
+        </button>
+    </header>
+
+    <main class="auth-shell">
+        <div class="auth-card login-box">
+            <div class="auth-header">
+                <span class="auth-chip">Enrolamiento Biométrico 128-D</span>
+                <h1>Registro de Personal</h1>
+                <p>Alta corporativa con credenciales y huella vectorial facial.</p>
+            </div>
+
+            <div id="paso1">
+                <div class="auth-bento-box">
+                    <h2 class="auth-bento-title">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        1. Credenciales y Datos Personales
+                    </h2>
+
+                    <label class="auth-label" for="inputNombreCompleto">Nombres y Apellidos Completos</label>
+                    <input type="text" id="inputNombreCompleto" class="auth-input" placeholder="Ej: Manuel Jesús Sánchez Paredes" required>
+
+                    <label class="auth-label" for="inputUsuario">Usuario Corporativo</label>
+                    <input type="text" id="inputUsuario" class="auth-input" placeholder="Ej: msanchez" required>
+
+                    <label class="auth-label" for="inputPassword">Contraseña</label>
+                    <input type="password" id="inputPassword" class="auth-input" placeholder="Crea una contraseña segura" required>
+
+                    <button id="btnSiguiente" type="button" class="auth-btn-primary">Siguiente: Captura Facial 128-D</button>
+                    <p id="errorCredenciales" class="auth-status" style="color:var(--danger); display:none; margin-bottom:0;"></p>
+                </div>
+            </div>
+
+            <div id="paso2" style="display: none;">
+                <div class="auth-bento-box">
+                    <h2 class="auth-bento-title">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="10" r="3"/><path d="M7 18a5 5 0 0 1 10 0"/></svg>
+                        2. Captura Facial Obligatoria
+                    </h2>
+
+                    <div class="bio-viewport" id="bioViewportReg">
+                        <video id="videoElement" autoplay playsinline></video>
+                        <svg class="bio-svg-guide" viewBox="0 0 400 260" preserveAspectRatio="none" aria-hidden="true">
+                            <defs>
+                                <mask id="faceCutoutReg">
+                                    <rect width="400" height="260" fill="white"/>
+                                    <ellipse cx="200" cy="130" rx="74" ry="96" fill="black"/>
+                                </mask>
+                            </defs>
+                            <rect width="400" height="260" fill="rgba(7,10,18,0.46)" mask="url(#faceCutoutReg)"/>
+                            <ellipse cx="200" cy="130" rx="74" ry="96" fill="none" stroke="rgba(255,255,255,0.78)" stroke-width="2" stroke-dasharray="6 5"/>
+                        </svg>
+                        <div class="scan-line" id="scanLine"></div>
+                        <canvas id="canvasElement" style="display: none;"></canvas>
+                    </div>
+
+                    <p id="statusMensaje" class="auth-status">Ubica tu rostro dentro del óvalo guía.</p>
+
+                    <div id="botonesCaptura">
+                        <button id="btnTomarFoto" type="button" class="auth-btn-primary">Analizar Calidad del Rostro</button>
+                    </div>
+
+                    <div id="botonesConfirmacion" style="display: none; gap: 10px;">
+                        <button id="btnReintentar" type="button" class="auth-btn-secondary">Repetir Toma</button>
+                        <button id="btnGuardar" type="button" class="auth-btn-primary success">Guardar Registro</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="auth-footer-links">
+                <a href="/acceso_seguridad/admin_login.html" class="auth-link">← Volver al Login</a>
+                <a href="/portal_institucional/index.html" class="auth-link">Portal Público</a>
+            </div>
+        </div>
+    </main>
+
     <script>
-        // --- PROTECCIÓN DE ACCESO: VERIFICAR LLAVE O SESIÓN ACTIVA ---
+        // --- MOTOR DE TEMA LIGHT/DARK ---
+        (function initTheme() {
+            const SVG_SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
+            const SVG_MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+            const btn = document.getElementById('themeToggleBtn');
+            const ico = document.getElementById('themeIcon');
+            const txt = document.getElementById('themeText');
+
+            function aplicar(dark, guardar) {
+                document.documentElement.classList.toggle('dark-mode', dark);
+                document.body.classList.toggle('dark-mode', dark);
+                if (ico) ico.innerHTML = dark ? SVG_SUN : SVG_MOON;
+                if (txt) txt.textContent = dark ? 'Modo Claro' : 'Modo Oscuro';
+                if (guardar) { try { localStorage.setItem('alicorp_tema', dark ? 'dark' : 'light'); } catch (e) {} }
+            }
+            aplicar(document.documentElement.classList.contains('dark-mode'), false);
+            if (btn) btn.addEventListener('click', () => aplicar(!document.documentElement.classList.contains('dark-mode'), true));
+        })();
+
+        // --- PROTECCIÓN DE ACCESO ---
         (async function verificarAccesoRegistro() {
-            // 1. ¿Tiene sesión iniciada?
             const ses = sessionStorage.getItem('usuario_activo') || localStorage.getItem('usuario_activo');
             if (ses) return;
 
-            // 2. ¿Tiene la llave en la URL?
             const urlObj = new URL(window.location.href);
             const keyParam = urlObj.searchParams.get('key') || urlObj.searchParams.get('clave') || urlObj.searchParams.get('access') || urlObj.searchParams.get('token');
             if (keyParam) {
@@ -128,18 +195,15 @@
             }
 
             document.body.innerHTML = `
-                <div style="font-family:'Inter',sans-serif; min-height:100vh; display:flex; align-items:center; justify-content:center; background:#f8fafc; color:#0f172a; text-align:center; padding:20px;">
-                    <div style="background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:36px; max-width:440px; box-shadow:0 10px 25px rgba(0,0,0,0.08);">
-                        <div style="font-size:42px; margin-bottom:12px;">🔒</div>
-                        <h2 style="color:#e31b23; margin-bottom:8px; font-weight:800;">Acceso Restringido</h2>
-                        <p style="color:#64748b; font-size:14px; margin-bottom:24px;">Esta sección es exclusiva para personal autorizado de Corporación Alicorp. Redirigiendo al portal público...</p>
-                        <a href="/portal_institucional/index.html" style="background:#0284c7; color:#fff; padding:10px 24px; border-radius:30px; text-decoration:none; font-weight:700; font-size:13.5px; display:inline-block;">Ir a Inicio</a>
+                <div style="font-family:'Plus Jakarta Sans',sans-serif; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;">
+                    <div class="auth-card" style="max-width:440px; text-align:center;">
+                        <h2 style="color:var(--danger); margin:0 0 8px; font-weight:800;">Acceso Restringido</h2>
+                        <p style="color:var(--text-muted); font-size:14px; margin:0 0 22px;">Esta sección es exclusiva para personal autorizado de Corporación Alicorp. Redirigiendo al portal público...</p>
+                        <a href="/portal_institucional/index.html" class="auth-btn-primary">Ir al Portal Público</a>
                     </div>
                 </div>
             `;
-            setTimeout(() => {
-                window.location.replace("/portal_institucional/index.html");
-            }, 1800);
+            setTimeout(() => { window.location.replace("/portal_institucional/index.html"); }, 1800);
         })();
 
         const paso1 = document.getElementById('paso1');
@@ -155,7 +219,8 @@
         const scanLine = document.getElementById('scanLine');
         const statusMensaje = document.getElementById('statusMensaje');
         const btnTomarFoto = document.getElementById('btnTomarFoto');
-        
+        const bioViewport = document.getElementById('bioViewportReg');
+
         const botonesCaptura = document.getElementById('botonesCaptura');
         const botonesConfirmacion = document.getElementById('botonesConfirmacion');
         const btnReintentar = document.getElementById('btnReintentar');
@@ -163,39 +228,43 @@
 
         let imagenFinalBase64 = "";
 
-        // Validar paso 1 y abrir cámara
+        const setEstadoViewport = (estado) => {
+            if (!bioViewport) return;
+            bioViewport.classList.remove('state-scanning', 'state-match', 'state-error');
+            if (estado) bioViewport.classList.add('state-' + estado);
+        };
+
         btnSiguiente.addEventListener('click', () => {
             const nombre = inputNombreCompleto.value.trim();
             const usr = inputUsuario.value.trim();
             const pwd = inputPassword.value.trim();
 
             if (!nombre || !usr || !pwd) {
-                errorCredenciales.innerHTML = "Por favor completa tus Nombres y Apellidos, Usuario y Contraseña.";
+                errorCredenciales.textContent = "Completa tus Nombres y Apellidos, Usuario y Contraseña.";
                 errorCredenciales.style.display = "block";
                 return;
             }
             errorCredenciales.style.display = "none";
-            
-            // Pasar a paso 2 y prender camara
             paso1.style.display = 'none';
             paso2.style.display = 'block';
 
             navigator.mediaDevices.getUserMedia({ video: true })
                 .then(stream => { video.srcObject = stream; })
-                .catch(err => {
-                    statusMensaje.innerHTML = "<span style='color:red;'>Error accediendo a la cámara.</span>";
+                .catch(() => {
+                    setEstadoViewport('error');
+                    statusMensaje.innerHTML = '<span style="color:var(--danger);font-weight:700;">No se pudo acceder a la cámara.</span>';
                     btnTomarFoto.disabled = true;
                 });
         });
 
-        // Tomar foto y evaluar si es válida
         btnTomarFoto.addEventListener('click', () => {
-            statusMensaje.innerHTML = "Analizando calidad del rostro... 🤖";
+            statusMensaje.textContent = "Analizando calidad biométrica...";
+            setEstadoViewport('scanning');
             scanLine.classList.add('scanning');
             btnTomarFoto.disabled = true;
 
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
+            canvas.width = video.videoWidth || 640;
+            canvas.height = video.videoHeight || 480;
             canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
             const imageData = canvas.toDataURL('image/jpeg');
 
@@ -208,36 +277,38 @@
             .then(data => {
                 scanLine.classList.remove('scanning');
                 if (data.success) {
+                    setEstadoViewport('match');
                     imagenFinalBase64 = imageData;
-                    statusMensaje.innerHTML = `<span style='color:green;'>✅ ${data.message}</span>`;
-                    video.pause(); // Congelar imagen
+                    statusMensaje.innerHTML = `<span style="color:var(--success);font-weight:700;">${data.message}</span>`;
+                    video.pause();
                     botonesCaptura.style.display = 'none';
                     botonesConfirmacion.style.display = 'flex';
                 } else {
-                    statusMensaje.innerHTML = `<span style='color:red;'>❌ ${data.message} Inténtalo de nuevo.</span>`;
+                    setEstadoViewport('error');
+                    statusMensaje.innerHTML = `<span style="color:var(--danger);font-weight:700;">${data.message} Inténtalo de nuevo.</span>`;
                     btnTomarFoto.disabled = false;
                 }
             })
-            .catch(err => {
+            .catch(() => {
                 scanLine.classList.remove('scanning');
-                statusMensaje.innerHTML = `<span style='color:red;'>❌ Error de servidor.</span>`;
+                setEstadoViewport('error');
+                statusMensaje.innerHTML = '<span style="color:var(--danger);font-weight:700;">Error de servidor al analizar rostro.</span>';
                 btnTomarFoto.disabled = false;
             });
         });
 
-        // Reintentar tomar foto
         btnReintentar.addEventListener('click', () => {
+            setEstadoViewport('');
             video.play();
-            statusMensaje.innerHTML = "Ubica tu rostro dentro del óvalo.";
+            statusMensaje.textContent = "Ubica tu rostro dentro del óvalo guía.";
             botonesConfirmacion.style.display = 'none';
             botonesCaptura.style.display = 'block';
             btnTomarFoto.disabled = false;
             imagenFinalBase64 = "";
         });
 
-        // Guardar definitivamente en Supabase
         btnGuardar.addEventListener('click', () => {
-            statusMensaje.innerHTML = "Guardando en Supabase... ⏳";
+            statusMensaje.textContent = "Registrando en Supabase PostgreSQL...";
             btnGuardar.disabled = true;
             btnReintentar.disabled = true;
 
@@ -254,20 +325,26 @@
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    // Guardar datos en sessionStorage para acceso rápido
                     try {
                         sessionStorage.setItem('usuario_activo', JSON.stringify({
                             usuario: data.usuario || inputUsuario.value.trim(),
                             nombre_completo: data.nombre_completo || inputNombreCompleto.value.trim()
                         }));
                     } catch (e) {}
-                    statusMensaje.innerHTML = `<span style='color:green;'>🎉 ¡Registro completado para ${data.nombre_completo || inputNombreCompleto.value}! Redirigiendo al login...</span>`;
-                    setTimeout(() => window.location.href = "/acceso_seguridad/admin_login.html", 2000);
+                    statusMensaje.innerHTML = `<span style="color:var(--success);font-weight:700;">Registro completado para ${data.nombre_completo || inputNombreCompleto.value}. Redirigiendo al login...</span>`;
+                    setTimeout(() => { window.location.href = "/acceso_seguridad/admin_login.html"; }, 1800);
                 } else {
-                    statusMensaje.innerHTML = `<span style='color:red;'>❌ Error: ${data.message}</span>`;
+                    setEstadoViewport('error');
+                    statusMensaje.innerHTML = `<span style="color:var(--danger);font-weight:700;">Error: ${data.message}</span>`;
                     btnGuardar.disabled = false;
                     btnReintentar.disabled = false;
                 }
+            })
+            .catch(() => {
+                setEstadoViewport('error');
+                statusMensaje.innerHTML = '<span style="color:var(--danger);font-weight:700;">Error de red al guardar registro.</span>';
+                btnGuardar.disabled = false;
+                btnReintentar.disabled = false;
             });
         });
     </script>

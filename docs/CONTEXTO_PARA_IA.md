@@ -41,16 +41,32 @@
 ### Backend Java (`src/main/java/pe/com/alicorp/bi/`)
 ```text
 pe/com/alicorp/bi/
-├── AlicorpBiApplication.java                  # Arranque Javalin, estáticos, alias de rutas con query string y registro de los 5 controladores
+├── AlicorpBiApplication.java                  # Arranque Javalin, estáticos, alias de rutas con query string y registro de los 6 controladores
 ├── config/
 │   └── DatabaseConfig.java                    # Pool HikariCP (.env -> Supabase PostgreSQL / fallback H2 3FN)
+├── application/
+│   ├── mail/
+│   │   └── CorreoPedido.java                  # Notificación SMTP de confirmación de pedido de la tienda
+│   └── search/
+│       ├── TrieAutocompletado.java            # Trie recursivo de autocompletado (productos, marcas, categorías)
+│       ├── RankingBusqueda.java               # Ranking personalizado por historial de navegador + stock
+│       └── MetricasBusqueda.java              # Registro y comparativa de métricas antes/después (alfabético vs IA)
 └── modulos/
     ├── acceso_biometria/                      # Login 128-D, Registro, Llaves URL, Auditoría, Actividad del Equipo y SuperAdmin
-    │   ├── AccesoBiometriaController.java
-    │   ├── ServicioBiometriaJavaCV.java
+    │   ├── AccesoBiometriaController.java     # 403 estricto en TODOS los endpoints /api/superadmin/* y /api/seguridad/info_clave
+    │   ├── ServicioBiometriaJavaCV.java       # OpenCV 160x160 + Try-with-resources Mat + rechazo de frames vacíos/oscuros
     │   ├── ServicioSeguridadRelacional.java
     │   ├── ServicioActividadEquipo.java
     │   └── AnalisisEquipo.java
+    ├── chatbot_asistente/                     # 3 Chatbots por rol (Cliente, Analista + pulso tickets, Centro de Mando SuperAdmin)
+    │   ├── ChatbotController.java
+    │   ├── ChatbotClienteService.java
+    │   ├── ChatbotAnalistaService.java
+    │   ├── ChatbotAdminService.java
+    │   ├── ExplicadorDashboard.java
+    │   ├── AsistenteIAOpcional.java
+    │   ├── MotorIntenciones.java
+    │   └── RespuestaChat.java
     ├── tienda_buscador_ia/                    # Tienda E-Commerce 3FN + Buscador Predictivo (Trie Recursivo + Smile ML)
     │   ├── TiendaBuscadorController.java
     │   ├── BuscadorCatalogoRepository.java
@@ -72,14 +88,17 @@ pe/com/alicorp/bi/
     └── contacto_soporte/                      # Buzón de Contacto, Incidencias de Clientes y Detector de Fallas Web
         └── ContactoSoporteController.java
 ```
+> **Recursos (`src/main/resources/`):** `catalogo_extra.tsv` (7,303 SKUs de catálogo complementario).  
+> **Modelos ONNX (`models/`):** `face_detection_yunet_2023mar.onnx` (YuNet) y `face_recognition_sface_2021dec.onnx` (SFace 128-D) para biometría neural JavaCV.
 
 ### Frontend (`frontend_corporativo/`)
 ```text
 frontend_corporativo/
 ├── compartido/              # estilos.css, ilustraciones.css, script.js, favicon.ico, favicon.png
-├── portal_institucional/    # index.html, clientes.html, inversionistas.html, etica.html, sostenibilidad.html
-├── acceso_seguridad/        # admin_login.html, registro.html
-├── tienda_virtual/          # tienda.html, tienda.css, tienda.js, tienda_imagenes.js
+├── portal_institucional/    # index.html, clientes.html, inversionistas.html, etica.html, sostenibilidad.html, portada.{css,js}, institucional.{css,js}
+├── acceso_seguridad/        # admin_login.html, registro.html, acceso_theme.css (homogeneizado con olas SVG + glassmorphism)
+├── tienda_virtual/          # tienda.html, comparativa_busqueda.html, tienda.css, tienda_v2.css, tienda.js, tienda_imagenes.js, historial_busqueda.js
+├── chatbot/                 # chatbot.css, chatbot_base.js, chatbot_cliente.js, chatbot_dashboard.js
 ├── contacto_soporte/        # contacto.html
 └── dashboard_bi/            # dashboard.html, dashboard_theme.css
 ```
@@ -91,7 +110,7 @@ frontend_corporativo/
 - **Fondo Global Animado de Olas Marinas SVG (`.ocean-waves-bg`):** 3 capas SVG sinuosas superpuestas (`#oceanWaveGrad1/2/3`) en la mitad inferior (`38vh–54vh`) con bucle horizontal infinito (`@keyframes waveFlow`). Reacciona dinámicamente a Modo Claro/Oscuro mediante variables CSS (`--wave-1-start/end`, `--wave-2-start/end`, `--wave-3-start/end`).
   - **Modo Claro:** Fondo superior `#ffffff` → `#f8fafc`; olas carbón/negro (`#475569` → `#090d16`); tarjetas `rgba(255, 255, 255, 0.88)` con `backdrop-filter: blur(14px)`.
   - **Modo Oscuro:** Fondo superior obsidiana (`#070a12` → `#0d1321`); olas blanco perla/plata (`#ffffff` → `#475569`); tarjetas `rgba(15, 20, 32, 0.78)` con `backdrop-filter: blur(14px)`.
-- **Mapeo de Títulos Ejecutivos de Pestañas (mismos `data-go`):** `inicio` (*Resumen Ejecutivo*), `productos` (*Portafolio y Stock*), `compras` (*Órdenes Web*), `prediccion` (*Pronóstico Lineal*), `keras` (*Simulador Neuronal*), `segmentacion` (*Clusters K-Means*), `estadistica` (*Riesgo Estadístico*), `reporte` (*Cierre Mensual*), `incidencias` (*Incidencias y SLA*), `estrategia` (*Estrategia IA* — Solo SuperAdmin), `administracion` (*Gestión de Equipo* — Solo SuperAdmin), `seguridad` (*Seguridad y Llaves* — Solo SuperAdmin).
+- **Mapeo de Títulos Ejecutivos de Pestañas (mismos `data-go`):** `inicio` (*Resumen Ejecutivo*), `productos` (*Portafolio y Stock*), `compras` (*Órdenes Web*), `prediccion` (*Pronóstico Lineal*), `keras` (*Simulador Neuronal*), `segmentacion` (*Clusters K-Means*), `estadistica` (*Riesgo Estadístico*), `reporte` (*Cierre Mensual*), `incidencias` (*Incidencias y SLA*), `perfil` (*Mi Perfil y Seguridad* — transversal para `analista` y `superadmin`, edición bloqueada hasta re-verificación facial 128-D), `estrategia` (*Estrategia IA* — Solo SuperAdmin), `administracion` (*Gestión de Equipo* — Solo SuperAdmin), `seguridad` (*Seguridad y Llaves* — Solo SuperAdmin).
 
 ---
 
@@ -125,7 +144,7 @@ Definido en `database/esquema_relacional_3fn.sql` (y migración incremental auto
 
 ### A. Acceso Biométrico 128-D y Llave URL (`acceso_biometria`)
 - El botón **"Personal Autorizado"** está oculto para el público general. Al entrar con `?key=<llave>`, `compartido/script.js` llama a `POST /api/seguridad/validar_key`, habilita el acceso y limpia la llave de la barra de direcciones (`history.replaceState`).
-- `ServicioBiometriaJavaCV` decodifica el frame Base64 de la cámara web con OpenCV, redimensiona a `160x160`, convierte a escala de grises, ecualiza el histograma, extrae 128 descriptores normalizados (escala `L2 ~ 1.41`) y compara mediante distancia euclidiana (`UMBRAL_DISTANCIA = 0.78`).
+- `ServicioBiometriaJavaCV` usa **OpenCV DNN en JavaCV (`FaceDetectorYN` YuNet + `FaceRecognizerSF` SFace 128-D)** sobre `models/face_detection_yunet_2023mar.onnx` y `models/face_recognition_sface_2021dec.onnx`: detecta y alinea el rostro, extrae el embedding neural de 128 dimensiones normalizado (`L2 = 1.410`) y valida identidad mediante **Similitud del Coseno** (`UMBRAL_COSENO_SFACE = 0.363`, confianza 85%–99.8%), con fallback determinístico sobre ROI central si faltan los `.onnx`.
 
 ### B. Buscador Predictivo con Árbol Trie Recursivo + Ranking Smile ML (`tienda_buscador_ia`)
 - **`BuscadorCatalogoRepository`**: consulta agregada `GROUP BY` sobre `PRODUCTOS` + `TRANSACCIONES_ALICORP` + `TIENDAS` (~7,303 productos indexados con afinidad histórica por tienda).
@@ -150,6 +169,7 @@ Definido en `database/esquema_relacional_3fn.sql` (y migración incremental auto
 
 - **Acceso, Biometría, Actividad y SuperAdmin (`AccesoBiometriaController`):**
   - `POST /api/seguridad/validar_key`, `POST /api/login_password`, `POST /api/login_facial`, `POST /api/verificar_rostro`, `POST /api/registrar_admin_web`, `POST /api/logout`, `GET /api/usuario_perfil`
+  - `POST /api/usuario/reautenticar_biometria`, `POST /api/usuario/actualizar_credenciales` *(re-verificación 128-D + token temporal + hash SHA-256 con salt + auditoría 3FN, disponible para `analista` y `superadmin`)*
   - `GET /api/actividad/hoy`, `POST /api/actividad/latido`, `GET /api/actividad/historial`
   - `GET /api/seguridad/info_clave`, `GET /api/seguridad/generar_clave_random`
   - `GET /api/superadmin/usuarios`, `GET /api/superadmin/vector`, `GET /api/superadmin/auditoria`, `GET /api/superadmin/auditoria_filtrada`, `GET /api/superadmin/equipo`
@@ -171,6 +191,11 @@ Definido en `database/esquema_relacional_3fn.sql` (y migración incremental auto
 - **Contacto, Incidencias y Fallas Web (`ContactoSoporteController`):**
   - `POST /api/contacto`, `GET /api/incidencias`, `POST /api/incidencias/cambiar_estado`
   - `GET /api/fallas_web`, `GET|POST /api/fallas_web/escanear`, `POST /api/fallas_web/reportar`, `POST /api/fallas_web/cambiar_estado`
+- **Chatbots Asistentes por Rol (`ChatbotController`):**
+  - `POST /api/chatbot/cliente` *(público: tienda y contacto)*
+  - `POST /api/chatbot/contexto` *(detecta rol activo del dashboard)*
+  - `POST /api/chatbot/analista`, `GET /api/chatbot/analista/pulso` *(analistas y superadmins activos)*
+  - `POST /api/chatbot/admin` *(exclusivo SuperAdmin — `403` para otros roles)*
 
 ---
 

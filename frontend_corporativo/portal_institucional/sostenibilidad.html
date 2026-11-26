@@ -47,6 +47,7 @@
             to { opacity: 1; transform: translateY(0); }
         }
     </style>
+    <link rel="stylesheet" href="/portal_institucional/institucional.css">
 </head>
 <body>
     <header class="navbar">
@@ -55,18 +56,27 @@
             <nav class="nav-links">
                 <a href="/portal_institucional/inversionistas.html">Inversionistas</a>
                 <a href="/portal_institucional/clientes.html">Clientes y proveedores</a>
+                <a href="/tienda_virtual/tienda.html" style="color: var(--color-secondary); font-weight: 700;">Comprar productos</a>
                 <a href="/contacto_soporte/contacto.html">Contacto</a>
                 <a href="/portal_institucional/etica.html">Unico Ética Alicorp</a>
-                <a href="#">Perú ▾</a>
+                <span class="pais-label" title="País" style="padding:0 6px;opacity:.85;">Perú</span>
             </nav>
             <div class="nav-actions" style="display: none;"></div>
         </div>
     </header>
+    <section class="inst-hero">
+        <span class="inst-burbuja a" aria-hidden="true"></span><span class="inst-burbuja b" aria-hidden="true"></span>
+        <div class="container"><div class="inst-in">
+            <span class="inst-kick">Sostenibilidad</span>
+            <h1>Nuestra Estrategia de Sostenibilidad</h1>
+            <p class="inst-sub">Un impacto positivo en la sociedad y el medio ambiente.</p>
+            <div class="inst-chips"><span>Ambiental</span><span>Social</span><span>Gobernanza</span></div>
+        </div></div>
+    </section>
 
-    <section class="section" style="background-color: var(--color-pink-pastel);">
+    <section class="inst-sec gris">
         <div class="container" style="text-align: center;">
-            <h1 class="section-title"><span class="green-bullet"></span> Nuestra Estrategia de Sostenibilidad</h1>
-            <p class="institucional-text" style="max-width: 800px; margin: 0 auto;">
+            <p class="institucional-text inst-rev" style="max-width: 800px; margin: 0 auto;">
                 Buscamos generar un impacto positivo en la sociedad y el medio ambiente. Nuestras acciones se basan en ejes estratégicos ASG (Ambiental, Social y Gobernanza).
             </p>
 
@@ -95,6 +105,14 @@
             </div>
         </div>
     </section>
+    <section class="inst-cta inst-rev">
+        <div class="container">
+            <h2>Conoce nuestros productos</h2>
+            <p>Compra en la tienda en línea de Alicorp y sigue tu pedido desde la web.</p>
+            <a class="inst-btn" href="/tienda_virtual/tienda.html">Ir a la tienda</a>
+        </div>
+    </section>
     <script src="/compartido/script.js"></script>
+    <script src="/portal_institucional/institucional.js"></script>
 </body>
 </html>

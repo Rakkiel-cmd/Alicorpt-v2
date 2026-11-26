@@ -82,6 +82,7 @@
             to { opacity: 1; transform: translateY(0); }
         }
     </style>
+    <link rel="stylesheet" href="/portal_institucional/institucional.css">
 </head>
 <body>
     <header class="navbar">
@@ -90,19 +91,34 @@
             <nav class="nav-links">
                 <a href="/portal_institucional/inversionistas.html">Inversionistas</a>
                 <a href="/portal_institucional/clientes.html">Clientes y proveedores</a>
+                <a href="/tienda_virtual/tienda.html" style="color: var(--color-secondary); font-weight: 700;">Comprar productos</a>
                 <a href="/contacto_soporte/contacto.html" style="color: var(--color-secondary); font-weight: 700;">Contacto</a>
                 <a href="/portal_institucional/etica.html">Unico Ética Alicorp</a>
-                <a href="#">Perú ▾</a>
+                <span class="pais-label" title="País" style="padding:0 6px;opacity:.85;">Perú</span>
             </nav>
             <div class="nav-actions" style="display: none;"></div>
         </div>
     </header>
 
-    <section class="section container" style="text-align: center; max-width: 620px; padding-top: 50px; padding-bottom: 70px;">
-        <h1 class="section-title">Estamos para escucharte</h1>
-        <p class="institucional-text" style="margin-bottom: 30px;">Si tienes alguna consulta, queja o sugerencia sobre nuestros productos, déjanos tus datos y te responderemos a la brevedad.</p>
-        
-        <div class="form-card">
+    <section class="inst-hero">
+        <span class="inst-burbuja a" aria-hidden="true"></span><span class="inst-burbuja b" aria-hidden="true"></span>
+        <div class="container"><div class="inst-in">
+            <span class="inst-kick">Contacto</span>
+            <h1>Estamos para escucharte</h1>
+            <p class="inst-sub">Si tienes alguna consulta, queja o sugerencia sobre nuestros productos, déjanos tus datos y te responderemos a la brevedad.</p>
+            
+        </div></div>
+    </section>
+
+    <section class="inst-sec">
+        <div class="container inst-contacto">
+            <aside class="inst-info">
+                <div class="inst-card inst-rev"><div class="inst-ico"><svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg></div><div><h3>Tu mensaje llega a nuestro equipo</h3><p>Lo registramos y te respondemos a la brevedad.</p></div></div>
+                <div class="inst-card inst-rev" style="--d:.1s"><div class="inst-ico ambar"><svg viewBox="0 0 24 24"><path d="M5 8h14l-1 12H6L5 8z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg></div><div><h3>¿Dudas de una compra?</h3><p>Consulta tu pedido con tu número de compra y tu correo. <a href="/tienda_virtual/tienda.html?pedido=1" style="color:var(--i-rojo);font-weight:700;text-decoration:none">Ver mi pedido &rarr;</a></p></div></div>
+                <div class="inst-card inst-rev" style="--d:.2s"><div class="inst-ico rojo"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.2 8-8 9-4.8-1-8-4.5-8-9V6l8-3z"/><path d="m9 12 2 2 4-4"/></svg></div><div><h3>¿Es una irregularidad?</h3><p>Usa la Línea Única Ética de Alicorp. <a href="/portal_institucional/etica.html" style="color:var(--i-rojo);font-weight:700;text-decoration:none">Ir a la Línea Ética &rarr;</a></p></div></div>
+            </aside>
+            <div class="inst-rev" style="--d:.1s">
+                <div class="form-card">
             <div id="alertaMensaje" class="alert-box"></div>
             
             <form id="formContacto" novalidate>
@@ -116,15 +132,22 @@
                     <input type="email" id="txtCorreo" name="correo" class="form-input" placeholder="ejemplo@correo.com" required maxlength="120" autocomplete="email">
                 </div>
                 
+                <div class="inst-temas" role="group" aria-label="Tema del mensaje">
+                    <button type="button" data-tema="consulta">Consulta</button><button type="button" data-tema="queja">Queja</button><button type="button" data-tema="sugerencia">Sugerencia</button><button type="button" data-tema="proveedor">Proveedor</button>
+                </div>
                 <div>
                     <label for="txtMensaje" style="display:block; margin-bottom: 6px; font-size: 13px; font-weight: 700; color: #475569;">Mensaje o incidencia *</label>
                     <textarea id="txtMensaje" name="mensaje" class="form-input" placeholder="Escribe el detalle de tu consulta o incidencia..." rows="5" required maxlength="2000" style="resize: vertical; min-height: 120px;"></textarea>
+                    <div class="inst-contador" id="contadorMensaje" aria-live="polite">0 / 2000</div>
                 </div>
                 
                 <button type="submit" id="btnEnviar" class="btn-enviar">Enviar Mensaje</button>
             </form>
         </div>
+            </div>
+        </div>
     </section>
+
 
     <script>
         const form = document.getElementById('formContacto');
@@ -212,5 +235,6 @@
         });
     </script>
     <script src="/compartido/script.js"></script>
+    <script src="/portal_institucional/institucional.js"></script>
 </body>
 </html>

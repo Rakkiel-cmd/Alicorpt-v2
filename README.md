@@ -99,7 +99,8 @@ alicorp v2/
 │   ├── config/
 │   │   └── DatabaseConfig.java                    # Pool HikariCP (Supabase PostgreSQL / H2 3FN)
 │   └── modulos/                                   # Código Java organizado por sección web
-│       ├── acceso_biometria/                      # Login 128-D, Registro, Llaves, Auditoría y Equipo
+│       ├── acceso_biometria/                      # Login 128-D, Registro, Re-verificación Perfil, Llaves, Auditoría y Equipo
+│       ├── chatbot_asistente/                     # 3 Chatbots por rol (Cliente, Analista, Centro de Mando SuperAdmin)
 │       ├── tienda_buscador_ia/                    # Tienda 3FN + Árbol Trie Recursivo + Ranking Smile ML
 │       ├── dashboard_prediccion/                  # Resumen, Keras DL4J, K-Means, Estadística, Reportes, PNGs
 │       ├── estrategia_comercial/                  # Filtrado Colaborativo + DecisionTree + Cross-Validation
@@ -107,8 +108,9 @@ alicorp v2/
 ├── frontend_corporativo/                          # Frontend HTML5/CSS3/JS organizado por sección
 │   ├── compartido/                                # estilos.css, ilustraciones.css, script.js, favicon
 │   ├── portal_institucional/                      # index.html, clientes.html, inversionistas.html, etica.html, sostenibilidad.html
-│   ├── acceso_seguridad/                          # admin_login.html, registro.html
-│   ├── tienda_virtual/                            # tienda.html, tienda.css, tienda.js, tienda_imagenes.js
+│   ├── acceso_seguridad/                          # admin_login.html, registro.html, acceso_theme.css (olas SVG + glassmorphism)
+│   ├── tienda_virtual/                            # tienda.html, comparativa_busqueda.html, tienda.css, tienda_v2.css, tienda.js, historial_busqueda.js
+│   ├── chatbot/                                   # chatbot.css, chatbot_base.js, chatbot_cliente.js, chatbot_dashboard.js
 │   ├── contacto_soporte/                          # contacto.html
 │   └── dashboard_bi/                              # dashboard.html, dashboard_theme.css
 ├── database/
@@ -127,7 +129,8 @@ alicorp v2/
 
 ## 🧩 Módulos y Funcionalidades Principales
 
-- **Seguridad Biométrica 128-D:** Registro y autenticación de analistas y Super Administradores mediante captura facial por cámara web (sin almacenar fotografías en disco; solo el vector normalizado de 128 dimensiones y su norma L2).
+- **Seguridad Biométrica 128-D y Mi Perfil:** Registro, autenticación y módulo **Mi Perfil y Seguridad** (para analistas y SuperAdmins) con re-verificación facial en vivo (`<= 0.78`), actualización transaccional de usuario, contraseña (`SHA-256` con salt) y renovación del vector 128-D con trazabilidad en `AMPLIACION_AUDITORIA`.
+- **Chatbots Asistentes por Rol:** Asistente comercial para clientes en tienda/contacto, asistente de tickets en vivo para analistas y Centro de Mando para SuperAdmin.
 - **Control de Llave Secreta y Auditoría (SuperAdmin):** Gestión de roles (`analista` / `superadmin`), suspensión de cuentas, registro de actividad diaria (zona horaria Perú UTC-5) y flujo de aprobación dual para cambio de llave URL.
 - **Dashboard Analítico y ML:**
   - Resumen sobre **100,000 transacciones** normalizadas en 3FN.

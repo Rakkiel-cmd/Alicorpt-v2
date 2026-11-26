@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="/compartido/estilos.css">
     <link rel="stylesheet" href="/compartido/ilustraciones.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/portal_institucional/institucional.css">
 </head>
 <body>
     <header class="navbar">
@@ -17,22 +18,54 @@
             <nav class="nav-links">
                 <a href="/portal_institucional/inversionistas.html">Inversionistas</a>
                 <a href="/portal_institucional/clientes.html">Clientes y proveedores</a>
+                <a href="/tienda_virtual/tienda.html" style="color: var(--color-secondary); font-weight: 700;">Comprar productos</a>
                 <a href="/contacto_soporte/contacto.html">Contacto</a>
                 <a href="/portal_institucional/etica.html" style="color: var(--color-secondary);">Unico Ética Alicorp</a>
-                <a href="#">Perú ▾</a>
+                <span class="pais-label" title="País" style="padding:0 6px;opacity:.85;">Perú</span>
             </nav>
             <div class="nav-actions" style="display: none;"></div>
         </div>
     </header>
 
-    <section class="section container" style="text-align: center;">
-        <h1 class="section-title">Línea Única Ética Alicorp</h1>
-        <div class="ilustracion" style="max-width: 600px; margin: 0 auto 30px;"><svg viewBox="0 0 600 300" role="img" aria-label="Escudo de ética y confianza" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="gE" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1e3a8a"/><stop offset="1" stop-color="#3b82f6"/></linearGradient></defs><rect width="600" height="300" fill="url(#gE)"/><circle cx="90" cy="60" r="70" fill="#fff" opacity=".07"/><circle cx="520" cy="250" r="110" fill="#fff" opacity=".07"/><circle cx="470" cy="50" r="30" fill="#fff" opacity=".08"/><path d="M300 40 L388 72 V150 C388 205 350 243 300 262 C250 243 212 205 212 150 V72 Z" fill="#fff"/><path d="M300 58 L372 84 V150 C372 196 342 228 300 245 C258 228 228 196 228 150 V84 Z" fill="#e31b23"/><path d="M262 150 L292 180 L342 118" fill="none" stroke="#fff" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <p class="institucional-text" style="max-width: 800px; margin: 0 auto;">En Alicorp, la integridad es nuestro principal ingrediente. Ponemos a disposición de nuestros colaboradores, clientes y público en general este canal confidencial para reportar cualquier irregularidad o incumplimiento de nuestras políticas corporativas.</p>
-        <div style="margin-top: 40px;">
-            <a href="#" class="btn-pill btn-primary" style="background-color: #000;">Reportar Incidente (Anónimo)</a>
+    <section class="inst-hero">
+        <span class="inst-burbuja a" aria-hidden="true"></span><span class="inst-burbuja b" aria-hidden="true"></span>
+        <div class="container"><div class="inst-in">
+            <span class="inst-kick">Línea Única Ética</span>
+            <h1>Línea Única Ética Alicorp</h1>
+            <p class="inst-sub">Un canal confidencial para reportar cualquier irregularidad.</p>
+            
+        </div></div>
+    </section>
+
+    <section class="inst-sec">
+        <div class="container">
+            <div class="ilustracion inst-escudo"><svg viewBox="0 0 600 300" role="img" aria-label="Escudo de ética y confianza" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="gE" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1e3a8a"/><stop offset="1" stop-color="#3b82f6"/></linearGradient></defs><rect width="600" height="300" fill="url(#gE)"/><circle cx="90" cy="60" r="70" fill="#fff" opacity=".07"/><circle cx="520" cy="250" r="110" fill="#fff" opacity=".07"/><circle cx="470" cy="50" r="30" fill="#fff" opacity=".08"/><path d="M300 40 L388 72 V150 C388 205 350 243 300 262 C250 243 212 205 212 150 V72 Z" fill="#fff"/><path d="M300 58 L372 84 V150 C372 196 342 228 300 245 C258 228 228 196 228 150 V84 Z" fill="#e31b23"/><path d="M262 150 L292 180 L342 118" fill="none" stroke="#fff" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="inst-centro inst-rev"><p>En Alicorp, la integridad es nuestro principal ingrediente. Ponemos a disposición de nuestros colaboradores, clientes y público en general este canal confidencial para reportar cualquier irregularidad o incumplimiento de nuestras políticas corporativas.</p>
+                <a class="inst-btn azul" href="/contacto_soporte/contacto.html?asunto=incidente" style="background:#111827">Reportar incidente</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="inst-sec gris">
+        <div class="container">
+            <h2 class="inst-h2 inst-rev">Nuestros principios</h2>
+            <p class="inst-lead inst-rev">Lo que respalda este canal.</p>
+            <div class="inst-grid3">
+                <div class="inst-card inst-rev"><div class="inst-ico"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.2 8-8 9-4.8-1-8-4.5-8-9V6l8-3z"/><path d="m9 12 2 2 4-4"/></svg></div><h3>Integridad</h3><p>Es nuestro principal ingrediente en cada decisión.</p></div>
+                <div class="inst-card inst-rev" style="--d:.1s"><div class="inst-ico rojo"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div><h3>Confidencialidad</h3><p>Un canal confidencial para reportar irregularidades o incumplimientos de nuestras políticas.</p></div>
+                <div class="inst-card inst-rev" style="--d:.2s"><div class="inst-ico verde"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.300 2.700-6 6-6s6 2.700 6 6"/><circle cx="17" cy="9" r="2.500"/><path d="M16 14.200c3 .2 5 2.300 5 5.800"/></svg></div><h3>Abierto a todos</h3><p>Disponible para colaboradores, clientes y público en general.</p></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="inst-cta inst-rev">
+        <div class="container">
+            <h2>Conoce nuestros productos</h2>
+            <p>Compra en la tienda en línea de Alicorp y sigue tu pedido desde la web.</p>
+            <a class="inst-btn" href="/tienda_virtual/tienda.html">Ir a la tienda</a>
         </div>
     </section>
     <script src="/compartido/script.js"></script>
+    <script src="/portal_institucional/institucional.js"></script>
 </body>
 </html>

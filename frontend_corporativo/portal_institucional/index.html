@@ -9,7 +9,10 @@
     <link rel="stylesheet" href="/compartido/estilos.css">
     <link rel="stylesheet" href="/compartido/ilustraciones.css">
     <link rel="stylesheet" href="/tienda_virtual/tienda.css">
+    <link rel="stylesheet" href="/tienda_virtual/tienda_v2.css">
+    <link rel="stylesheet" href="/portal_institucional/portada.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/portal_institucional/institucional.css">
 </head>
 <body>
     <!-- Navbar -->
@@ -26,7 +29,7 @@
                 <a href="/tienda_virtual/tienda.html" class="enlace-tienda">Comprar productos</a>
                 <a href="/contacto_soporte/contacto.html">Contacto</a>
                 <a href="/portal_institucional/etica.html">Unico Ética Alicorp</a>
-                <a href="#">Perú ▾</a>
+                <span class="pais-label" title="País">Perú</span>
             </nav>
             <div class="nav-actions" style="display: none;">
                 <!-- Botón inyectado dinámicamente por /compartido/script.js solo con ?key=... o sesión activa -->
@@ -34,35 +37,91 @@
         </div>
     </header>
 
-    <!-- Tienda en línea: buscador inteligente, categorías y productos destacados -->
-    <section class="tienda-hero portada-tienda">
-        <div class="container">
-            <span class="insignia-nueva">🛒 NUEVO · Tienda en línea</span>
-            <h1>Todo Alicorp en un solo lugar</h1>
-            <p>Más de 7 000 productos reales para tu hogar y tu negocio. Compra por unidad o por cantidades grandes.</p>
-            <form class="buscador-caja" action="/tienda_virtual/tienda.html" method="get" autocomplete="off">
-                <span class="lupa">🔎</span>
-                <input type="text" name="q" maxlength="120" placeholder='¿Qué necesitas? Prueba "aceite para freír" o "lavar ropa"'>
-                <button type="submit" class="buscar-btn">Buscar</button>
-            </form>
-            <div class="sugerencias">
-                <a href="/tienda_virtual/tienda.html" class="btn-pill btn-primary" style="padding:8px 22px;font-size:.9rem">Ver toda la tienda</a>
+    <!-- Tienda en línea: portada interactiva (hero dinámico, pestañas, pasos) -->
+    <section class="pt-hero" aria-labelledby="ptH1">
+        <div class="pt-wall" id="ptWall" aria-hidden="true"></div>
+        <div class="pt-shade" aria-hidden="true"></div>
+        <div class="pt-wrap">
+            <div class="pt-hero-in">
+                <span class="pt-kick">Tienda en línea Alicorp</span>
+                <h1 id="ptH1">Todo Alicorp, <em>a un clic</em> de tu mesa</h1>
+                <p class="pt-sub">Aceites, fideos, salsas y limpieza del hogar. Busca lo que necesitas, agrégalo al carrito y sigue tu pedido desde aquí.</p>
+                <div class="pt-buscar">
+                    <form action="/tienda_virtual/tienda.html" method="get" autocomplete="off" role="search">
+                        <svg class="lupa" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                        <input type="text" id="ptQ" name="q" maxlength="120" aria-label="Buscar productos" placeholder="¿Qué necesitas? Ej: aceite">
+                        <button type="submit">Buscar</button>
+                    </form>
+                    <div class="pt-auto" id="ptAuto" role="listbox"></div>
+                </div>
+                <div class="pt-chips"><span>Más buscados:</span>
+                    <a href="/tienda_virtual/tienda.html?q=aceite%20para%20fre%C3%ADr">Aceite para freír</a>
+                    <a href="/tienda_virtual/tienda.html?q=lavar%20ropa">Lavar ropa</a>
+                    <a href="/tienda_virtual/tienda.html?q=fideos">Fideos</a>
+                    <a href="/tienda_virtual/tienda.html?q=salsa">Salsas</a>
+                </div>
+                <div class="pt-ctas">
+                    <a class="pt-btn amarillo" href="/tienda_virtual/tienda.html">Ver toda la tienda</a>
+                    <a class="pt-btn borde" href="/tienda_virtual/tienda.html?pedido=1">Consultar mi pedido</a>
+                </div>
+            </div>
+            <div class="pt-proof">
+                <div><strong id="ptStatProd">7 000+</strong><span>productos con foto real</span></div>
+                <div><strong id="ptStatCat">12</strong><span>categorías para elegir</span></div>
+                <div><strong>1 o 1 000</strong><span>compra por unidad o por mayor</span></div>
+                <div><strong>Correo</strong><span>con tu confirmación de compra</span></div>
             </div>
         </div>
     </section>
 
-    <section class="section portada-categorias">
-        <div class="container">
-            <h2 class="section-title">Explora por categoría</h2>
-            <div class="rejilla-categorias" id="portadaCategorias"></div>
+    <section class="pt-sec pt-rev" id="elige">
+        <div class="pt-wrap">
+            <h2 class="pt-titulo">Elige lo que necesitas</h2>
+            <p class="pt-lead">Cambia de pestaña, mira los productos y agrégalos al carrito sin salir de la portada.</p>
+            <div class="pt-tabs" id="ptTabs" role="tablist" aria-label="Categorías de productos"></div>
+            <div id="ptPaneles"></div>
         </div>
     </section>
 
-    <section class="section portada-destacados">
-        <div class="container">
-            <h2 class="section-title">Productos destacados</h2>
-            <div class="rejilla" id="portadaDestacados"></div>
-            <div style="text-align:center;margin-top:26px"><a href="/tienda_virtual/tienda.html" class="btn-pill btn-primary">Ver todos los productos</a></div>
+    <section class="pt-sec pt-modos pt-rev" id="como-comprar">
+        <div class="pt-wrap">
+            <h2 class="pt-titulo">Compra como más te convenga</h2>
+            <p class="pt-lead">Tres maneras de usar la tienda, todas con el mismo carrito.</p>
+            <div class="pt-g3">
+                <div class="pt-modo"><span class="nu">01</span><h3>Para tu hogar</h3><p>Lleva lo de todos los días: aceite, fideos, salsas y limpieza. Compra pocas unidades y paga fácil.</p><a class="pt-btn amarillo" href="/tienda_virtual/tienda.html">Empezar a comprar</a></div>
+                <div class="pt-modo"><span class="nu">02</span><h3>Para tu negocio</h3><p>Bodegas y restaurantes: elige cantidades grandes directamente en el carrito, hasta donde alcance el stock.</p><a class="pt-btn amarillo" href="/tienda_virtual/tienda.html?carrito=1">Ir al carrito</a></div>
+                <div class="pt-modo"><span class="nu">03</span><h3>Sigue tu pedido</h3><p>Con tu número de compra y tu correo ves en qué estado está: recibido, preparando, en camino o entregado.</p><a class="pt-btn amarillo" href="/tienda_virtual/tienda.html?pedido=1">Consultar mi pedido</a></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="pt-sec gris pt-rev" id="categorias">
+        <div class="pt-wrap">
+            <h2 class="pt-titulo">Explora por categoría</h2>
+            <p class="pt-lead">Entra directo a la sección que buscas.</p>
+            <div class="pt-tiles" id="ptTiles"></div>
+        </div>
+    </section>
+
+    <section class="pt-sec pt-rev" id="destacados">
+        <div class="pt-wrap">
+            <h2 class="pt-titulo">Productos destacados</h2>
+            <p class="pt-lead">Una selección de cada categoría, con stock disponible hoy.</p>
+            <div class="pt-grid" id="ptDest"></div>
+            <p class="pt-mas"><a href="/tienda_virtual/tienda.html">Ver todos los productos &rarr;</a></p>
+        </div>
+    </section>
+
+    <section class="pt-sec gris pt-rev">
+        <div class="pt-wrap">
+            <h2 class="pt-titulo">Así de fácil es comprar</h2>
+            <p class="pt-lead">Cuatro pasos, sin crear cuenta.</p>
+            <div class="pt-pasos">
+                <div class="pt-paso"><h4>Busca</h4><p>Escribe lo que necesitas o elige una categoría.</p></div>
+                <div class="pt-paso"><h4>Agrega</h4><p>Pulsa Agregar y ajusta las cantidades en el carrito.</p></div>
+                <div class="pt-paso"><h4>Confirma</h4><p>Completa tus datos y finaliza la compra.</p></div>
+                <div class="pt-paso"><h4>Recibe y sigue</h4><p>Te llega un correo con tu número de compra para consultar el estado.</p></div>
+            </div>
         </div>
     </section>
 
@@ -73,13 +132,13 @@
             <p style="font-size: 1.3rem; margin-bottom: 30px; font-weight: 300; color: #e5e7eb;">Contribuimos con las comunidades a través de entrega de alimentos, equipamiento y capacitaciones.</p>
             <div class="collage c6" style="margin-bottom: 30px;"><div class="ficha"><img src="https://plazavea.vteximg.com.br/arquivos/ids/36255648-450-450/20385716.jpg" alt="Arroz" referrerpolicy="no-referrer" loading="lazy"></div><div class="ficha"><img src="https://plazavea.vteximg.com.br/arquivos/ids/36302920-450-450/20193770.jpg" alt="Aceite" referrerpolicy="no-referrer" loading="lazy"></div><div class="ficha"><img src="https://plazavea.vteximg.com.br/arquivos/ids/2330029-450-450/20029261.jpg" alt="Fideos" referrerpolicy="no-referrer" loading="lazy"></div><div class="ficha"><img src="https://plazavea.vteximg.com.br/arquivos/ids/35408910-450-450/20198551.jpg" alt="Azúcar" referrerpolicy="no-referrer" loading="lazy"></div><div class="ficha"><img src="https://plazavea.vteximg.com.br/arquivos/ids/35081598-450-450/20402648.jpg" alt="Leche evaporada" referrerpolicy="no-referrer" loading="lazy"></div><div class="ficha"><img src="https://plazavea.vteximg.com.br/arquivos/ids/14557771-450-450/20282379.jpg" alt="Atún" referrerpolicy="no-referrer" loading="lazy"></div></div>
             <div>
-                <a href="#mas" class="btn-pill btn-primary">Ver más</a>
+                <a href="/portal_institucional/sostenibilidad.html" class="btn-pill btn-primary">Ver más</a>
             </div>
         </div>
     </section>
 
     <!-- Sección Institucional -->
-    <section class="section about-section">
+    <section class="section about-section" id="quienes-somos">
         <div class="container grid-2">
             <div class="about-text">
                 <h2 class="section-title left">Bienvenidos a Alicorp</h2>
@@ -121,14 +180,14 @@
                 </div>
                 <div class="footer-col">
                     <h3>Empresa</h3>
-                    <a href="#">Quiénes somos</a>
-                    <a href="#">Nuestras marcas</a>
-                    <a href="#">Sostenibilidad</a>
+                    <a href="#quienes-somos">Quiénes somos</a>
+                    <a href="/tienda_virtual/tienda.html">Nuestras marcas</a>
+                    <a href="/portal_institucional/sostenibilidad.html">Sostenibilidad</a>
                 </div>
                 <div class="footer-col">
                     <h3>Enlaces Rápidos</h3>
-                    <a href="#">Trabaja con nosotros</a>
-                    <a href="#">Inversionistas</a>
+                    <a href="/contacto_soporte/contacto.html">Trabaja con nosotros</a>
+                    <a href="/portal_institucional/inversionistas.html">Inversionistas</a>
                     <a href="/acceso_seguridad/admin_login.html">Acceso Personal Autorizado</a>
                 </div>
             </div>
@@ -138,22 +197,16 @@
         </div>
     </footer>
     <script src="/compartido/script.js"></script>
+    <!-- Botones flotantes: carrito compartido con la tienda -->
+    <div class="pt-fab">
+        <a class="pedido" href="/tienda_virtual/tienda.html?pedido=1">Consultar mi pedido</a>
+        <a class="carro" id="ptCarro" href="/tienda_virtual/tienda.html?carrito=1" aria-label="Ver mi carrito"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.6 11.2a2 2 0 0 0 2 1.5h7.6a2 2 0 0 0 2-1.5L21 7H6"/></svg> Carrito <span class="cnt" id="ptCnt">0</span></a>
+    </div>
+    <div class="pt-toast" id="ptToast" role="status" aria-live="polite"></div>
+
     <script src="/tienda_virtual/tienda_imagenes.js"></script>
-    <script>
-    // Portada: categorías y destacados desde la base de datos (solo lectura)
-    (function () {
-        const esc = (t) => String(t == null ? "" : t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-        fetch("/api/tienda/categorias").then((r) => r.json()).then((d) => {
-            const cont = document.getElementById("portadaCategorias");
-            if (!cont || !d.ok) return;
-            cont.innerHTML = d.categorias.map((c) => `<a class="tarjeta-cat" href="/tienda_virtual/tienda.html?cat=${encodeURIComponent(c.categoria)}"><span class="emoji">${esc(c.emoji)}</span><b>${esc(c.categoria)}</b><small>${c.cantidad} productos</small></a>`).join("");
-        }).catch(() => {});
-        fetch("/api/tienda/destacados").then((r) => r.json()).then((d) => {
-            const cont = document.getElementById("portadaDestacados");
-            if (!cont || !d.ok) return;
-            cont.innerHTML = d.items.map((p) => `<a class="producto" style="text-decoration:none;color:inherit" href="/tienda_virtual/tienda.html?q=${encodeURIComponent(p.subcategoria)}"><div class="foto">${window.fotoProducto(p)}</div><div class="info"><span class="marca">${esc(p.marca)}</span><span class="nombre">${esc(p.nombre)}</span><span class="present">${esc(p.presentacion)}</span><span class="precio">S/ ${Number(p.precio).toFixed(2)}</span></div></a>`).join("");
-        }).catch(() => {});
-    })();
-    </script>
+    <script src="/tienda_virtual/historial_busqueda.js"></script>
+    <script src="/portal_institucional/portada.js"></script>
+    <script src="/portal_institucional/institucional.js"></script>
 </body>
 </html>
