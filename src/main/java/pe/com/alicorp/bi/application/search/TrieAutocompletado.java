@@ -55,9 +55,13 @@ public final class TrieAutocompletado {
 
     /** Devuelve hasta "limite" sugerencias que empiezan con el prefijo, ordenadas por puntaje. */
     public List<Sugerencia> autocompletar(String prefijo, int limite) {
+        if (prefijo == null || limite <= 0) {
+            return List.of();
+        }
+        String pref = prefijo.length() > 120 ? prefijo.substring(0, 120) : prefijo;
         Nodo n = raiz;
-        for (int i = 0; i < prefijo.length(); i++) {
-            n = n.hijos.get(prefijo.charAt(i));
+        for (int i = 0; i < pref.length(); i++) {
+            n = n.hijos.get(pref.charAt(i));
             if (n == null) {
                 return List.of();
             }

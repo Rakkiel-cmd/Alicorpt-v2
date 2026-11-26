@@ -213,7 +213,7 @@ public class NodoEstrategia {
     }
 
     private static double extraerVariable(String variable, DatosTiendaProducto d) {
-        if (variable == null) return 0.0;
+        if (variable == null || d == null) return 0.0;
         return switch (variable) {
             case "stock_actual" -> d.getStockActual();
             case "cantidad_vendida" -> d.getCantidadVendida();

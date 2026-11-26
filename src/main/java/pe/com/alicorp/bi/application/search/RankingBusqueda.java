@@ -139,9 +139,9 @@ public final class RankingBusqueda {
                     continue;
                 }
                 switch (partes[0].trim()) {
-                    case "c" -> p.categorias.merge(clave, peso, Double::sum);
-                    case "m" -> p.marcas.merge(clave, peso, Double::sum);
-                    case "s" -> p.skus.merge(clave, peso, Double::sum);
+                    case "c" -> p.categorias.merge(clave, peso, (a, b) -> a + b);
+                    case "m" -> p.marcas.merge(clave, peso, (a, b) -> a + b);
+                    case "s" -> p.skus.merge(clave, peso, (a, b) -> a + b);
                     default -> {
                         continue;
                     }

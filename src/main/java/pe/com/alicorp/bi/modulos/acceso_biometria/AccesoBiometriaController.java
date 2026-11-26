@@ -210,7 +210,16 @@ public class AccesoBiometriaController {
         app.get("/api/superadmin/vector", ctx -> {
             String solicitante = ctx.queryParam("usuario");
             String objetivo = ctx.queryParam("objetivo");
+            if (solicitante == null || solicitante.isBlank()) {
+                ctx.status(403).json(Map.of("success", false, "message", "Acceso denegado: sesión requerida."));
+                return;
+            }
             if (objetivo == null || objetivo.isBlank()) objetivo = solicitante;
+            boolean esPropio = objetivo.trim().equalsIgnoreCase(solicitante.trim());
+            if (!esPropio && !motorSeguridad.esSuperAdminActivo(solicitante)) {
+                ctx.status(403).json(Map.of("success", false, "message", "Exclusivo para Super Administradores."));
+                return;
+            }
 
             Map<String, Object> p = motorSeguridad.obtenerPerfilUsuario3FN(objetivo);
             if (p == null) {
@@ -321,20 +330,28 @@ public class AccesoBiometriaController {
 
         app.post("/api/superadmin/suspender", ctx -> {
             Map<String, Object> body = ctx.bodyAsClass(Map.class);
-            String admin = String.valueOf(body.getOrDefault("usuario", body.getOrDefault("admin_usuario", body.getOrDefault("solicitante", ""))));
+            String admin = String.valueOf(body.getOrDefault("usuario", body.getOrDefault("admin_usuario", body.getOrDefault("solicitante", "")))).trim();
+            if (!motorSeguridad.esSuperAdminActivo(admin)) {
+                ctx.status(403).json(Map.of("success", false, "message", "Exclusivo para Super Administradores."));
+                return;
+            }
             String objetivo = String.valueOf(body.getOrDefault("objetivo", body.getOrDefault("usuario_objetivo", "")));
             Object motivoRaw = body.get("motivo");
             String motivo = motivoRaw == null ? "" : String.valueOf(motivoRaw).trim();
             boolean ok = motorSeguridad.cambiarEstadoUsuario3FN(admin, objetivo, 2, "SUSPENSION", motivo);
-            ctx.json(Map.of("success", ok, "message", ok ? "Usuario suspendido correctamente." : "No autorizado."));
+            ctx.json(Map.of("success", ok, "message", ok ? "Usuario suspendido correctamente." : "No se pudo suspender el usuario."));
         });
 
         app.post("/api/superadmin/reactivar", ctx -> {
             Map<String, Object> body = ctx.bodyAsClass(Map.class);
-            String admin = String.valueOf(body.getOrDefault("usuario", body.getOrDefault("admin_usuario", body.getOrDefault("solicitante", ""))));
+            String admin = String.valueOf(body.getOrDefault("usuario", body.getOrDefault("admin_usuario", body.getOrDefault("solicitante", "")))).trim();
+            if (!motorSeguridad.esSuperAdminActivo(admin)) {
+                ctx.status(403).json(Map.of("success", false, "message", "Exclusivo para Super Administradores."));
+                return;
+            }
             String objetivo = String.valueOf(body.getOrDefault("objetivo", body.getOrDefault("usuario_objetivo", "")));
             boolean ok = motorSeguridad.cambiarEstadoUsuario3FN(admin, objetivo, 1, "REACTIVACION");
-            ctx.json(Map.of("success", ok, "message", ok ? "Usuario reactivado correctamente." : "No autorizado."));
+            ctx.json(Map.of("success", ok, "message", ok ? "Usuario reactivado correctamente." : "No se pudo reactivar el usuario."));
         });
 
         app.post("/api/superadmin/ascender_rol", ctx -> {
@@ -444,6 +461,10 @@ public class AccesoBiometriaController {
             Map<String, Object> body = ctx.bodyAsClass(Map.class);
             int id = Integer.parseInt(String.valueOf(body.getOrDefault("id", "0")).trim());
             String admin = String.valueOf(body.getOrDefault("usuario", "")).trim();
+            if (!motorSeguridad.esSuperAdminActivo(admin)) {
+                ctx.status(403).json(Map.of("success", false, "message", "Exclusivo para Super Administradores."));
+                return;
+            }
             String pass = String.valueOf(body.getOrDefault("password", ""));
             Map<String, Object> perfil = motorSeguridad.obtenerPerfilUsuario3FN(admin);
             if (perfil != null && !pass.isEmpty() && !pass.equals(perfil.get("password_hash"))) {
@@ -463,6 +484,10 @@ public class AccesoBiometriaController {
             Map<String, Object> body = ctx.bodyAsClass(Map.class);
             int id = Integer.parseInt(String.valueOf(body.getOrDefault("id", "0")).trim());
             String admin = String.valueOf(body.getOrDefault("usuario", "")).trim();
+            if (!motorSeguridad.esSuperAdminActivo(admin)) {
+                ctx.status(403).json(Map.of("success", false, "message", "Exclusivo para Super Administradores."));
+                return;
+            }
             String err = motorSeguridad.resolverSolicitudClave3FN(id, admin, false);
             if (err != null) {
                 ctx.status(400).json(Map.of("success", false, "message", err));

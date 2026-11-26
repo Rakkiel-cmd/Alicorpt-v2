@@ -41,16 +41,32 @@
 ### Backend Java (`src/main/java/pe/com/alicorp/bi/`)
 ```text
 pe/com/alicorp/bi/
-├── AlicorpBiApplication.java                  # Arranque Javalin, estáticos, alias de rutas con query string y registro de los 5 controladores
+├── AlicorpBiApplication.java                  # Arranque Javalin, estáticos, alias de rutas con query string y registro de los 6 controladores
 ├── config/
 │   └── DatabaseConfig.java                    # Pool HikariCP (.env -> Supabase PostgreSQL / fallback H2 3FN)
+├── application/
+│   ├── mail/
+│   │   └── CorreoPedido.java                  # Notificación SMTP de confirmación de pedido de la tienda
+│   └── search/
+│       ├── TrieAutocompletado.java            # Trie recursivo de autocompletado (productos, marcas, categorías)
+│       ├── RankingBusqueda.java               # Ranking personalizado por historial de navegador + stock
+│       └── MetricasBusqueda.java              # Registro y comparativa de métricas antes/después (alfabético vs IA)
 └── modulos/
     ├── acceso_biometria/                      # Login 128-D, Registro, Llaves URL, Auditoría, Actividad del Equipo y SuperAdmin
-    │   ├── AccesoBiometriaController.java
-    │   ├── ServicioBiometriaJavaCV.java
+    │   ├── AccesoBiometriaController.java     # 403 estricto en TODOS los endpoints /api/superadmin/* y /api/seguridad/info_clave
+    │   ├── ServicioBiometriaJavaCV.java       # OpenCV 160x160 + Try-with-resources Mat + rechazo de frames vacíos/oscuros
     │   ├── ServicioSeguridadRelacional.java
     │   ├── ServicioActividadEquipo.java
     │   └── AnalisisEquipo.java
+    ├── chatbot_asistente/                     # 3 Chatbots por rol (Cliente, Analista + pulso tickets, Centro de Mando SuperAdmin)
+    │   ├── ChatbotController.java
+    │   ├── ChatbotClienteService.java
+    │   ├── ChatbotAnalistaService.java
+    │   ├── ChatbotAdminService.java
+    │   ├── ExplicadorDashboard.java
+    │   ├── AsistenteIAOpcional.java
+    │   ├── MotorIntenciones.java
+    │   └── RespuestaChat.java
     ├── tienda_buscador_ia/                    # Tienda E-Commerce 3FN + Buscador Predictivo (Trie Recursivo + Smile ML)
     │   ├── TiendaBuscadorController.java
     │   ├── BuscadorCatalogoRepository.java
@@ -72,14 +88,16 @@ pe/com/alicorp/bi/
     └── contacto_soporte/                      # Buzón de Contacto, Incidencias de Clientes y Detector de Fallas Web
         └── ContactoSoporteController.java
 ```
+> **Recursos (`src/main/resources/`):** `catalogo_extra.tsv` (7,303 SKUs de catálogo complementario).
 
 ### Frontend (`frontend_corporativo/`)
 ```text
 frontend_corporativo/
 ├── compartido/              # estilos.css, ilustraciones.css, script.js, favicon.ico, favicon.png
-├── portal_institucional/    # index.html, clientes.html, inversionistas.html, etica.html, sostenibilidad.html
+├── portal_institucional/    # index.html, clientes.html, inversionistas.html, etica.html, sostenibilidad.html, portada.{css,js}, institucional.{css,js}
 ├── acceso_seguridad/        # admin_login.html, registro.html
-├── tienda_virtual/          # tienda.html, tienda.css, tienda.js, tienda_imagenes.js
+├── tienda_virtual/          # tienda.html, comparativa_busqueda.html, tienda.css, tienda_v2.css, tienda.js, tienda_imagenes.js, historial_busqueda.js
+├── chatbot/                 # chatbot.css, chatbot_base.js, chatbot_cliente.js, chatbot_dashboard.js
 ├── contacto_soporte/        # contacto.html
 └── dashboard_bi/            # dashboard.html, dashboard_theme.css
 ```
@@ -171,6 +189,11 @@ Definido en `database/esquema_relacional_3fn.sql` (y migración incremental auto
 - **Contacto, Incidencias y Fallas Web (`ContactoSoporteController`):**
   - `POST /api/contacto`, `GET /api/incidencias`, `POST /api/incidencias/cambiar_estado`
   - `GET /api/fallas_web`, `GET|POST /api/fallas_web/escanear`, `POST /api/fallas_web/reportar`, `POST /api/fallas_web/cambiar_estado`
+- **Chatbots Asistentes por Rol (`ChatbotController`):**
+  - `POST /api/chatbot/cliente` *(público: tienda y contacto)*
+  - `POST /api/chatbot/contexto` *(detecta rol activo del dashboard)*
+  - `POST /api/chatbot/analista`, `GET /api/chatbot/analista/pulso` *(analistas y superadmins activos)*
+  - `POST /api/chatbot/admin` *(exclusivo SuperAdmin — `403` para otros roles)*
 
 ---
 

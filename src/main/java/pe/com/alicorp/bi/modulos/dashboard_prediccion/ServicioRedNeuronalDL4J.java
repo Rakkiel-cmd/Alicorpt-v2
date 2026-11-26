@@ -62,11 +62,11 @@ public class ServicioRedNeuronalDL4J {
             double precio, double stock, double temp, int mes, int diaSemana) {
 
         double[] raw = new double[14];
-        raw[0] = precio;
-        raw[1] = stock;
-        raw[2] = temp;
-        raw[3] = mes;
-        raw[4] = diaSemana;
+        raw[0] = Double.isFinite(precio) ? precio : SCALER_MEAN[0];
+        raw[1] = Double.isFinite(stock) ? stock : SCALER_MEAN[1];
+        raw[2] = Double.isFinite(temp) ? temp : SCALER_MEAN[2];
+        raw[3] = Math.max(1, Math.min(12, mes));
+        raw[4] = Math.max(0, Math.min(6, diaSemana));
 
         int idxProd = PRODUCTOS.indexOf(producto);
         if (idxProd >= 0) raw[5 + idxProd] = 1.0;

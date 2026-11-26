@@ -31,7 +31,8 @@ public class TrieProductos {
         if (texto == null) return "";
         String sinTildes = Normalizer.normalize(texto.trim().toLowerCase(Locale.ROOT), Normalizer.Form.NFD)
                 .replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
-        return sinTildes.replaceAll("[^a-z0-9\\s]", " ").replaceAll("\\s+", " ").trim();
+        String limpio = sinTildes.replaceAll("[^a-z0-9\\s]", " ").replaceAll("\\s+", " ").trim();
+        return limpio.length() > 120 ? limpio.substring(0, 120) : limpio;
     }
 
     /**

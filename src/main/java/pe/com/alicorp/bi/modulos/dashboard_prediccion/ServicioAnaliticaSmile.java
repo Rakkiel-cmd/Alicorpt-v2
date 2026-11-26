@@ -20,6 +20,7 @@ public class ServicioAnaliticaSmile {
      * P(X > valor) con la distribución normal estándar (Campana de Gauss).
      */
     public double probMayorQue(double valor, double media, double desviacion) {
+        if (!Double.isFinite(valor) || !Double.isFinite(media) || !Double.isFinite(desviacion)) return 0.0;
         if (desviacion <= 0) return media > valor ? 1.0 : 0.0;
         double z = (valor - media) / (desviacion * Math.sqrt(2.0));
         return 0.5 * erfc(z);
@@ -67,6 +68,14 @@ public class ServicioAnaliticaSmile {
 
         double[][] datos = filas.toArray(new double[0][]);
         int n = datos.length;
+        if (n < k) {
+            Map<String, Object> vacio = new LinkedHashMap<>();
+            vacio.put("success", false);
+            vacio.put("message", "No hay suficientes transacciones (" + n + ") para agrupar en " + k + " clusters.");
+            vacio.put("segmentos", List.of());
+            vacio.put("puntos", List.of());
+            return vacio;
+        }
 
         // Cálculo exacto de media y desviación estándar por columna para estandarización Z-score
         double[] medias = new double[4];

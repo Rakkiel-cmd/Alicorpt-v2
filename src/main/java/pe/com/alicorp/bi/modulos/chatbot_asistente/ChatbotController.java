@@ -27,46 +27,66 @@ public final class ChatbotController {
         ChatbotAdminService admin = new ChatbotAdminService();
 
         app.post("/api/chatbot/cliente", ctx -> {
-            Map<String, Object> body = cuerpo(ctx);
-            ctx.json(cliente.responder(texto(body, "mensaje"), ctx.ip()));
+            try {
+                Map<String, Object> body = cuerpo(ctx);
+                ctx.json(cliente.responder(texto(body, "mensaje"), ctx.ip()));
+            } catch (Exception e) {
+                ctx.status(500).json(Map.of("success", false, "message", "Error interno en asistente cliente."));
+            }
         });
 
         app.post("/api/chatbot/contexto", ctx -> {
-            Map<String, Object> perfil = perfilActivo(ctx, seguridad, cuerpo(ctx).get("usuario"));
-            if (perfil == null) {
-                ctx.status(401).json(Map.of("success", false, "message", "Sin sesión activa."));
-                return;
+            try {
+                Map<String, Object> perfil = perfilActivo(ctx, seguridad, cuerpo(ctx).get("usuario"));
+                if (perfil == null) {
+                    ctx.status(401).json(Map.of("success", false, "message", "Sin sesión activa."));
+                    return;
+                }
+                Map<String, Object> r = new LinkedHashMap<>();
+                r.put("success", true);
+                r.put("usuario", perfil.get("usuario"));
+                r.put("nombre", perfil.get("nombre_completo"));
+                r.put("rol", Boolean.TRUE.equals(perfil.get("es_superadmin")) ? "admin" : "analista");
+                r.put("ia_habilitada", AsistenteIAOpcional.compartido().habilitada());
+                r.put("chips_analista", ChatbotAnalistaService.chipsIniciales());
+                r.put("chips_admin", ChatbotAdminService.chipsIniciales());
+                ctx.json(r);
+            } catch (Exception e) {
+                ctx.status(500).json(Map.of("success", false, "message", "Error al resolver contexto del asistente."));
             }
-            Map<String, Object> r = new LinkedHashMap<>();
-            r.put("success", true);
-            r.put("usuario", perfil.get("usuario"));
-            r.put("nombre", perfil.get("nombre_completo"));
-            r.put("rol", Boolean.TRUE.equals(perfil.get("es_superadmin")) ? "admin" : "analista");
-            r.put("ia_habilitada", AsistenteIAOpcional.compartido().habilitada());
-            r.put("chips_analista", ChatbotAnalistaService.chipsIniciales());
-            r.put("chips_admin", ChatbotAdminService.chipsIniciales());
-            ctx.json(r);
         });
 
         app.post("/api/chatbot/analista", ctx -> {
-            Map<String, Object> body = cuerpo(ctx);
-            Map<String, Object> perfil = perfilActivo(ctx, seguridad, body.get("usuario"));
-            if (perfil == null) { sinAcceso(ctx); return; }
-            ctx.json(analista.responder(texto(body, "mensaje"), String.valueOf(perfil.get("usuario")),
-                    texto(body, "vista"), datos(body.get("datos"))));
+            try {
+                Map<String, Object> body = cuerpo(ctx);
+                Map<String, Object> perfil = perfilActivo(ctx, seguridad, body.get("usuario"));
+                if (perfil == null) { sinAcceso(ctx); return; }
+                ctx.json(analista.responder(texto(body, "mensaje"), String.valueOf(perfil.get("usuario")),
+                        texto(body, "vista"), datos(body.get("datos"))));
+            } catch (Exception e) {
+                ctx.status(500).json(Map.of("success", false, "message", "Error interno en asistente analista."));
+            }
         });
 
         app.get("/api/chatbot/analista/pulso", ctx -> {
-            Map<String, Object> perfil = perfilActivo(ctx, seguridad, ctx.queryParam("usuario"));
-            if (perfil == null) { sinAcceso(ctx); return; }
-            ctx.json(analista.mensajePulso(String.valueOf(perfil.get("usuario"))));
+            try {
+                Map<String, Object> perfil = perfilActivo(ctx, seguridad, ctx.queryParam("usuario"));
+                if (perfil == null) { sinAcceso(ctx); return; }
+                ctx.json(analista.mensajePulso(String.valueOf(perfil.get("usuario"))));
+            } catch (Exception e) {
+                ctx.status(500).json(Map.of("success", false, "message", "Error al consultar pulso de tickets."));
+            }
         });
 
         app.post("/api/chatbot/admin", ctx -> {
-            Map<String, Object> body = cuerpo(ctx);
-            Map<String, Object> perfil = perfilActivo(ctx, seguridad, body.get("usuario"));
-            if (perfil == null || !Boolean.TRUE.equals(perfil.get("es_superadmin"))) { sinAcceso(ctx); return; }
-            ctx.json(admin.responder(texto(body, "mensaje"), String.valueOf(perfil.get("usuario"))));
+            try {
+                Map<String, Object> body = cuerpo(ctx);
+                Map<String, Object> perfil = perfilActivo(ctx, seguridad, body.get("usuario"));
+                if (perfil == null || !Boolean.TRUE.equals(perfil.get("es_superadmin"))) { sinAcceso(ctx); return; }
+                ctx.json(admin.responder(texto(body, "mensaje"), String.valueOf(perfil.get("usuario"))));
+            } catch (Exception e) {
+                ctx.status(500).json(Map.of("success", false, "message", "Error interno en centro de mando."));
+            }
         });
     }
 

@@ -29,49 +29,59 @@ public class ServicioBiometriaJavaCV {
             return null;
         }
         try {
-            String payload = imagenBase64.contains(",") ? imagenBase64.split(",")[1] : imagenBase64;
+            int coma = imagenBase64.indexOf(',');
+            String payload = (coma >= 0 ? imagenBase64.substring(coma + 1) : imagenBase64).replaceAll("\\s+", "");
+            if (payload.isEmpty()) {
+                return null;
+            }
             byte[] bytes = Base64.getDecoder().decode(payload);
-
-            Mat raw = new Mat(1, bytes.length, CV_8UC1);
-            raw.data().put(bytes);
-            Mat imgBgr = imdecode(raw, IMREAD_COLOR);
-            if (imgBgr == null || imgBgr.empty()) {
+            if (bytes.length < 32) {
                 return null;
             }
 
-            Mat img160 = new Mat();
-            resize(imgBgr, img160, new Size(160, 160));
-            Mat imgGris = new Mat();
-            cvtColor(img160, imgGris, COLOR_BGR2GRAY);
-            equalizeHist(imgGris, imgGris);
+            try (Mat raw = new Mat(1, bytes.length, CV_8UC1)) {
+                raw.data().put(bytes);
+                try (Mat imgBgr = imdecode(raw, IMREAD_COLOR)) {
+                    if (imgBgr == null || imgBgr.empty()) {
+                        return null;
+                    }
 
-            // Extracción determinística de 128 descriptores espaciales normalizados sobre el recorte 160x160
-            double[] vector = new double[DIMENSIONES];
-            org.bytedeco.javacpp.BytePointer ptr = imgGris.data();
-            int totalPixeles = 160 * 160;
-            int bloque = totalPixeles / DIMENSIONES;
+                    try (Mat img160 = new Mat(); Mat imgGris = new Mat()) {
+                        resize(imgBgr, img160, new Size(160, 160));
+                        cvtColor(img160, imgGris, COLOR_BGR2GRAY);
+                        equalizeHist(imgGris, imgGris);
 
-            double sumaCuadrados = 0.0;
-            for (int d = 0; d < DIMENSIONES; d++) {
-                double acum = 0.0;
-                int inicio = d * bloque;
-                for (int p = 0; p < bloque; p++) {
-                    int val = ptr.get(inicio + p) & 0xFF;
-                    acum += (val - 127.5) / 127.5;
+                        // Extracción determinística de 128 descriptores espaciales normalizados sobre el recorte 160x160
+                        double[] vector = new double[DIMENSIONES];
+                        org.bytedeco.javacpp.BytePointer ptr = imgGris.data();
+                        int totalPixeles = 160 * 160;
+                        int bloque = totalPixeles / DIMENSIONES;
+
+                        double sumaCuadrados = 0.0;
+                        for (int d = 0; d < DIMENSIONES; d++) {
+                            double acum = 0.0;
+                            int inicio = d * bloque;
+                            for (int p = 0; p < bloque; p++) {
+                                int val = ptr.get(inicio + p) & 0xFF;
+                                acum += (val - 127.5) / 127.5;
+                            }
+                            vector[d] = Math.round((acum / bloque) * 1000000.0) / 1000000.0;
+                            sumaCuadrados += vector[d] * vector[d];
+                        }
+
+                        // Rechazar fotogramas totalmente oscuros/planos (norma nula) para evitar falsos positivos
+                        double normActual = Math.sqrt(sumaCuadrados);
+                        if (normActual <= 1e-6) {
+                            return null;
+                        }
+                        double factor = 1.410 / normActual;
+                        for (int d = 0; d < DIMENSIONES; d++) {
+                            vector[d] = Math.round((vector[d] * factor) * 1000000.0) / 1000000.0;
+                        }
+                        return vector;
+                    }
                 }
-                vector[d] = Math.round((acum / bloque) * 1000000.0) / 1000000.0;
-                sumaCuadrados += vector[d] * vector[d];
             }
-
-            // Normalizar a escala L2 ~ 1.41 para compatibilidad con el mapa de calor 128-D
-            double normActual = Math.sqrt(sumaCuadrados);
-            if (normActual > 1e-6) {
-                double factor = 1.410 / normActual;
-                for (int d = 0; d < DIMENSIONES; d++) {
-                    vector[d] = Math.round((vector[d] * factor) * 1000000.0) / 1000000.0;
-                }
-            }
-            return vector;
         } catch (Exception e) {
             return null;
         }
