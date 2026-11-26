@@ -3,6 +3,9 @@ package pe.com.alicorp.bi;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 import io.javalin.http.staticfiles.Location;
+import org.eclipse.jetty.http.HttpCookie;
+import org.eclipse.jetty.server.ForwardedRequestCustomizer;
+import org.eclipse.jetty.server.session.SessionHandler;
 import pe.com.alicorp.bi.config.DatabaseConfig;
 import pe.com.alicorp.bi.modulos.acceso_biometria.AccesoBiometriaController;
 import pe.com.alicorp.bi.modulos.acceso_biometria.ServicioActividadEquipo;
@@ -45,6 +48,25 @@ public class AlicorpBiApplication {
                 staticFiles.hostedPath = "/";
                 staticFiles.directory = "frontend_corporativo";
                 staticFiles.location = Location.EXTERNAL;
+            });
+
+            // Soporte para proxy inverso HTTPS (Cloudflare Tunnel): confía en X-Forwarded-Proto / X-Forwarded-Host
+            config.jetty.modifyHttpConfiguration(httpConfig ->
+                    httpConfig.addCustomizer(new ForwardedRequestCustomizer())
+            );
+
+            // Cookies de sesión compatibles con HTTPS detrás de proxy y sin fijar dominio a localhost
+            config.jetty.modifyServletContextHandler(handler -> {
+                SessionHandler sessionHandler = handler.getSessionHandler();
+                if (sessionHandler == null) {
+                    sessionHandler = new SessionHandler();
+                    handler.setSessionHandler(sessionHandler);
+                }
+                sessionHandler.setHttpOnly(true);
+                sessionHandler.setSameSite(HttpCookie.SameSite.LAX);
+                sessionHandler.setSecureRequestOnly(true);
+                sessionHandler.getSessionCookieConfig().setPath("/");
+                sessionHandler.getSessionCookieConfig().setDomain(null);
             });
         });
 

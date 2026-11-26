@@ -23,7 +23,7 @@ import java.util.Map;
  *   BREVO_API_KEY      clave de la API de Brevo (empieza con "xkeysib-")
  *   CORREO_REMITENTE   correo verificado en Brevo desde el que salen los mensajes
  *   CORREO_NOMBRE      (opcional) nombre que ve el cliente
- *   SITIO_URL          (opcional) direccion de la tienda, por defecto http://localhost:5000
+ *   SITIO_URL          (opcional) direccion publica de la tienda (si se omite, usa el origen HTTPS/Host de la peticion)
  *
  * Si faltan las claves no pasa nada: la compra se guarda igual y simplemente no se envia correo.
  * El envio es asincrono, asi que nunca demora ni rompe la compra.
@@ -74,6 +74,10 @@ public final class CorreoPedido {
 
     /** Lanza el envio en segundo plano. Devuelve true si se intento enviar, false si falta la configuracion. */
     public static boolean enviarSeguimiento(String destino, String nombre, int compraId, double total, String direccion, List<Linea> detalle) {
+        return enviarSeguimiento(destino, nombre, compraId, total, direccion, detalle, "");
+    }
+
+    public static boolean enviarSeguimiento(String destino, String nombre, int compraId, double total, String direccion, List<Linea> detalle, String sitioFallback) {
         Map<String, String> c = config();
         String clave = c.getOrDefault("BREVO_API_KEY", "").trim();
         String remitente = c.getOrDefault("CORREO_REMITENTE", "").trim();
@@ -81,7 +85,9 @@ public final class CorreoPedido {
             return false;
         }
         String nombreRemitente = c.getOrDefault("CORREO_NOMBRE", "Alicorp Tienda en línea").trim();
-        String sitio = c.getOrDefault("SITIO_URL", "http://localhost:5000").trim().replaceAll("/+$", "");
+        String sitioEnv = c.getOrDefault("SITIO_URL", "").trim();
+        String sitioBase = !sitioEnv.isEmpty() ? sitioEnv : (sitioFallback == null ? "" : sitioFallback.trim());
+        String sitio = sitioBase.replaceAll("/+$", "");
         try {
             Map<String, Object> cuerpo = Map.of(
                     "sender", Map.of("name", nombreRemitente, "email", remitente),

@@ -303,7 +303,10 @@ public class TiendaBuscadorController {
                     for (Object[] l : lineas) {
                         detalleCorreo.add(new CorreoPedido.Linea(String.valueOf(l[4]), (Integer) l[1], (Double) l[3]));
                     }
-                    boolean correoEnviado = CorreoPedido.enviarSeguimiento(correo, nombre, compraId, total, direccion, detalleCorreo);
+                    String origenPublico = (ctx.host() != null && !ctx.host().isBlank())
+                            ? (ctx.scheme() + "://" + ctx.host())
+                            : "";
+                    boolean correoEnviado = CorreoPedido.enviarSeguimiento(correo, nombre, compraId, total, direccion, detalleCorreo, origenPublico);
                     ctx.json(Map.of(
                             "ok", true,
                             "compra_id", compraId,
