@@ -194,6 +194,14 @@ public class ServicioActividadEquipo {
         return OffsetDateTime.now(ZONA_PERU).toLocalDate();
     }
 
+    private static Calendar utcCal() {
+        return Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+    }
+
+    private static Timestamp getTimestampUtc(ResultSet rs, String col) throws SQLException {
+        return rs.getTimestamp(col, utcCal());
+    }
+
     private static Instant instante(Timestamp t) {
         return t == null ? null : t.toInstant();
     }
@@ -324,7 +332,7 @@ public class ServicioActividadEquipo {
                     String u = rs.getString("usuario");
                     Date f = rs.getDate("ultima");
                     if (f != null) ultimaFecha.put(u, f.toString());
-                    Timestamp l = rs.getTimestamp("latido");
+                    Timestamp l = getTimestampUtc(rs, "latido");
                     if (l != null && l.toInstant().atOffset(ZONA_PERU).toLocalDate().equals(hoy)) {
                         latidoHoy.put(u, l.toInstant().toString());
                     }
@@ -345,7 +353,7 @@ public class ServicioActividadEquipo {
                     if (suspensiones.containsKey(objetivo)) continue;       // ya está la más reciente
                     String detalle = rs.getString("detalle");
                     String motivo = detalle == null || detalle.startsWith("Cambio de estado aplicado") ? "" : detalle;
-                    Timestamp t = rs.getTimestamp("fecha_evento");
+                    Timestamp t = getTimestampUtc(rs, "fecha_evento");
                     Map<String, Object> s = new LinkedHashMap<>();
                     s.put("por", rs.getString("ejecutor"));
                     s.put("motivo", motivo);
@@ -409,7 +417,7 @@ public class ServicioActividadEquipo {
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
                         String detalle = rs.getString("detalle");
-                        Timestamp t = rs.getTimestamp("fecha_evento");
+                        Timestamp t = getTimestampUtc(rs, "fecha_evento");
                         Map<String, Object> f = new LinkedHashMap<>();
                         f.put("id", rs.getInt("id_auditoria"));
                         f.put("usuario_afectado", rs.getString("usuario_objetivo"));
@@ -501,7 +509,7 @@ public class ServicioActividadEquipo {
                             double[] a = acumulado.computeIfAbsent(u, k -> new double[2]);
                             a[0] += seg;
                             a[1] += 1;
-                            Timestamp pi = rs.getTimestamp("primer_ingreso");
+                            Timestamp pi = getTimestampUtc(rs, "primer_ingreso");
                             if (pi != null) horas[pi.toInstant().atOffset(ZONA_PERU).getHour()]++;
                         }
                     }
@@ -600,7 +608,9 @@ public class ServicioActividadEquipo {
                         if (!ESTADOS_ATENDIDO.contains(String.valueOf(rs.getString("estado_nuevo")))) continue;
                         String u = rs.getString("usuario");
                         String ticket = rs.getString("tipo") + ":" + rs.getInt("id_ticket");
-                        LocalDate dia = rs.getTimestamp("fecha_evento").toInstant().atOffset(ZONA_PERU).toLocalDate();
+                        Timestamp ev = getTimestampUtc(rs, "fecha_evento");
+                        if (ev == null) continue;
+                        LocalDate dia = ev.toInstant().atOffset(ZONA_PERU).toLocalDate();
                         porDia.computeIfAbsent(u, k -> new LinkedHashMap<>()).computeIfAbsent(dia, k -> new HashSet<>()).add(ticket);
                         if (!dia.isBefore(rango.desde()) && dia.isBefore(rango.hastaExclusivo())) {
                             atendidos.computeIfAbsent(u, k -> new HashSet<>()).add(ticket);
@@ -615,9 +625,9 @@ public class ServicioActividadEquipo {
                     try (ResultSet rs = ps.executeQuery()) {
                         while (rs.next()) {
                             String u = rs.getString("usuario");
-                            Instant inicio = instante(rs.getTimestamp("fecha_inicio"));
-                            Instant atencion = instante(rs.getTimestamp("fecha_atencion"));
-                            Instant resolucion = instante(rs.getTimestamp("fecha_resolucion"));
+                            Instant inicio = instante(getTimestampUtc(rs, "fecha_inicio"));
+                            Instant atencion = instante(getTimestampUtc(rs, "fecha_atencion"));
+                            Instant resolucion = instante(getTimestampUtc(rs, "fecha_resolucion"));
                             if (inicio == null) continue;
                             if (atencion != null) primera.computeIfAbsent(u, k -> new ArrayList<>()).add(minutos(inicio, atencion));
                             if (resolucion != null) {

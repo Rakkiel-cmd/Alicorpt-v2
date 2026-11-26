@@ -53,8 +53,8 @@ CREATE TABLE ADMINISTRADORES (
     password_hash    VARCHAR2(255) NOT NULL,
     id_rol           NUMBER        NOT NULL,
     id_estado        NUMBER        NOT NULL,
-    face_encoding    CLOB           CHECK (face_encoding IS JSON),
-    l2_norm          NUMBER(8, 5),
+    face_encoding    CLOB          NULL CHECK (face_encoding IS NULL OR face_encoding IS JSON),
+    l2_norm          NUMBER(8, 5)  NULL,
     fecha_registro   TIMESTAMP WITH TIME ZONE DEFAULT SYSTIMESTAMP NOT NULL,
     CONSTRAINT fk_admin_rol FOREIGN KEY (id_rol)
         REFERENCES ROLES_SEGURIDAD (id_rol),

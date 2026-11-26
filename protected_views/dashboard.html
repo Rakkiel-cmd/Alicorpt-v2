@@ -1145,6 +1145,80 @@
         .estrat-cm-table th, .estrat-cm-table td { border:1px solid var(--border); padding:8px 10px; text-align:center; color:var(--text-main); }
         .estrat-cm-table th { background:var(--bg-main); font-weight:700; font-size:11.5px; }
         .estrat-cm-diag { background:rgba(16,185,129,0.18); font-weight:800; color:#10b981 !important; }
+
+        /* ===== BLOQUEO ANTI-DEVTOOLS (ESQUELETO BORROSO PARA BIOMETRÍA PENDIENTE) ===== */
+        .bio-pending-wrap { position:relative; min-height:460px; padding:24px 0 40px; }
+        .bio-skeleton-blur {
+            filter: blur(7px);
+            opacity: 0.52;
+            pointer-events: none;
+            user-select: none;
+        }
+        .bio-skel-kpis { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-bottom:20px; }
+        .bio-skel-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+        }
+        .bio-skel-line {
+            height: 12px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, rgba(148,163,184,0.18), rgba(148,163,184,0.34), rgba(148,163,184,0.18));
+            margin-bottom: 10px;
+        }
+        .bio-skel-line.lg { height: 26px; width: 55%; margin-bottom: 12px; }
+        .bio-skel-line.md { width: 75%; }
+        .bio-skel-line.sm { width: 42%; margin-bottom: 0; }
+        .bio-skel-grid { display:grid; grid-template-columns: 1.4fr 1fr; gap:18px; }
+        @media (max-width: 860px) { .bio-skel-grid { grid-template-columns: 1fr; } }
+        .bio-skel-chart { height: 220px; border-radius: 12px; background: rgba(148,163,184,0.14); margin-top: 14px; }
+        .bio-lock-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 5;
+        }
+        .bio-lock-modal {
+            max-width: 480px;
+            width: 100%;
+            background: var(--surface);
+            border: 1px solid rgba(2, 132, 199, 0.35);
+            border-radius: 20px;
+            padding: 28px 26px;
+            text-align: center;
+            box-shadow: 0 24px 55px -12px rgba(15, 23, 42, 0.38);
+            backdrop-filter: blur(14px);
+        }
+        .bio-lock-badge {
+            width: 54px;
+            height: 54px;
+            margin: 0 auto 14px;
+            border-radius: 16px;
+            background: rgba(245, 158, 11, 0.15);
+            color: #f59e0b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .bio-lock-badge svg { width: 28px; height: 28px; stroke: currentColor; fill: none; stroke-width: 2; }
+        .perfil-lock-banner.pending-bio {
+            border-color: rgba(245, 158, 11, 0.45);
+            background: rgba(245, 158, 11, 0.10);
+        }
+        .sb-menu button.bio-tab-locked { opacity: 0.78; }
+        .bio-vector-badge.bio-alert-pending {
+            background: rgba(245, 158, 11, 0.16) !important;
+            border: 1px solid rgba(245, 158, 11, 0.58) !important;
+            color: #fbbf24 !important;
+            cursor: pointer;
+        }
+        .bio-vector-badge.bio-alert-pending svg {
+            stroke: #f59e0b !important;
+        }
     </style>
     <link rel="stylesheet" href="/dashboard_bi/dashboard_theme.css">
     <link rel="stylesheet" href="/chatbot/chatbot.css">
@@ -1299,13 +1373,13 @@
             </div>
 
             <div class="capsule-body" id="profileCapsuleBody">
-                <!-- Vector biométrico facial 128-D -->
-                <div class="bio-vector-badge" id="btnVerVectores" title="Inspeccionar embedding biométrico 128-D">
+                <!-- Estado biométrico facial 128-D (inicia en pendiente por defecto hasta validar en servidor) -->
+                <div class="bio-vector-badge bio-alert-pending" id="btnVerVectores" title="Haz clic para registrar tu rostro 128-D en Mi Perfil">
                     <div class="bio-pill-left" style="display:flex;align-items:center;gap:7px;">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-7.74 16.33"/><path d="M12 2a10 10 0 0 1 7.74 16.33"/><path d="M12 6a6 6 0 0 0-6 6c0 1.66.67 3.16 1.76 4.24"/><path d="M12 6a6 6 0 0 1 6 6c0 1.66-.67 3.16-1.76 4.24"/><path d="M12 10a2 2 0 0 0-2 2v4"/><path d="M12 10a2 2 0 0 1 2 2v4"/></svg>
-                        <span>Vector 128-D Activo</span>
+                        <span id="txtEstadoVectorBadge">Biometría Pendiente</span>
                     </div>
-                    <div class="bio-eq" id="miniEqualizer" title="Amplitudes del embedding">
+                    <div class="bio-eq" id="miniEqualizer" title="Amplitudes del embedding" style="display:none;">
                         <i></i><i></i><i></i><i></i><i></i><i></i>
                     </div>
                 </div>
@@ -1344,7 +1418,7 @@
         <div id="errorGlobal" class="error-box" style="margin:16px 30px 0;"></div>
 
         <!-- ================= VISTA: RESUMEN EJECUTIVO ================= -->
-        <section id="vista-inicio" class="vista active">
+        <section id="vista-inicio" class="vista">
             <div class="page-hero home">
                 <span class="chip">Alicorp BI · Entorno Corporativo</span>
                 <h1>Resumen Ejecutivo</h1>
@@ -2496,10 +2570,10 @@
                 </div>
 
                 <div class="perfil-grid">
-                    <!-- Panel Izquierdo: Fase 2 — Re-verificación Facial en Vivo -->
+                    <!-- Panel Izquierdo: Fase 2 — Re-verificación o Registro Inicial Facial en Vivo -->
                     <div class="panel">
-                        <h3 style="margin:0 0 6px; font-size:16px;">1. Verificación Biométrica Actual</h3>
-                        <p style="margin:0 0 14px; font-size:13px; color:var(--text-muted);">Compara tu rostro en vivo contra el vector 128-D registrado (umbral euclidiano ≤ 0.78).</p>
+                        <h3 id="perfPanel1Title" style="margin:0 0 6px; font-size:16px;">1. Verificación Biométrica Actual</h3>
+                        <p id="perfPanel1Desc" style="margin:0 0 14px; font-size:13px; color:var(--text-muted);">Compara tu rostro en vivo contra el vector 128-D registrado (umbral euclidiano ≤ 0.78).</p>
 
                         <div id="perfCamWrapper" style="display:none;">
                             <div class="perfil-bio-viewport" id="perfBioViewport">
@@ -2846,6 +2920,88 @@
         let reporteListo = false; // Integrante 6
         let estadisticaLista = false; // Integrante 3
         let incidenciasLista = false;
+        let biometriaPendiente = false;
+        const _vistasContenidoReal = new Map();
+
+        function construirEsqueletoBloqueado() {
+            const wrap = document.createElement('div');
+            wrap.className = 'contenido bio-pending-wrap';
+            wrap.dataset.bioPlaceholder = '1';
+            wrap.innerHTML = `
+                <div class="bio-skeleton-blur" aria-hidden="true">
+                    <div class="bio-skel-kpis">
+                        <div class="bio-skel-card"><div class="bio-skel-line sm"></div><div class="bio-skel-line lg" style="margin-top:10px;"></div><div class="bio-skel-line md"></div></div>
+                        <div class="bio-skel-card"><div class="bio-skel-line sm"></div><div class="bio-skel-line lg" style="margin-top:10px;"></div><div class="bio-skel-line md"></div></div>
+                        <div class="bio-skel-card"><div class="bio-skel-line sm"></div><div class="bio-skel-line lg" style="margin-top:10px;"></div><div class="bio-skel-line md"></div></div>
+                        <div class="bio-skel-card"><div class="bio-skel-line sm"></div><div class="bio-skel-line lg" style="margin-top:10px;"></div><div class="bio-skel-line md"></div></div>
+                    </div>
+                    <div class="bio-skel-grid">
+                        <div class="bio-skel-card"><div class="bio-skel-line md"></div><div class="bio-skel-chart"></div></div>
+                        <div class="bio-skel-card"><div class="bio-skel-line md"></div><div class="bio-skel-chart"></div></div>
+                    </div>
+                </div>
+                <div class="bio-lock-overlay">
+                    <div class="bio-lock-modal">
+                        <div class="bio-lock-badge" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="10" r="3"/><path d="M7 18a5 5 0 0 1 10 0"/></svg>
+                        </div>
+                        <h3 style="margin:0 0 8px; font-size:18px; font-weight:800; color:var(--text-main);">Módulo Bloqueado — Biometría Pendiente</h3>
+                        <p style="margin:0 0 18px; font-size:13.5px; color:var(--text-muted); line-height:1.55;">
+                            Por seguridad corporativa, los datos reales del sistema permanecen bloqueados en el servidor hasta que registres tu rostro 128-D por primera vez en <strong>Mi Perfil y Seguridad</strong>.
+                        </p>
+                        <button type="button" class="btn-run" data-go="perfil" style="width:100%;">Ir a Mi Perfil y Registrar mi Rostro →</button>
+                    </div>
+                </div>
+            `;
+            return wrap;
+        }
+
+        function aplicarModoBiometriaPendiente(pendiente) {
+            biometriaPendiente = !!pendiente;
+            document.querySelectorAll('.sb-menu button').forEach(btn => {
+                const dest = btn.dataset.go;
+                btn.classList.toggle('bio-tab-locked', biometriaPendiente && dest !== 'perfil');
+            });
+            document.querySelectorAll('section.vista').forEach(sec => {
+                if (sec.id === 'vista-perfil') return;
+                if (biometriaPendiente) {
+                    const real = sec.querySelector(':scope > .contenido:not([data-bio-placeholder])');
+                    if (real) {
+                        _vistasContenidoReal.set(sec.id, real);
+                        real.replaceWith(construirEsqueletoBloqueado());
+                    } else if (!sec.querySelector(':scope > [data-bio-placeholder]')) {
+                        sec.appendChild(construirEsqueletoBloqueado());
+                    }
+                } else {
+                    const ph = sec.querySelector(':scope > [data-bio-placeholder]');
+                    const real = _vistasContenidoReal.get(sec.id);
+                    if (ph && real) {
+                        ph.replaceWith(real);
+                        _vistasContenidoReal.delete(sec.id);
+                    }
+                }
+            });
+            const badgeVec = $('btnVerVectores');
+            const txtBadgeVec = $('txtEstadoVectorBadge');
+            const eqMini = $('miniEqualizer');
+            if (badgeVec) {
+                badgeVec.style.display = '';
+                badgeVec.classList.toggle('bio-alert-pending', biometriaPendiente);
+                badgeVec.title = biometriaPendiente
+                    ? 'Alerta: Biometría pendiente. Haz clic para registrar tu rostro en Mi Perfil'
+                    : 'Inspeccionar embedding biométrico 128-D';
+            }
+            if (txtBadgeVec) {
+                txtBadgeVec.textContent = biometriaPendiente ? '⚠️ Biometría Pendiente' : 'Vector 128-D Activo';
+            }
+            if (eqMini) {
+                eqMini.style.display = biometriaPendiente ? 'none' : '';
+            }
+            if ($('btnVerHistorial')) {
+                $('btnVerHistorial').disabled = biometriaPendiente;
+                $('btnVerHistorial').style.opacity = biometriaPendiente ? '0.45' : '';
+            }
+        }
 
         const PRODUCTOS_DEFECTO = [
             'Aceite Primor 1L',
@@ -2881,6 +3037,12 @@
                     try { c.resize(); } catch (e) {}
                 });
             });
+
+            // Si el trabajador aún no registra su biometría (face_encoding IS NULL), no invocar ningún endpoint de datos reales
+            if (biometriaPendiente && nombre !== 'perfil') {
+                if (typeof detenerCamaraPerfil === 'function') detenerCamaraPerfil();
+                return;
+            }
 
             // CARGA PEREZOSA ESTRICTA (Únicamente bajo demanda para la vista solicitada)
             console.log("⚡ [LazyLoading] Solicitando vista bajo demanda:", nombre);
@@ -3050,8 +3212,35 @@
             perfNuevoFrameB64 = '';
             const banner = $('perfilLockBanner');
             const panel = $('perfFormPanel');
-            if (banner) banner.classList.remove('unlocked');
+
+            if (biometriaPendiente) {
+                if (banner) {
+                    banner.classList.remove('unlocked');
+                    banner.classList.add('pending-bio');
+                }
+                if (panel) panel.classList.add('unlocked');
+                if ($('perfilLockTitle')) $('perfilLockTitle').textContent = 'Activación Biométrica Requerida — Primer Ingreso';
+                if ($('perfilLockMsg') && !mantenerMensaje) {
+                    $('perfilLockMsg').textContent = 'Tu cuenta aún no tiene rostro registrado en Supabase. Captura tu rostro 128-D para desbloquear todas las pestañas del Dashboard. También puedes actualizar tu usuario y contraseña.';
+                }
+                if ($('perfPanel1Title')) $('perfPanel1Title').textContent = '1. Registrar Rostro por Primera Vez (128-D)';
+                if ($('perfPanel1Desc')) $('perfPanel1Desc').textContent = 'Activa tu cámara, ubica tu rostro dentro del óvalo guía y registra tu vector biométrico para habilitar todos los módulos.';
+                if ($('btnPerfIniciarEscaneo')) $('btnPerfIniciarEscaneo').textContent = 'Activar Cámara para Registrar Rostro';
+                if ($('btnPerfValidarRostro')) $('btnPerfValidarRostro').textContent = 'Capturar y Activar mi Biometría 128-D';
+                ['perfNuevoUsuario', 'perfNuevoPass', 'perfConfirmPass', 'btnPerfCapturarNuevoRostro', 'btnPerfGuardar'].forEach(id => {
+                    if ($(id)) $(id).disabled = false;
+                });
+                if ($('perfNuevoUsuario')) $('perfNuevoUsuario').value = obtenerUsuarioActivoSeguro();
+                if ($('perfNuevoRostroEstado')) $('perfNuevoRostroEstado').textContent = 'Sin biometría registrada aún (captura tu rostro en el panel izquierdo o con este botón).';
+                return;
+            }
+
+            if (banner) banner.classList.remove('unlocked', 'pending-bio');
             if (panel) panel.classList.remove('unlocked');
+            if ($('perfPanel1Title')) $('perfPanel1Title').textContent = '1. Verificación Biométrica Actual';
+            if ($('perfPanel1Desc')) $('perfPanel1Desc').textContent = 'Compara tu rostro en vivo contra el vector 128-D registrado (umbral euclidiano ≤ 0.78).';
+            if ($('btnPerfIniciarEscaneo')) $('btnPerfIniciarEscaneo').textContent = 'Escanear Rostro para Desbloquear';
+            if ($('btnPerfValidarRostro')) $('btnPerfValidarRostro').textContent = 'Validar Identidad Ahora';
             if ($('perfilLockTitle')) $('perfilLockTitle').textContent = 'Edición Bloqueada — Re-verificación Requerida';
             if ($('perfilLockMsg') && !mantenerMensaje) {
                 $('perfilLockMsg').textContent = 'Por protocolo de seguridad corporativa, debes verificar tu identidad biométrica actual antes de modificar tus credenciales.';
@@ -3060,6 +3249,45 @@
                 if ($(id)) $(id).disabled = true;
             });
             if ($('perfNuevoRostroEstado')) $('perfNuevoRostroEstado').textContent = 'Se conservará tu registro facial actual.';
+        }
+
+        async function desbloquearDashboardTrasBiometria(dataResp) {
+            aplicarModoBiometriaPendiente(false);
+            if (dataResp && Array.isArray(dataResp.vector_128d) && dataResp.vector_128d.length === 128) {
+                sesionUsuario.face_encoding = dataResp.vector_128d;
+            }
+            sesionUsuario.biometria_registrada = true;
+            sesionUsuario.biometria_pendiente = false;
+            try {
+                const raw = sessionStorage.getItem('usuario_activo') || localStorage.getItem('usuario_activo');
+                const obj = raw ? JSON.parse(raw) : {};
+                obj.usuario = sesionUsuario.usuario;
+                obj.biometria_registrada = true;
+                obj.biometria_pendiente = false;
+                if (sesionUsuario.face_encoding) obj.face_encoding = sesionUsuario.face_encoding;
+                const str = JSON.stringify(obj);
+                sessionStorage.setItem('usuario_activo', str);
+                localStorage.setItem('usuario_activo', str);
+            } catch (e) {}
+
+            // Iniciar el cronómetro y latidos de sesión ahora que biometria_registrada == true
+            iniciarTimerDiario();
+
+            // Si es SuperAdmin, cargar ahora la llave de seguridad que antes estaba bloqueada por falta de biometría
+            if (esSuperAdminActivo) {
+                try {
+                    const resSec = await fetch(`/api/seguridad/info_clave?usuario=${encodeURIComponent(sesionUsuario.usuario)}`);
+                    if (resSec.ok) {
+                        const dataSec = await resSec.json();
+                        if (dataSec.success && dataSec.clave_actual) {
+                            claveAccesoActual = dataSec.clave_actual;
+                            if ($('txtClaveActual')) $('txtClaveActual').value = dataSec.clave_actual;
+                        }
+                    }
+                } catch (e) {}
+            }
+            if (typeof window.__cargarResumenTiendaDash === 'function') window.__cargarResumenTiendaDash();
+            if (typeof window.__iniciarChatbotDash === 'function') window.__iniciarChatbotDash();
         }
 
         function desbloquearFormularioPerfil(token, distancia, precision) {
@@ -3144,6 +3372,63 @@
                 btnVal.disabled = true;
                 if (vp) { vp.classList.remove('state-match', 'state-error'); vp.classList.add('state-scanning'); }
                 if (sl) sl.classList.add('scanning');
+
+                // Flujo A: Primer ingreso (biometría en NULL) -> registra el vector 128-D en Supabase y desbloquea todo el Dashboard
+                if (biometriaPendiente) {
+                    const nuevoUsuario = ($('perfNuevoUsuario')?.value || '').trim();
+                    const nuevoPass = $('perfNuevoPass')?.value || '';
+                    const confirmPass = $('perfConfirmPass')?.value || '';
+                    if (nuevoPass && nuevoPass !== confirmPass) {
+                        if (sl) sl.classList.remove('scanning');
+                        btnVal.disabled = false;
+                        $('perfStatusBio').innerHTML = '<span style="color:var(--danger);font-weight:700;">Las contraseñas escritas en el formulario derecho no coinciden.</span>';
+                        return;
+                    }
+                    $('perfStatusBio').textContent = 'Generando vector 128-D y activando tu cuenta en Supabase...';
+                    try {
+                        const resAct = await fetch('/api/usuario/registrar_biometria_inicial', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                nuevo_usuario: nuevoUsuario,
+                                nuevo_password: nuevoPass,
+                                frame_base64: frame
+                            })
+                        });
+                        const dataAct = await resAct.json();
+                        if (sl) sl.classList.remove('scanning');
+                        btnVal.disabled = false;
+                        if (resAct.ok && dataAct.success && dataAct.biometria_registrada === true) {
+                            if (vp) { vp.classList.remove('state-scanning', 'state-error'); vp.classList.add('state-match'); }
+                            if (dataAct.usuario) {
+                                sesionUsuario.usuario = dataAct.usuario;
+                                if ($('txtAliasUsuario')) $('txtAliasUsuario').textContent = '@' + dataAct.usuario;
+                            }
+                            if ($('perfNuevoPass')) $('perfNuevoPass').value = '';
+                            if ($('perfConfirmPass')) $('perfConfirmPass').value = '';
+                            await desbloquearDashboardTrasBiometria(dataAct);
+                            detenerCamaraPerfil();
+                            if ($('perfCamWrapper')) $('perfCamWrapper').style.display = 'none';
+                            if ($('btnPerfIniciarEscaneo')) $('btnPerfIniciarEscaneo').style.display = 'inline-flex';
+                            btnVal.style.display = 'none';
+                            bloquearFormularioPerfil(true);
+                            if ($('perfilLockTitle')) $('perfilLockTitle').textContent = 'Biometría 128-D Activada — Dashboard Desbloqueado';
+                            if ($('perfilLockMsg')) $('perfilLockMsg').textContent = 'Tu rostro quedó registrado en Supabase. Todas las pestañas de tu rol ya están habilitadas.';
+                            $('perfStatusBio').innerHTML = `<span style="color:var(--success);font-weight:700;">${esc(dataAct.message || 'Biometría activada y Dashboard desbloqueado.')}</span>`;
+                        } else {
+                            if (vp) { vp.classList.remove('state-scanning', 'state-match'); vp.classList.add('state-error'); }
+                            $('perfStatusBio').innerHTML = `<span style="color:var(--danger);font-weight:700;">${esc(dataAct.message || 'No se pudo registrar el rostro. Mejora la iluminación e intenta de nuevo.')}</span>`;
+                        }
+                    } catch (errAct) {
+                        if (sl) sl.classList.remove('scanning');
+                        btnVal.disabled = false;
+                        if (vp) { vp.classList.remove('state-scanning', 'state-match'); vp.classList.add('state-error'); }
+                        $('perfStatusBio').innerHTML = '<span style="color:var(--danger);font-weight:700;">Error de conexión al registrar tu biometría inicial.</span>';
+                    }
+                    return;
+                }
+
+                // Flujo B: Usuario con biometría ya registrada -> re-autentica para emitir token temporal de edición
                 $('perfStatusBio').textContent = 'Comparando vector 128-D contra registro en Supabase...';
 
                 try {
@@ -3191,7 +3476,7 @@
             $('formActualizarCredenciales').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const statusEl = $('perfStatusGuardar');
-                if (!perfTokenVerificacion) {
+                if (!biometriaPendiente && !perfTokenVerificacion) {
                     statusEl.innerHTML = '<span style="color:var(--danger);font-weight:700;">Debes verificar tu rostro primero.</span>';
                     return;
                 }
@@ -3209,6 +3494,12 @@
                     return;
                 }
 
+                // Si tenía la cámara abierta en primer ingreso y aún no pulsó "Capturar", tomar el fotograma actual si está disponible
+                if (biometriaPendiente && !perfNuevoFrameB64 && perfStream) {
+                    const autoFrame = capturarFramePerfil();
+                    if (autoFrame) perfNuevoFrameB64 = autoFrame;
+                }
+
                 const btnGuardar = $('btnPerfGuardar');
                 btnGuardar.disabled = true;
                 statusEl.textContent = 'Actualizando credenciales en transacción segura...';
@@ -3219,7 +3510,7 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             usuario_actual: usuarioActual,
-                            token_verificacion: perfTokenVerificacion,
+                            token_verificacion: perfTokenVerificacion || '',
                             nuevo_usuario: nuevoUsuario,
                             nuevo_password: nuevoPass,
                             nuevo_frame_base64: perfNuevoFrameB64
@@ -3228,28 +3519,32 @@
                     const data = await res.json();
                     if (res.ok && data.success) {
                         const usuarioFinal = data.usuario || usuarioActual;
-                        // Sincronizar usuario_activo en sessionStorage/localStorage y cápsula flotante
-                        try {
-                            const raw = sessionStorage.getItem('usuario_activo') || localStorage.getItem('usuario_activo');
-                            const obj = raw ? JSON.parse(raw) : {};
-                            obj.usuario = usuarioFinal;
-                            const str = JSON.stringify(obj);
-                            sessionStorage.setItem('usuario_activo', str);
-                            localStorage.setItem('usuario_activo', str);
-                            localStorage.setItem('ultimo_usuario', usuarioFinal);
-                            if (typeof sesionUsuario !== 'undefined' && sesionUsuario) sesionUsuario.usuario = usuarioFinal;
-                        } catch (err) {}
-
+                        if (typeof sesionUsuario !== 'undefined' && sesionUsuario) sesionUsuario.usuario = usuarioFinal;
                         if ($('txtAliasUsuario')) $('txtAliasUsuario').textContent = '@' + usuarioFinal;
                         if ($('perfNuevoPass')) $('perfNuevoPass').value = '';
                         if ($('perfConfirmPass')) $('perfConfirmPass').value = '';
+
+                        if (data.tiene_biometria && biometriaPendiente) {
+                            await desbloquearDashboardTrasBiometria(data);
+                        } else {
+                            try {
+                                const raw = sessionStorage.getItem('usuario_activo') || localStorage.getItem('usuario_activo');
+                                const obj = raw ? JSON.parse(raw) : {};
+                                obj.usuario = usuarioFinal;
+                                const str = JSON.stringify(obj);
+                                sessionStorage.setItem('usuario_activo', str);
+                                localStorage.setItem('usuario_activo', str);
+                                localStorage.setItem('ultimo_usuario', usuarioFinal);
+                            } catch (err) {}
+                        }
 
                         detenerCamaraPerfil();
                         if ($('perfCamWrapper')) $('perfCamWrapper').style.display = 'none';
                         if ($('btnPerfIniciarEscaneo')) $('btnPerfIniciarEscaneo').style.display = 'inline-flex';
                         if ($('btnPerfValidarRostro')) $('btnPerfValidarRostro').style.display = 'none';
 
-                        statusEl.innerHTML = `<span style="color:var(--success);font-weight:700;">${data.mensaje || 'Credenciales actualizadas exitosamente'}. Evento registrado en auditoría.</span>`;
+                        btnGuardar.disabled = false;
+                        statusEl.innerHTML = `<span style="color:var(--success);font-weight:700;">${esc(data.mensaje || 'Credenciales actualizadas exitosamente')}. Evento registrado en auditoría.</span>`;
                         bloquearFormularioPerfil(false);
                     } else {
                         btnGuardar.disabled = false;
@@ -3263,9 +3558,18 @@
         }
 
         // Cerrar sesión: limpia la sesión del navegador y vuelve al login (/portal_institucional/index.html)
-        const limpiarSesionSalir = () => {
-            try { sessionStorage.clear(); localStorage.removeItem('usuario_activo'); localStorage.removeItem('sesion_admin'); } catch (e) {}
-            try { fetch('/api/logout', { method: 'POST' }); } catch (e) {}
+        const limpiarSesionSalir = async (e) => {
+            if (e && typeof e.preventDefault === 'function') e.preventDefault();
+            try {
+                sessionStorage.clear();
+                localStorage.removeItem('usuario_activo');
+                localStorage.removeItem('sesion_admin');
+                localStorage.removeItem('empleado_desbloqueado');
+                localStorage.removeItem('empleado_desbloqueado_timestamp');
+                localStorage.removeItem('llave_personal_activa');
+            } catch (err) {}
+            try { await fetch('/api/logout', { method: 'POST', credentials: 'same-origin' }); } catch (err) {}
+            window.location.replace('/portal_institucional/index.html');
         };
         if ($('btnLogout')) $('btnLogout').addEventListener('click', limpiarSesionSalir);
         if ($('btnUserQuickLogout')) $('btnUserQuickLogout').addEventListener('click', limpiarSesionSalir);
@@ -4982,24 +5286,40 @@ function rfComparar() {
                 }
             } catch (e) {}
 
-            // Consultar a la API para asegurar nombre completo y vector biométrico actualizado
+            // Consultar a la API usando la sesión autenticada real del servidor (fail-closed: inicia bloqueado hasta confirmar vector 128-D real)
+            let rolDesdePerfil = 'analista';
+            let superAdminDesdePerfil = false;
+            let bioPendienteServidor = true;
             try {
-                const res = await fetch(`/api/usuario_perfil?usuario=${encodeURIComponent(sesionUsuario.usuario)}`);
+                const res = await fetch('/api/usuario_perfil', { credentials: 'same-origin' });
                 if (res.ok) {
                     const data = await res.json();
                     if (data.success) {
+                        if (data.usuario) sesionUsuario.usuario = data.usuario;
                         if (data.nombre_completo) sesionUsuario.nombre_completo = data.nombre_completo;
-                        if (data.face_encoding) sesionUsuario.face_encoding = data.face_encoding;
+                        rolDesdePerfil = String(data.rol || 'analista').toLowerCase();
+                        superAdminDesdePerfil = !!data.es_superadmin;
+                        const tieneVector128Valido = data.biometria_registrada === true
+                            && Array.isArray(data.vector_128d)
+                            && data.vector_128d.length === 128;
+                        bioPendienteServidor = !tieneVector128Valido;
+                        sesionUsuario.face_encoding = tieneVector128Valido ? data.vector_128d : null;
+                        sesionUsuario.biometria_registrada = tieneVector128Valido;
+                        sesionUsuario.biometria_pendiente = bioPendienteServidor;
                         try {
                             const strSesion = JSON.stringify(sesionUsuario);
                             sessionStorage.setItem('usuario_activo', strSesion);
                             localStorage.setItem('usuario_activo', strSesion);
+                            if (data.usuario) localStorage.setItem('ultimo_usuario', data.usuario);
                         } catch (e) {}
                     }
                 }
             } catch (e) {
                 console.warn("No se pudo refrescar perfil desde API:", e);
             }
+
+            // Aplicar bloqueo visual Anti-DevTools (esqueleto + blur) si el usuario aún no tiene rostro en Supabase
+            aplicarModoBiometriaPendiente(bioPendienteServidor);
 
             // Pintar en el DOM del sidebar
             const nombreMostrar = sesionUsuario.nombre_completo || sesionUsuario.usuario || 'Administrador';
@@ -5015,67 +5335,58 @@ function rfComparar() {
                 heroTitle.textContent = `Bienvenido, ${nombreMostrar}`;
             }
 
-            // Inicializar rol por defecto como Analista
+            // Configurar menú según el rol del trabajador en BD (incluso si aún tiene biometría pendiente, ve los íconos de su rol)
             const badgeRol = $('badgeRolUsuario') || document.querySelector('.sb-user-card .badge-role');
             const btnSec = $('btnMenuSeguridad');
             const btnAdminMenu = $('btnMenuAdministracion');
             const btnEstratMenu = $('btnMenuEstrategia');
-            if (badgeRol) {
-                badgeRol.textContent = 'Analista';
-                badgeRol.className = 'badge-role badge-analista';
-                badgeRol.title = 'Rol de usuario: Analista BI Alicorp';
-            }
-            if (btnSec) btnSec.style.display = 'none';
-            if (btnAdminMenu) btnAdminMenu.style.display = 'none';
-            if (btnEstratMenu) btnEstratMenu.style.display = 'none';
-            if ($('btnIncColaboradores')) $('btnIncColaboradores').style.display = 'none';
-            esSuperAdminActivo = false;
+            esSuperAdminActivo = superAdminDesdePerfil || rolDesdePerfil === 'superadmin';
 
-            // Validar privilegios de Super Administrador para control de llave secreta y panel
-            try {
-                const resSec = await fetch(`/api/seguridad/info_clave?usuario=${encodeURIComponent(sesionUsuario.usuario)}`);
-                if (resSec.ok) {
-                    const dataSec = await resSec.json();
-                    if (dataSec.success && dataSec.es_superadmin) {
-                        esSuperAdminActivo = true;
-                        claveAccesoActual = dataSec.clave_actual;
-                        if (btnSec) btnSec.style.display = 'flex';
-                        if (btnAdminMenu) btnAdminMenu.style.display = 'flex';
-                        if (btnEstratMenu) btnEstratMenu.style.display = 'flex';
-                        if ($('btnIncColaboradores')) $('btnIncColaboradores').style.display = 'inline-flex';
-                        if (badgeRol) {
-                            badgeRol.textContent = 'Super Admin';
-                            badgeRol.className = 'badge-role badge-superadmin';
-                            badgeRol.title = 'Rol: Super Administrador (Acceso total y configuración de llaves)';
-                        }
-                        if ($('txtClaveActual')) $('txtClaveActual').value = dataSec.clave_actual;
-                    }
-                } else {
-                    // Acceso restringido (403): Usuario estándar (Analista)
-                    esSuperAdminActivo = false;
-                    if (btnSec) btnSec.style.display = 'none';
-                    if (btnAdminMenu) btnAdminMenu.style.display = 'none';
-                    if (btnEstratMenu) btnEstratMenu.style.display = 'none';
-                    if (badgeRol) {
-                        badgeRol.textContent = 'Analista';
-                        badgeRol.className = 'badge-role badge-analista';
-                        badgeRol.title = 'Rol de usuario: Analista BI Alicorp';
-                    }
+            if (esSuperAdminActivo) {
+                if (btnSec) btnSec.style.display = 'flex';
+                if (btnAdminMenu) btnAdminMenu.style.display = 'flex';
+                if (btnEstratMenu) btnEstratMenu.style.display = 'flex';
+                if ($('btnIncColaboradores')) $('btnIncColaboradores').style.display = 'inline-flex';
+                if (badgeRol) {
+                    badgeRol.textContent = 'Super Admin';
+                    badgeRol.className = 'badge-role badge-superadmin';
+                    badgeRol.title = 'Rol: Super Administrador (Acceso total y configuración de llaves)';
                 }
-            } catch (e) {
-                console.warn("Verificación de rol de seguridad:", e);
-                esSuperAdminActivo = false;
+                if (!biometriaPendiente) {
+                    try {
+                        const resSec = await fetch(`/api/seguridad/info_clave?usuario=${encodeURIComponent(sesionUsuario.usuario)}`);
+                        if (resSec.ok) {
+                            const dataSec = await resSec.json();
+                            if (dataSec.success && dataSec.clave_actual) {
+                                claveAccesoActual = dataSec.clave_actual;
+                                if ($('txtClaveActual')) $('txtClaveActual').value = dataSec.clave_actual;
+                            }
+                        }
+                    } catch (e) {}
+                }
+            } else {
                 if (btnSec) btnSec.style.display = 'none';
                 if (btnAdminMenu) btnAdminMenu.style.display = 'none';
                 if (btnEstratMenu) btnEstratMenu.style.display = 'none';
+                if ($('btnIncColaboradores')) $('btnIncColaboradores').style.display = 'none';
                 if (badgeRol) {
                     badgeRol.textContent = 'Analista';
                     badgeRol.className = 'badge-role badge-analista';
+                    badgeRol.title = 'Rol de usuario: Analista BI Alicorp';
                 }
             }
 
-            // Iniciar el timer diario en vivo
-            iniciarTimerDiario();
+            // Iniciar el timer diario en vivo únicamente si biometria_registrada == true
+            if (!biometriaPendiente) {
+                iniciarTimerDiario();
+            } else {
+                if ($('timerFechaBadge')) $('timerFechaBadge').textContent = obtenerFechaHoyPeru();
+                if ($('liveTimerDisplay')) $('liveTimerDisplay').textContent = '00:00:00';
+                if ($('timerSyncStatus')) {
+                    $('timerSyncStatus').textContent = '⚠️ Biometría pendiente';
+                    $('timerSyncStatus').style.color = '#f59e0b';
+                }
+            }
         }
 
         // Iniciar el Timer y sincronización con Supabase (actividad_usuarios: reinicio diario 00:00 a 24:00)
@@ -5149,6 +5460,7 @@ function rfComparar() {
 
         // Enviar latido de sincronización (guarda solo el tiempo activo del día 00:00 a 24:00)
         async function enviarLatidoActividad(opciones = {}) {
+            if (biometriaPendiente) return;
             const esCierreDia = !!(opciones && opciones.cierreDia);
             const fechaEnviar = (opciones && opciones.fechaOverride) ? opciones.fechaOverride : fechaSesionActual;
             const totalEnviar = (opciones && typeof opciones.totalOverride === 'number') ? opciones.totalOverride : segundosActividadHoy;
@@ -5211,6 +5523,7 @@ function rfComparar() {
 
         // Sincronizar en salida de página (envía únicamente los segundos pendientes del día actual)
         window.addEventListener('beforeunload', () => {
+            if (biometriaPendiente) return;
             try {
                 const deltaPendiente = Math.max(0, segundosPendientesSincronizar);
                 segundosPendientesSincronizar = 0;
@@ -5232,6 +5545,10 @@ function rfComparar() {
         const btnVec = $('btnVerVectores');
         if (btnVec) {
             btnVec.addEventListener('click', () => {
+                if (biometriaPendiente) {
+                    mostrarVista('perfil');
+                    return;
+                }
                 mostrarModalVectorBiometrico();
             });
         }
@@ -5271,9 +5588,14 @@ function rfComparar() {
 
             $('modalBioSub').textContent = `Usuario: ${persona.nombre_completo || persona.usuario} (@${persona.usuario}) · 128 Dimensiones`;
 
-            // Si el usuario no tiene vector aún, generar representación vectorial matemática de 128 dimensiones
             if (!vec || !Array.isArray(vec) || vec.length !== 128) {
-                vec = Array.from({ length: 128 }, (_, i) => Math.sin(i * 0.35) * 0.22 + Math.cos(i * 0.8) * 0.12);
+                $('modalBioSub').textContent = `Usuario: ${persona.nombre_completo || persona.usuario} (@${persona.usuario}) · Biometría Pendiente`;
+                $('vectorGrid').innerHTML = '';
+                $('rawVectorText').textContent = 'Este usuario aún no posee un vector biométrico 128-D registrado en Supabase.';
+                $('vStatMin').textContent = '--';
+                $('vStatMax').textContent = '--';
+                $('vStatNorm').textContent = '--';
+                return;
             }
 
             // Calcular estadísticas del vector
@@ -6042,21 +6364,12 @@ function rfComparar() {
             }
         });
 
-        // Limpiar sesión en logout (sidebar y barra superior)
+        // Registrar último latido antes de que limpiarSesionSalir invalide la sesión en el servidor
         ['btnLogout', 'btnTopLogout'].forEach(id => {
             const btn = $(id);
             if (btn) {
                 btn.addEventListener('click', () => {
-                    enviarLatidoActividad();
-                    try {
-                        sessionStorage.removeItem('usuario_activo');
-                        localStorage.removeItem('usuario_activo');
-                        sessionStorage.removeItem('empleado_desbloqueado');
-                        localStorage.removeItem('empleado_desbloqueado');
-                        sessionStorage.removeItem('llave_personal_activa');
-                        localStorage.removeItem('llave_personal_activa');
-                        sessionStorage.clear();
-                    } catch (e) {}
+                    try { enviarLatidoActividad(); } catch (e) {}
                 });
             }
         });
@@ -6190,7 +6503,7 @@ function rfComparar() {
         (async function iniciarDashboardSeguro() {
             await inicializarPerfilUsuario();
             const hashInicial = location.hash.replace('#', '').trim();
-            const vistaInicial = VISTAS.includes(hashInicial) ? hashInicial : 'inicio';
+            const vistaInicial = biometriaPendiente ? 'perfil' : (VISTAS.includes(hashInicial) ? hashInicial : 'inicio');
             await mostrarVista(vistaInicial);
         })();
     </script>
@@ -6250,8 +6563,17 @@ function rfComparar() {
             }).catch(() => {});
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
+        window.__cargarResumenTiendaDash = function () {
+            if (typeof biometriaPendiente !== 'undefined' && biometriaPendiente) return;
             cargarResumen();
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                if (typeof biometriaPendiente === 'undefined' || !biometriaPendiente) {
+                    cargarResumen();
+                }
+            }, 400);
             const vista = el('vista-productos');
             if (vista) {
                 if (vista.classList.contains('active')) dibujarCategorias();
