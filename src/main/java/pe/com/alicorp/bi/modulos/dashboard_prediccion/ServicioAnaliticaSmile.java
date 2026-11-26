@@ -46,7 +46,15 @@ public class ServicioAnaliticaSmile {
      * Ejecuta el algoritmo K-Means de Smile ML sobre las transacciones almacenadas en la BD Relacional 3FN.
      */
     public Map<String, Object> ejecutarSegmentacionKMeans(Connection conn, int numClusters, int limite) throws Exception {
-        int k = Math.max(2, Math.min(numClusters, 5));
+        return ejecutarSegmentacionKMeans(conn, numClusters, limite, false);
+    }
+
+    public Map<String, Object> ejecutarSegmentacionKMeans(
+            Connection conn,
+            int numClusters,
+            int limite,
+            boolean incluirCurvaSilueta) throws Exception {
+        int k = Math.max(2, Math.min(numClusters, 6));
         int lim = Math.max(100, Math.min(limite, 5000));
 
         List<double[]> filas = new ArrayList<>();
@@ -101,23 +109,27 @@ public class ServicioAnaliticaSmile {
             }
         }
 
-        // Clustering K-Means nativo con Smile ML
-        KMeans modeloKMeans = KMeans.fit(escalados, k, 100, 1e-4);
-        int[] etiquetas = modeloKMeans.y;
+        List<Map<String, Object>> curvaSilueta = new ArrayList<>();
+        KMeans modeloKMeans = null;
+        int[] etiquetas = null;
+        double siluetaSeleccionada = 0.0;
+        int kInicio = incluirCurvaSilueta ? 2 : k;
+        int kFin = incluirCurvaSilueta ? Math.min(6, n) : k;
+        for (int candidatoK = kInicio; candidatoK <= kFin; candidatoK++) {
+            KMeans modelo = KMeans.fit(escalados, candidatoK, 100, 1e-4);
+            double silueta = calcularSiluetaMuestral(escalados, modelo.y, candidatoK);
+            curvaSilueta.add(Map.of(
+                    "k", candidatoK,
+                    "silueta", Math.round(silueta * 10000.0) / 10000.0
+            ));
+            if (candidatoK == k) {
+                modeloKMeans = modelo;
+                etiquetas = modelo.y;
+                siluetaSeleccionada = silueta;
+            }
+        }
 
         List<Map<String, Object>> segmentos = new ArrayList<>();
-        String[] interpretaciones = {
-            "Rotación estándar: compras frecuentes de ticket moderado.",
-            "Demanda intermedia: equilibrio entre stock disponible y volumen.",
-            "Alto valor comercial: pedidos mayoristas y picos de facturación."
-        };
-
-        String[] recomendaciones = {
-            "Mantener stock de seguridad y promociones de frecuencia.",
-            "Optimizar reposición automática en canal supermercado.",
-            "Priorizar descuentos por volumen y atención a mayoristas."
-        };
-
         for (int c = 0; c < k; c++) {
             List<Double> ventasSeg = new ArrayList<>();
             double sumPrecio = 0, sumStock = 0, sumCant = 0, sumVentas = 0;
@@ -135,22 +147,25 @@ public class ServicioAnaliticaSmile {
             Collections.sort(ventasSeg);
             double mediana = conteo > 0 ? ventasSeg.get(conteo / 2) : 0.0;
             double promVentas = sumVentas / div;
+            double promPrecio = sumPrecio / div;
+            double promStock = sumStock / div;
+            double promCantidad = sumCant / div;
 
             Map<String, Object> seg = new LinkedHashMap<>();
             seg.put("segmento", "Segmento " + (c + 1));
             seg.put("registros", conteo);
             seg.put("transacciones", conteo);
             seg.put("porcentaje", Math.round((conteo * 1000.0) / Math.max(1, n)) / 10.0);
-            seg.put("precio_promedio", Math.round((sumPrecio / div) * 100.0) / 100.0);
-            seg.put("precio_predictivo", Math.round(((sumPrecio / div) * 1.015) * 100.0) / 100.0);
-            seg.put("stock_promedio", Math.round((sumStock / div) * 10.0) / 10.0);
-            seg.put("cantidad_promedio", Math.round((sumCant / div) * 10.0) / 10.0);
-            seg.put("unidades_promedio", Math.round((sumCant / div) * 10.0) / 10.0);
+            seg.put("precio_promedio", Math.round(promPrecio * 100.0) / 100.0);
+            seg.put("precio_predictivo", Math.round((promPrecio * 1.015) * 100.0) / 100.0);
+            seg.put("stock_promedio", Math.round(promStock * 10.0) / 10.0);
+            seg.put("cantidad_promedio", Math.round(promCantidad * 10.0) / 10.0);
+            seg.put("unidades_promedio", Math.round(promCantidad * 10.0) / 10.0);
             seg.put("ventas_promedio", Math.round(promVentas * 100.0) / 100.0);
             seg.put("ventas_mediana", Math.round(mediana * 100.0) / 100.0);
             seg.put("ventas_moda", Math.round(promVentas * 0.95 * 100.0) / 100.0);
-            seg.put("significado", interpretaciones[Math.min(c, interpretaciones.length - 1)]);
-            seg.put("recomendacion", recomendaciones[Math.min(c, recomendaciones.length - 1)]);
+            seg.put("significado", describirPerfilSegmento(conteo, promStock, promCantidad, promVentas, promPrecio, medias));
+            seg.put("recomendacion", recomendarAccionSegmento(conteo, promStock, promCantidad, promVentas, promPrecio, medias));
             segmentos.add(seg);
         }
 
@@ -172,11 +187,131 @@ public class ServicioAnaliticaSmile {
         resp.put("clusters", k);
         resp.put("registros_analizados", n);
         resp.put("inercia", Math.round(modeloKMeans.distortion * 100.0) / 100.0);
-        resp.put("silueta", 0.4215);
-        resp.put("silhouette", 0.4215);
+        resp.put("silueta", Math.round(siluetaSeleccionada * 10000.0) / 10000.0);
+        resp.put("silhouette", Math.round(siluetaSeleccionada * 10000.0) / 10000.0);
+        resp.put("muestra_silueta", Math.min(250, n));
+        resp.put("curva_silueta", curvaSilueta);
         resp.put("fuente_datos", "Supabase PostgreSQL (3FN)");
         resp.put("segmentos", segmentos);
         resp.put("puntos", puntos);
         return resp;
+    }
+
+    private static String describirPerfilSegmento(
+            int registros,
+            double stock,
+            double cantidad,
+            double ventas,
+            double precio,
+            double[] promediosGlobales) {
+        if (registros == 0) return "Sin transacciones asignadas.";
+
+        boolean stockBajo = estaPorDebajo(stock, promediosGlobales[1], 0.75);
+        boolean stockAlto = estaPorEncima(stock, promediosGlobales[1], 1.25);
+        boolean rotacionAlta = estaPorEncima(cantidad, promediosGlobales[2], 1.20);
+        boolean ventasBajas = estaPorDebajo(ventas, promediosGlobales[3], 0.75);
+
+        if (stockBajo && rotacionAlta) return "Alta rotación con stock bajo frente al promedio.";
+        if (stockAlto && ventasBajas) return "Stock alto con ventas por debajo del promedio.";
+        if (rotacionAlta) return "Rotación superior al promedio.";
+        if (estaPorEncima(ventas, promediosGlobales[3], 1.20)) return "Ventas superiores al promedio.";
+        if (estaPorEncima(precio, promediosGlobales[0], 1.20)) return "Precio unitario superior al promedio.";
+        if (stockBajo) return "Stock por debajo del promedio.";
+        return "Indicadores cercanos al promedio.";
+    }
+
+    private static String recomendarAccionSegmento(
+            int registros,
+            double stock,
+            double cantidad,
+            double ventas,
+            double precio,
+            double[] promediosGlobales) {
+        if (registros == 0) return "No recomendar acciones hasta contar con transacciones en este segmento.";
+
+        boolean stockBajo = estaPorDebajo(stock, promediosGlobales[1], 0.75);
+        boolean stockAlto = estaPorEncima(stock, promediosGlobales[1], 1.25);
+        boolean rotacionAlta = estaPorEncima(cantidad, promediosGlobales[2], 1.20);
+        boolean ventasBajas = estaPorDebajo(ventas, promediosGlobales[3], 0.75);
+
+        if (stockBajo && rotacionAlta) {
+            return "Reponer pronto y revisar punto de reorden (stock bajo, alta rotación).";
+        }
+        if (stockAlto && ventasBajas) {
+            return "Pausar compras y evaluar promoción para reducir sobrestock.";
+        }
+        if (rotacionAlta) {
+            return "Revisar inventario con más frecuencia por alta rotación.";
+        }
+        if (stockBajo) {
+            return "Planificar reposición: stock bajo frente al promedio.";
+        }
+        if (estaPorEncima(ventas, promediosGlobales[3], 1.20)) {
+            return "Mantener disponibilidad y vigilar la demanda elevada.";
+        }
+        if (estaPorEncima(precio, promediosGlobales[0], 1.20)) {
+            return "Revisar ventas y competitividad del precio.";
+        }
+        return "Mantener política actual; revisar stock y ventas semanalmente.";
+    }
+
+    private static boolean estaPorEncima(double valor, double referencia, double factor) {
+        return referencia > 0.0 ? valor >= referencia * factor : valor > 0.0;
+    }
+
+    private static boolean estaPorDebajo(double valor, double referencia, double factor) {
+        return referencia > 0.0 && valor < referencia * factor;
+    }
+
+    private static double calcularSiluetaMuestral(double[][] datos, int[] etiquetas, int k) {
+        int n = datos.length;
+        int muestra = Math.min(250, n);
+        int[] tamanosCluster = new int[k];
+        for (int etiqueta : etiquetas) {
+            tamanosCluster[etiqueta]++;
+        }
+
+        double sumaSiluetas = 0.0;
+        int valoresValidos = 0;
+        for (int indiceMuestra = 0; indiceMuestra < muestra; indiceMuestra++) {
+            int i = indiceMuestra * n / muestra;
+            int clusterPropio = etiquetas[i];
+            int cantidadPropia = tamanosCluster[clusterPropio] - 1;
+            if (cantidadPropia <= 0) {
+                valoresValidos++;
+                continue;
+            }
+
+            double[] distanciasPorCluster = new double[k];
+            for (int j = 0; j < n; j++) {
+                if (i == j) continue;
+                int clusterDestino = etiquetas[j];
+                double distanciaCuadrada = 0.0;
+                for (int columna = 0; columna < datos[i].length; columna++) {
+                    double diferencia = datos[i][columna] - datos[j][columna];
+                    distanciaCuadrada += diferencia * diferencia;
+                }
+                distanciasPorCluster[clusterDestino] += Math.sqrt(distanciaCuadrada);
+            }
+
+            double distanciaMediaPropia = distanciasPorCluster[clusterPropio] / cantidadPropia;
+            double distanciaMediaVecina = Double.POSITIVE_INFINITY;
+            for (int cluster = 0; cluster < k; cluster++) {
+                if (cluster == clusterPropio || tamanosCluster[cluster] == 0) continue;
+                double media = distanciasPorCluster[cluster] / tamanosCluster[cluster];
+                distanciaMediaVecina = Math.min(distanciaMediaVecina, media);
+            }
+            if (!Double.isFinite(distanciaMediaVecina)) {
+                valoresValidos++;
+                continue;
+            }
+
+            double divisor = Math.max(distanciaMediaPropia, distanciaMediaVecina);
+            if (divisor > 0.0) {
+                sumaSiluetas += (distanciaMediaVecina - distanciaMediaPropia) / divisor;
+            }
+            valoresValidos++;
+        }
+        return valoresValidos == 0 ? 0.0 : sumaSiluetas / valoresValidos;
     }
 }
