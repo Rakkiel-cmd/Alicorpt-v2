@@ -553,6 +553,13 @@ public class TiendaBuscadorController {
             for (int i = 0; i < reordenada.size(); i++) {
                 Map<String, Object> it = reordenada.get(i);
                 it.put("posicion_ia", i + 1);
+                // El puntaje mostrado pasa a ser el combinado (Smile ML + historial), para que cuadre con el nuevo orden
+                Object base = it.get("puntaje_ia");
+                Object comb = it.get("ia_puntaje");
+                if (comb instanceof Number c) {
+                    if (base != null) it.put("puntaje_ia_smile", base);
+                    it.put("puntaje_ia", Math.round(Math.min(1.0, c.doubleValue()) * 1000.0) / 10.0);
+                }
                 Object trad = it.get("posicion_tradicional");
                 if (trad instanceof Number n) it.put("delta_posicion", n.intValue() - (i + 1));
             }

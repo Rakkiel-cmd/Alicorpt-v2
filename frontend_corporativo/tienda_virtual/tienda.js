@@ -87,14 +87,14 @@
         const agotado = p.stock <= 0;
         const sello = agotado ? '<span class="sello agotado">Agotado</span>' : (p.stock < 200 ? '<span class="sello">Pocas unidades</span>' : "");
         const esModoIA = estado.consulta && estado.modoIA === "ia" && typeof p.puntaje_ia === "number";
-        const badgeIA = esModoIA ? `<span class="badge-ia" title="Puntaje Smile ML">⭐ IA ${p.puntaje_ia.toFixed(1)}%</span>` : "";
+        const badgeIA = esModoIA ? `<span class="badge-ia" title="${estado.busquedaIA && estado.busquedaIA.personalizado ? "Puntaje Smile ML ajustado a tu historial" : "Puntaje Smile ML"}">IA ${p.puntaje_ia.toFixed(1)}%</span>` : "";
         let badgeDelta = "";
         if (esModoIA && typeof p.delta_posicion === "number") {
             if (p.delta_posicion > 0) badgeDelta = `<span class="badge-delta sube">▲ +${p.delta_posicion} pos. vs alfabético</span>`;
             else if (p.delta_posicion < 0) badgeDelta = `<span class="badge-delta baja">▼ ${p.delta_posicion} pos. vs alfabético</span>`;
             else badgeDelta = `<span class="badge-delta igual">• #${p.posicion_ia} igual que alfabético</span>`;
         } else if (estado.consulta && estado.modoIA === "tradicional" && p.posicion_tradicional) {
-            badgeDelta = `<span class="badge-delta igual">🔤 Orden A-Z #${p.posicion_tradicional}</span>`;
+            badgeDelta = `<span class="badge-delta igual">Orden A-Z #${p.posicion_tradicional}</span>`;
         }
         const razonHtml = esModoIA && p.razon_ranking ? `<div class="razon-ia">${esc(p.razon_ranking)}</div>` : "";
         return `
@@ -350,7 +350,7 @@
         const top = lista.slice(0, 6);
         const modoTxt = estado.modoIA === "ia" ? "Ranking Inteligente (Smile ML)" : "Orden Tradicional (A-Z)";
         box.innerHTML =
-            `<div class="auto-cabecera"><span>⚡ Árbol Trie Recursivo · ${modoTxt}</span><span>${datos.tiempo_recursivo_ms} ms (${datos.total_encontrados} coincidencias)</span></div>` +
+            `<div class="auto-cabecera"><span>Árbol Trie recursivo · ${modoTxt}</span><span>${datos.tiempo_recursivo_ms} ms (${datos.total_encontrados} coincidencias)</span></div>` +
             top.map((p) => {
                 const badge = estado.modoIA === "ia" && typeof p.puntaje_ia === "number"
                     ? `<span style="background:#1e3a8a;color:#fff;padding:2px 8px;border-radius:999px;font-size:.72rem;font-weight:800;">IA ${p.puntaje_ia.toFixed(1)}%</span>`
@@ -383,7 +383,7 @@
 
         const metrica = $("metricaTrie");
         if (metrica) {
-            metrica.textContent = `⚡ Trie recursivo: ${d.tiempo_recursivo_ms} ms · ${d.total_encontrados} hallados`;
+            metrica.textContent = `Trie recursivo: ${d.tiempo_recursivo_ms} ms · ${d.total_encontrados} hallados`;
             metrica.style.display = "inline-block";
         }
 
@@ -416,7 +416,7 @@
         if (estado.tiendaIA) params.set("tienda", estado.tiendaIA);
         try { d = await pedir("/api/buscador-ia?" + params.toString() + H.parametros()); } catch (e) { d = { error: "No se pudo conectar con el servidor." }; }
         if (!d.success && !d.ok) {
-            $("rejilla").innerHTML = `<div class="vacio" style="grid-column:1/-1"><span class="grande">⚠️</span>${esc(d.error || "Error al buscar.")}</div>`;
+            $("rejilla").innerHTML = `<div class="vacio" style="grid-column:1/-1"><span class="grande">${ICON.warn}</span>${esc(d.error || "Error al buscar.")}</div>`;
             return;
         }
         estado.busquedaIA = d;

@@ -31,6 +31,7 @@ public final class MetricasBusqueda {
     private static final long MAX_MS = 600_000L;
     private static final int MAX_TECLAS = 500;
     private static final int MAX_POSICION = 500;
+    private static final int MAX_REGISTROS_MEMORIA = 20_000;
     private static final int MINIMO_POR_MODO = 5;
 
     private final List<Registro> registros = new ArrayList<>();
@@ -111,6 +112,9 @@ public final class MetricasBusqueda {
                 limpiar(cadena(datos.get("sku")), 60));
         cargarSiHaceFalta();
         registros.add(r);
+        if (registros.size() > MAX_REGISTROS_MEMORIA) {
+            registros.remove(0); // tope de memoria: se descarta el registro mas antiguo
+        }
         guardar(r);
         return true;
     }
