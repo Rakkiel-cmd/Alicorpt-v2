@@ -88,7 +88,8 @@ pe/com/alicorp/bi/
     └── contacto_soporte/                      # Buzón de Contacto, Incidencias de Clientes y Detector de Fallas Web
         └── ContactoSoporteController.java
 ```
-> **Recursos (`src/main/resources/`):** `catalogo_extra.tsv` (7,303 SKUs de catálogo complementario).
+> **Recursos (`src/main/resources/`):** `catalogo_extra.tsv` (7,303 SKUs de catálogo complementario).  
+> **Modelos ONNX (`models/`):** `face_detection_yunet_2023mar.onnx` (YuNet) y `face_recognition_sface_2021dec.onnx` (SFace 128-D) para biometría neural JavaCV.
 
 ### Frontend (`frontend_corporativo/`)
 ```text
@@ -143,7 +144,7 @@ Definido en `database/esquema_relacional_3fn.sql` (y migración incremental auto
 
 ### A. Acceso Biométrico 128-D y Llave URL (`acceso_biometria`)
 - El botón **"Personal Autorizado"** está oculto para el público general. Al entrar con `?key=<llave>`, `compartido/script.js` llama a `POST /api/seguridad/validar_key`, habilita el acceso y limpia la llave de la barra de direcciones (`history.replaceState`).
-- `ServicioBiometriaJavaCV` decodifica el frame Base64 de la cámara web con OpenCV, redimensiona a `160x160`, convierte a escala de grises, ecualiza el histograma, extrae 128 descriptores normalizados (escala `L2 ~ 1.41`) y compara mediante distancia euclidiana (`UMBRAL_DISTANCIA = 0.78`).
+- `ServicioBiometriaJavaCV` usa **OpenCV DNN en JavaCV (`FaceDetectorYN` YuNet + `FaceRecognizerSF` SFace 128-D)** sobre `models/face_detection_yunet_2023mar.onnx` y `models/face_recognition_sface_2021dec.onnx`: detecta y alinea el rostro, extrae el embedding neural de 128 dimensiones normalizado (`L2 = 1.410`) y valida identidad mediante **Similitud del Coseno** (`UMBRAL_COSENO_SFACE = 0.363`, confianza 85%–99.8%), con fallback determinístico sobre ROI central si faltan los `.onnx`.
 
 ### B. Buscador Predictivo con Árbol Trie Recursivo + Ranking Smile ML (`tienda_buscador_ia`)
 - **`BuscadorCatalogoRepository`**: consulta agregada `GROUP BY` sobre `PRODUCTOS` + `TRANSACCIONES_ALICORP` + `TIENDAS` (~7,303 productos indexados con afinidad histórica por tienda).

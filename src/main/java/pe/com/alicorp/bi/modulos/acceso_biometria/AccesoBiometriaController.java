@@ -83,26 +83,27 @@ public class AccesoBiometriaController {
             }
 
             Map<String, Object> mejorAdmin = null;
-            double mejorDist = Double.MAX_VALUE;
+            double mejorScore = -Double.MAX_VALUE;
             double[] mejorVec = null;
 
             for (Map<String, Object> u : motorSeguridad.listarUsuariosConEstado3FN()) {
                 if (!"activo".equalsIgnoreCase(String.valueOf(u.get("estado")))) continue;
                 Map<String, Object> p = motorSeguridad.obtenerPerfilUsuario3FN(String.valueOf(u.get("usuario")));
-                double[] vecGuardado = motorBiometria.parsearVectorJson(String.valueOf(p.get("face_encoding")));
+                double[] vecGuardado = p != null ? motorBiometria.parsearVectorJson(String.valueOf(p.get("face_encoding"))) : null;
                 if (vecGuardado != null) {
-                    double dist = motorBiometria.calcularDistanciaEuclidiana(vectorVivo, vecGuardado);
-                    if (dist < mejorDist) {
-                        mejorDist = dist;
+                    double score = motorBiometria.puntajeSimilitud(vectorVivo, vecGuardado);
+                    if (score > mejorScore) {
+                        mejorScore = score;
                         mejorAdmin = p;
                         mejorVec = vecGuardado;
                     }
                 }
             }
 
-            if (mejorAdmin != null && mejorVec != null && mejorDist <= ServicioBiometriaJavaCV.UMBRAL_DISTANCIA) {
+            if (mejorAdmin != null && mejorVec != null && motorBiometria.esMatchBiometrico(vectorVivo, mejorVec)) {
                 ctx.req().getSession(true).setAttribute("usuario", mejorAdmin.get("usuario"));
-                double porcentaje = Math.max(70.0, Math.min(99.9, Math.round((1.0 - mejorDist / 1.5) * 1000.0) / 10.0));
+                double mejorDist = motorBiometria.calcularDistanciaEuclidiana(vectorVivo, mejorVec);
+                double porcentaje = motorBiometria.calcularPorcentajeConfianza(vectorVivo, mejorVec);
                 List<Double> vecLista = new ArrayList<>();
                 for (double v : mejorVec) vecLista.add(v);
                 Map<String, Object> resp = new LinkedHashMap<>();
@@ -114,7 +115,9 @@ public class AccesoBiometriaController {
                 resp.put("es_superadmin", mejorAdmin.get("es_superadmin"));
                 resp.put("face_encoding", vecLista);
                 resp.put("distancia", Math.round(mejorDist * 10000.0) / 10000.0);
+                resp.put("similitud_coseno", Math.round(motorBiometria.calcularSimilitudCoseno(vectorVivo, mejorVec) * 10000.0) / 10000.0);
                 resp.put("porcentaje", porcentaje);
+                resp.put("motor_neural", motorBiometria.isMotorNeuralActivo() ? "YuNet + SFace 128-D (ONNX)" : "Spatial ROI");
                 resp.put("redirect", "/dashboard_bi/dashboard.html");
                 ctx.json(resp);
                 return;

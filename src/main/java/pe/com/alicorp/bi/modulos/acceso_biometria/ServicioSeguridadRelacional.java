@@ -541,12 +541,18 @@ public class ServicioSeguridadRelacional {
 
         double distancia = motorBiometria.compararVectores(embeddingActual, nuevoEmbedding);
         double distRedondeada = Math.round(distancia * 10000.0) / 10000.0;
-        if (distancia > ServicioBiometriaJavaCV.UMBRAL_DISTANCIA) {
+        if (!motorBiometria.esMatchBiometrico(nuevoEmbedding, embeddingActual)) {
+            double cos = Math.round(motorBiometria.calcularSimilitudCoseno(nuevoEmbedding, embeddingActual) * 10000.0) / 10000.0;
             resp.put("success", false);
             resp.put("http_status", 401);
             resp.put("distancia", distRedondeada);
-            resp.put("umbral", ServicioBiometriaJavaCV.UMBRAL_DISTANCIA);
-            resp.put("message", String.format("Identidad no verificada (distancia %.4f > %.2f).", distRedondeada, ServicioBiometriaJavaCV.UMBRAL_DISTANCIA));
+            resp.put("similitud_coseno", cos);
+            resp.put("umbral", motorBiometria.isMotorNeuralActivo()
+                    ? ServicioBiometriaJavaCV.UMBRAL_COSENO_SFACE
+                    : ServicioBiometriaJavaCV.UMBRAL_DISTANCIA);
+            resp.put("message", motorBiometria.isMotorNeuralActivo()
+                    ? String.format("Identidad no verificada (similitud coseno %.3f < %.3f).", cos, ServicioBiometriaJavaCV.UMBRAL_COSENO_SFACE)
+                    : String.format("Identidad no verificada (distancia %.4f > %.2f).", distRedondeada, ServicioBiometriaJavaCV.UMBRAL_DISTANCIA));
             return resp;
         }
 
@@ -561,11 +567,14 @@ public class ServicioSeguridadRelacional {
         String usuarioCanon = String.valueOf(perfil.get("usuario"));
         tokensReauth.put(token, new TokenReauth(idAdmin, usuarioCanon, ahora + TOKEN_REAUTH_TTL_MS));
 
-        double precision = Math.max(0.0, Math.min(99.9, Math.round((1.0 - (distancia / 1.5)) * 1000.0) / 10.0));
+        double precision = motorBiometria.calcularPorcentajeConfianza(nuevoEmbedding, embeddingActual);
         resp.put("success", true);
         resp.put("http_status", 200);
         resp.put("distancia", distRedondeada);
-        resp.put("umbral", ServicioBiometriaJavaCV.UMBRAL_DISTANCIA);
+        resp.put("similitud_coseno", Math.round(motorBiometria.calcularSimilitudCoseno(nuevoEmbedding, embeddingActual) * 10000.0) / 10000.0);
+        resp.put("umbral", motorBiometria.isMotorNeuralActivo()
+                ? ServicioBiometriaJavaCV.UMBRAL_COSENO_SFACE
+                : ServicioBiometriaJavaCV.UMBRAL_DISTANCIA);
         resp.put("precision", precision);
         resp.put("token_verificacion", token);
         resp.put("expira_segundos", (int) (TOKEN_REAUTH_TTL_MS / 1000L));
