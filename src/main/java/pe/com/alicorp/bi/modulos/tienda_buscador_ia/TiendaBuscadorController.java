@@ -28,7 +28,7 @@ public class TiendaBuscadorController {
             String q = ctx.queryParam("q");
             String tienda = ctx.queryParam("tienda");
             int limite = ctx.queryParamAsClass("limite", Integer.class).getOrDefault(48);
-            Map<String, Object> respuesta = servicioBuscadorIA.buscarConComparativa(q, tienda, limite);
+            Map<String, Object> respuesta = conFotos(servicioBuscadorIA.buscarConComparativa(q, tienda, limite));
             ctx.json(personalizarRespuestaIA(respuesta, ctx.queryParam("modo"), ctx.queryParam("perfil"), limite));
         });
 
@@ -505,6 +505,33 @@ public class TiendaBuscadorController {
         }
         datosExtraCache = m;
         return m;
+    }
+
+    /**
+     * El Buscador IA devuelve los productos sin la foto; aqui se les agrega "foto", "subcategoria" y "etiquetas" desde
+     * catalogo_extra.tsv (por SKU), igual que en el resto de la tienda, para que las tarjetas muestren la foto real.
+     */
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> conFotos(Map<String, Object> respuesta) {
+        Map<String, Object> salida = new LinkedHashMap<>(respuesta);
+        for (String clave : List.of("resultados_ia", "resultados_tradicional")) {
+            if (!(respuesta.get(clave) instanceof List<?> lista)) {
+                continue;
+            }
+            List<Map<String, Object>> nueva = new ArrayList<>();
+            for (Object o : lista) {
+                Map<String, Object> item = new LinkedHashMap<>((Map<String, Object>) o);
+                String[] extra = datosExtra().get(String.valueOf(item.get("sku")));
+                if (extra != null) {
+                    item.put("foto", extra[0]);
+                    item.putIfAbsent("subcategoria", extra[1]);
+                    item.putIfAbsent("etiquetas", extra[2]);
+                }
+                nueva.add(item);
+            }
+            salida.put(clave, nueva);
+        }
+        return salida;
     }
 
     // ---------------------------------------------------------------------
