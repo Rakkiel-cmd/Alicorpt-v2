@@ -8,8 +8,11 @@
     <link rel="apple-touch-icon" href="/compartido/favicon.png">
     <link rel="stylesheet" href="/compartido/estilos.css">
     <link rel="stylesheet" href="/tienda_virtual/tienda.css">
+    <link rel="stylesheet" href="/tienda_virtual/tienda_v2.css">
     <link rel="stylesheet" href="/chatbot/chatbot.css">
+    <link rel="preconnect" href="https://plazavea.vteximg.com.br" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/portal_institucional/institucional.css">
 </head>
 <body>
     <!-- Navbar (igual que el resto de la web) -->
@@ -29,9 +32,9 @@
             </nav>
             <div class="nav-derecha">
                 <!-- El carrito va FUERA de .nav-actions porque /compartido/script.js vacía ese bloque para los clientes -->
-                <button type="button" class="btn-pedido" id="btnPedido" aria-label="Consultar el estado de mi compra">📦 <span>Mi pedido</span></button>
+                <button type="button" class="btn-pedido" id="btnPedido" aria-label="Consultar el estado de mi compra"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 8v8a2 2 0 0 1-1 1.7l-7 4a2 2 0 0 1-2 0l-7-4A2 2 0 0 1 3 16V8a2 2 0 0 1 1-1.7l7-4a2 2 0 0 1 2 0l7 4A2 2 0 0 1 21 8z"/><path d="M3.3 7 12 12l8.7-5M12 22V12"/></svg> <span>Mi pedido</span></button>
                 <button type="button" class="btn-carrito" id="btnCarrito" aria-label="Abrir carrito">
-                    🛒 <span>Carrito</span> <span class="contador" id="contadorCarrito">0</span>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.6 11.2a2 2 0 0 0 2 1.5h7.6a2 2 0 0 0 2-1.5L21 7H6"/></svg> <span>Carrito</span> <span class="contador" id="contadorCarrito">0</span>
                 </button>
                 <div class="nav-actions" style="display: none;">
                     <!-- Botón inyectado dinámicamente por /compartido/script.js solo con ?key=... o sesión activa -->
@@ -42,52 +45,85 @@
 
     <!-- Portada con buscador inteligente -->
     <section class="tienda-hero">
-        <div class="container">
-            <h1>Compra productos Alicorp</h1>
-            <p>Más de 7 000 productos reales. Escribe lo que necesitas, como lo dirías normalmente.</p>
-            <div class="buscador-envoltura">
-                <form class="buscador-caja" id="formBuscar" autocomplete="off">
-                    <span class="lupa">🔎</span>
-                    <input type="text" id="cajaBuscar" maxlength="120" placeholder='Escribe un prefijo: "ace", "det", "fid", "har", "may"...'>
-                    <button type="button" class="limpiar" id="btnLimpiar" aria-label="Borrar búsqueda">✕</button>
-                    <button type="submit" class="buscar-btn">Buscar</button>
-                </form>
-                <div class="autocompletado-ia" id="autocompletadoIA" role="listbox" aria-label="Sugerencias predictivas del Árbol Trie"></div>
-            </div>
-            <div class="controles-buscador-ia">
-                <label class="selector-tienda-ia" for="selTiendaIA">
-                    <span>🏪 Tienda:</span>
-                    <select id="selTiendaIA" aria-label="Tienda para afinidad IA">
-                        <option value="">Todas las tiendas</option>
-                        <option value="Hipermercado Centro">Hipermercado Centro</option>
-                        <option value="Mayorista San Martín">Mayorista San Martín</option>
-                        <option value="Supermercado Lima Norte">Supermercado Lima Norte</option>
-                        <option value="Tienda Express Los Olivos">Tienda Express Los Olivos</option>
-                    </select>
-                </label>
-                <div class="switch-modo-ia" id="switchModoIA" role="group" aria-label="Modo de ordenamiento de búsqueda">
-                    <button type="button" class="modo-btn" data-modo="tradicional">🔤 Orden Tradicional (Alfabético)</button>
-                    <button type="button" class="modo-btn activo" data-modo="ia">🧠 Ranking Inteligente (IA)</button>
+        <div class="container hero-in">
+            <div class="hero-texto">
+                <p class="hero-eyebrow">Tienda en línea</p>
+                <h1>Productos Alicorp para tu hogar y tu negocio</h1>
+                <p class="hero-sub">Más de 7 000 productos con precio y stock actualizados. Busca por nombre o marca, o escribe lo que necesitas.</p>
+                <div class="buscador-envoltura">
+                    <form class="buscador-caja" id="formBuscar" autocomplete="off" role="search">
+                        <span class="lupa"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span>
+                        <input type="text" id="cajaBuscar" maxlength="120" aria-label="Buscar productos" placeholder='Ej.: "aceite", "detergente", "fideos"'>
+                        <button type="button" class="limpiar" id="btnLimpiar" aria-label="Borrar búsqueda">&times;</button>
+                        <button type="submit" class="buscar-btn">Buscar</button>
+                    </form>
+                    <div class="autocompletado-ia" id="autocompletadoIA" role="listbox" aria-label="Sugerencias predictivas del Árbol Trie"></div>
                 </div>
-                <span class="metrica-trie" id="metricaTrie" style="display:none;">⚡ Trie recursivo: 0.00 ms</span>
+                <div class="controles-buscador-ia">
+                    <label class="selector-tienda-ia" for="selTiendaIA">
+                        <span>Tienda:</span>
+                        <select id="selTiendaIA" aria-label="Tienda para afinidad IA">
+                            <option value="">Todas las tiendas</option>
+                            <option value="Hipermercado Centro">Hipermercado Centro</option>
+                            <option value="Mayorista San Martín">Mayorista San Martín</option>
+                            <option value="Supermercado Lima Norte">Supermercado Lima Norte</option>
+                            <option value="Tienda Express Los Olivos">Tienda Express Los Olivos</option>
+                        </select>
+                    </label>
+                    <div class="switch-modo-ia" id="switchModoIA" role="group" aria-label="Modo de ordenamiento de búsqueda">
+                        <button type="button" class="modo-btn" data-modo="tradicional">Orden alfabético</button>
+                        <button type="button" class="modo-btn activo" data-modo="ia">Ranking inteligente (IA)</button>
+                    </div>
+                    <span class="metrica-trie" id="metricaTrie" style="display:none;">Trie: 0.00 ms</span>
+                </div>
+                <div class="sugerencias" id="sugerencias">
+                    <span class="rotulo">Búsquedas frecuentes:</span>
+                    <button type="button" data-q="aceite">aceite</button>
+                    <button type="button" data-q="detergente">detergente</button>
+                    <button type="button" data-q="fideos">fideos</button>
+                    <button type="button" data-q="harina">harina</button>
+                    <button type="button" data-q="mayonesa">mayonesa</button>
+                    <button type="button" data-q="galletas">galletas</button>
+                </div>
             </div>
-            <div class="sugerencias" id="sugerencias">
-                <button type="button" data-q="aceite">aceite</button>
-                <button type="button" data-q="detergente">detergente</button>
-                <button type="button" data-q="fideos">fideos</button>
-                <button type="button" data-q="harina">harina</button>
-                <button type="button" data-q="mayonesa">mayonesa</button>
-                <button type="button" data-q="galletas">galletas</button>
-            </div>
+            <div class="hero-show" id="heroShow"></div>
         </div>
     </section>
 
-    <main class="container tienda-cuerpo">
+    <section class="container reveal" aria-label="Información de la tienda">
+        <div class="beneficios">
+            <div class="beneficio"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg><div><b>Catálogo amplio</b><small>Más de 7 000 productos con foto y precio</small></div></div>
+            <div class="beneficio"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><div><b>Búsqueda con autocompletado</b><small>Encuentra por nombre, marca o frase</small></div></div>
+            <div class="beneficio"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 8v8a2 2 0 0 1-1 1.7l-7 4a2 2 0 0 1-2 0l-7-4A2 2 0 0 1 3 16V8a2 2 0 0 1 1-1.7l7-4a2 2 0 0 1 2 0l7 4A2 2 0 0 1 21 8z"/><path d="M3.3 7 12 12l8.7-5M12 22V12"/></svg><div><b>Seguimiento del pedido</b><small>Con tu N.º de compra y correo</small></div></div>
+            <div class="beneficio"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg><div><b>Compra por mayor</b><small>Cantidades rápidas: x12, x50, x100, x500</small></div></div>
+        </div>
+    </section>
+
+    <section class="container tiles-seccion reveal" id="seccionTiles" aria-label="Categorías" hidden>
+        <div class="seccion-cab"><h2>Compra por categoría</h2></div>
+        <div class="tiles" id="tilesCategorias"></div>
+    </section>
+
+    <main class="container tienda-cuerpo" id="tiendaCuerpo">
         <aside class="panel-categorias" id="panelCategorias">
             <h3>Categorías</h3>
         </aside>
 
         <section>
+            <div class="destacados" id="seccionDestacados" hidden>
+                <div class="seccion-cab">
+                    <h2>Productos destacados</h2>
+                    <span class="flechas"><button type="button" id="dstPrev" aria-label="Anterior">‹</button><button type="button" id="dstNext" aria-label="Siguiente">›</button></span>
+                </div>
+                <div class="carril" id="carrilDestacados"></div>
+            </div>
+            <div class="destacados para-ti" id="seccionParaTi" hidden>
+                <div class="seccion-cab">
+                    <h2>Para ti <small>según lo que has visto y comprado</small></h2>
+                    <span class="flechas"><button type="button" id="prtPrev" aria-label="Anterior">‹</button><button type="button" id="prtNext" aria-label="Siguiente">›</button></span>
+                </div>
+                <div class="carril" id="carrilParaTi"></div>
+            </div>
             <div class="cinta-inteligente" id="cintaInteligente"></div>
             <div class="barra-herramientas">
                 <div class="titulo-lista"><span id="tituloLista">Todos los productos</span><span class="conteo" id="conteoLista"></span></div>
@@ -110,8 +146,8 @@
     <div class="fondo-oscuro" id="fondoOscuro"></div>
     <aside class="carrito-panel" id="carritoPanel" aria-label="Carrito de compras">
         <header>
-            <h2>🛒 Tu carrito</h2>
-            <button type="button" class="cerrar" id="btnCerrarCarrito" aria-label="Cerrar">✕</button>
+            <h2>Tu carrito</h2>
+            <button type="button" class="cerrar" id="btnCerrarCarrito" aria-label="Cerrar">&times;</button>
         </header>
         <div class="carrito-lista" id="carritoLista"></div>
         <div class="carrito-pie">
@@ -119,6 +155,7 @@
             <div class="resumen"><span>Unidades</span><span id="resUnidades">0</span></div>
             <div class="resumen total"><span>Total</span><span id="resTotal">S/ 0.00</span></div>
             <button type="button" class="btn-grande" id="btnComprar" disabled>Finalizar compra</button>
+            <button type="button" class="btn-seguir" id="btnSeguir">Seguir comprando</button>
             <button type="button" class="btn-vaciar" id="btnVaciar">Vaciar carrito</button>
         </div>
     </aside>
@@ -127,6 +164,10 @@
     <div class="modal" id="modalCompra">
         <div class="caja" id="cajaCompra"></div>
     </div>
+
+    <button type="button" class="barra-movil" id="barraMovil" aria-label="Ver carrito">
+        <span><b id="bmUnidades">0</b> unid.</span><span id="bmTotal">S/ 0.00</span><span>Ver carrito</span>
+    </button>
 
     <div class="aviso" id="aviso"></div>
 
@@ -139,7 +180,9 @@
     </footer>
     <script src="/compartido/script.js"></script>
     <script src="/tienda_virtual/tienda_imagenes.js"></script>
+    <script src="/tienda_virtual/historial_busqueda.js"></script>
     <script src="/tienda_virtual/tienda.js"></script>
+    <script src="/portal_institucional/institucional.js"></script>
     <script src="/chatbot/chatbot_base.js"></script>
     <script src="/chatbot/chatbot_cliente.js"></script>
 </body>

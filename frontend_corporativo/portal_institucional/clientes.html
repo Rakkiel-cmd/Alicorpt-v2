@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="/compartido/estilos.css">
     <link rel="stylesheet" href="/compartido/ilustraciones.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/portal_institucional/institucional.css">
 </head>
 <body>
     <header class="navbar">
@@ -17,26 +18,59 @@
             <nav class="nav-links">
                 <a href="/portal_institucional/inversionistas.html">Inversionistas</a>
                 <a href="/portal_institucional/clientes.html" style="color: var(--color-secondary);">Clientes y proveedores</a>
+                <a href="/tienda_virtual/tienda.html" style="color: var(--color-secondary); font-weight: 700;">Comprar productos</a>
                 <a href="/contacto_soporte/contacto.html">Contacto</a>
                 <a href="/portal_institucional/etica.html">Unico Ética Alicorp</a>
-                <a href="#">Perú ▾</a>
+                <span class="pais-label" title="País" style="padding:0 6px;opacity:.85;">Perú</span>
             </nav>
             <div class="nav-actions" style="display: none;"></div>
         </div>
     </header>
 
-    <section class="section container">
-        <div class="grid-2">
-            <div>
-                <h1 class="section-title left">Crecemos junto a ti</h1>
-                <p class="institucional-text">Nuestra red de clientes y proveedores es el motor de nuestra cadena de valor. Nos asociamos con agricultores locales, distribuidores internacionales y miles de emprendedores bodegueros en todo el país para asegurar que nuestros productos lleguen a cada hogar con la más alta calidad.</p>
-                <a href="#" class="btn-pill btn-primary">Portal de Proveedores</a>
+    <section class="inst-hero">
+        <span class="inst-burbuja a" aria-hidden="true"></span><span class="inst-burbuja b" aria-hidden="true"></span>
+        <div class="container"><div class="inst-in">
+            <span class="inst-kick">Clientes y proveedores</span>
+            <h1>Crecemos junto a ti</h1>
+            <p class="inst-sub">Una red de aliados que mueve nuestra cadena de valor en todo el país.</p>
+            
+        </div></div>
+    </section>
+
+    <section class="inst-sec">
+        <div class="container inst-2col">
+            <div class="texto inst-rev">
+                <h2 class="inst-h2">Una red que crece contigo</h2>
+                <p style="margin-top:16px">Nuestra red de clientes y proveedores es el motor de nuestra cadena de valor. Nos asociamos con agricultores locales, distribuidores internacionales y miles de emprendedores bodegueros en todo el país para asegurar que nuestros productos lleguen a cada hogar con la más alta calidad.</p>
+                <div class="inst-botones">
+                    <a class="inst-btn rojo" href="/contacto_soporte/contacto.html?asunto=proveedor">Quiero ser proveedor</a>
+                    <a class="inst-btn borde" href="/tienda_virtual/tienda.html">Comprar productos</a>
+                </div>
             </div>
-            <div>
-                <div class="collage c3"><div class="ficha"><img src="https://plazavea.vteximg.com.br/arquivos/ids/36303008-450-450/20235718.jpg" alt="Aceite Primor" referrerpolicy="no-referrer" loading="lazy"></div><div class="ficha"><img src="https://plazavea.vteximg.com.br/arquivos/ids/35462839-450-450/20501452.jpg" alt="Fideos Don Vittorio" referrerpolicy="no-referrer" loading="lazy"></div><div class="ficha"><img src="https://plazavea.vteximg.com.br/arquivos/ids/31918829-450-450/20506750.jpg" alt="Mayonesa Alacena" referrerpolicy="no-referrer" loading="lazy"></div><div class="ficha"><img src="https://plazavea.vteximg.com.br/arquivos/ids/36303497-450-450/20464560.jpg" alt="Detergente Bolivar" referrerpolicy="no-referrer" loading="lazy"></div><div class="ficha"><img src="https://plazavea.vteximg.com.br/arquivos/ids/35408910-450-450/20198551.jpg" alt="Azúcar" referrerpolicy="no-referrer" loading="lazy"></div><div class="ficha"><img src="https://plazavea.vteximg.com.br/arquivos/ids/36302920-450-450/20193770.jpg" alt="Aceite vegetal" referrerpolicy="no-referrer" loading="lazy"></div></div>
+            <div class="inst-collage inst-rev" style="--d:.12s"><div class="ficha"><img src="https://plazavea.vteximg.com.br/arquivos/ids/36303008-450-450/20235718.jpg" alt="Aceite Primor" referrerpolicy="no-referrer" loading="lazy"></div><div class="ficha"><img src="https://plazavea.vteximg.com.br/arquivos/ids/35462839-450-450/20501452.jpg" alt="Fideos Don Vittorio" referrerpolicy="no-referrer" loading="lazy"></div><div class="ficha"><img src="https://plazavea.vteximg.com.br/arquivos/ids/31918829-450-450/20506750.jpg" alt="Mayonesa Alacena" referrerpolicy="no-referrer" loading="lazy"></div><div class="ficha"><img src="https://plazavea.vteximg.com.br/arquivos/ids/36303497-450-450/20464560.jpg" alt="Detergente Bolivar" referrerpolicy="no-referrer" loading="lazy"></div><div class="ficha"><img src="https://plazavea.vteximg.com.br/arquivos/ids/35408910-450-450/20198551.jpg" alt="Azúcar" referrerpolicy="no-referrer" loading="lazy"></div><div class="ficha"><img src="https://plazavea.vteximg.com.br/arquivos/ids/36302920-450-450/20193770.jpg" alt="Aceite vegetal" referrerpolicy="no-referrer" loading="lazy"></div></div>
+        </div>
+    </section>
+
+    <section class="inst-sec gris">
+        <div class="container">
+            <h2 class="inst-h2 inst-rev">Con quién trabajamos</h2>
+            <p class="inst-lead inst-rev">Tres grupos que forman parte de nuestra red.</p>
+            <div class="inst-grid3">
+                <div class="inst-card inst-rev"><div class="inst-ico verde"><svg viewBox="0 0 24 24"><path d="M5 19c0-8 5-13 14-14 0 9-5 14-13 14"/><path d="M5 19c2-4 5-7 9-9"/></svg></div><h3>Agricultores locales</h3><p>Nos asociamos con agricultores de todo el país.</p></div>
+                <div class="inst-card inst-rev" style="--d:.1s"><div class="inst-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/></svg></div><h3>Distribuidores internacionales</h3><p>Aliados que llevan nuestros productos más lejos.</p></div>
+                <div class="inst-card inst-rev" style="--d:.2s"><div class="inst-ico rojo"><svg viewBox="0 0 24 24"><path d="M4 9l1.5-5h13L20 9"/><path d="M4 9a2.5 2.5 0 0 0 5 0 2.5 2.5 0 0 0 5 0 2.5 2.5 0 0 0 5 0"/><path d="M5 11v9h14v-9"/></svg></div><h3>Emprendedores bodegueros</h3><p>Miles de bodegas que hacen llegar los productos a cada hogar.</p></div>
             </div>
         </div>
     </section>
+
+    <section class="inst-cta inst-rev">
+        <div class="container">
+            <h2>Conoce nuestros productos</h2>
+            <p>Compra en la tienda en línea de Alicorp y sigue tu pedido desde la web.</p>
+            <a class="inst-btn" href="/tienda_virtual/tienda.html">Ir a la tienda</a>
+        </div>
+    </section>
     <script src="/compartido/script.js"></script>
+    <script src="/portal_institucional/institucional.js"></script>
 </body>
 </html>

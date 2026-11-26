@@ -60,7 +60,8 @@ public class AlicorpBiApplication {
                 Map.entry("/contacto.html", "/contacto_soporte/contacto.html"),
                 Map.entry("/admin_login.html", "/acceso_seguridad/admin_login.html"),
                 Map.entry("/registro.html", "/acceso_seguridad/registro.html"),
-                Map.entry("/dashboard.html", "/dashboard_bi/dashboard.html")
+                Map.entry("/dashboard.html", "/dashboard_bi/dashboard.html"),
+                Map.entry("/comparativa_busqueda.html", "/tienda_virtual/comparativa_busqueda.html")
         );
         aliasPaginas.forEach((origen, destino) -> app.get(origen, ctx -> redirigirConQuery(ctx, destino)));
 

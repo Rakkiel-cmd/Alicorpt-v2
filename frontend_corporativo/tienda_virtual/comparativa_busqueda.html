@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comparativa de búsqueda | Alicorp Tienda en línea</title>
+    <link rel="icon" type="image/x-icon" href="/compartido/favicon.ico">
+    <style>
+        :root { --azul: #1e3a8a; --azul-osc: #0b1f5c; --amarillo: #ffc20e; --gris: #9aa3b5; --texto: #1f2937; --tenue: #6b7280; --linea: #e5e7eb; --fondo: #f5f6f8; --ok: #0f7b3f; }
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--texto); background: var(--fondo); line-height: 1.5; }
+        header { background: linear-gradient(110deg, #08164c, var(--azul-osc) 40%, var(--azul)); color: #fff; border-bottom: 4px solid var(--amarillo); padding: 26px 20px 30px; }
+        .ancho { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+        header .ancho { padding: 0; }
+        header a.volver { color: #cdd6f4; font-size: .9rem; text-decoration: none; }
+        header a.volver:hover { color: #fff; text-decoration: underline; }
+        h1 { margin: 10px 0 6px; font-size: 1.7rem; font-weight: 800; letter-spacing: -.01em; }
+        header p { margin: 0; color: #dbe3fb; max-width: 720px; }
+        main { padding: 22px 0 48px; }
+        .tarjeta { background: #fff; border: 1px solid var(--linea); border-radius: 10px; padding: 20px; margin-bottom: 18px; }
+        h2 { font-size: 1.05rem; margin: 0 0 12px; font-weight: 800; display: flex; align-items: center; gap: 10px; }
+        h2::before { content: ""; width: 4px; height: 18px; border-radius: 2px; background: var(--amarillo); }
+        .aviso { border-left: 4px solid var(--amarillo); background: #fff8e1; border-radius: 6px; padding: 10px 14px; font-size: .92rem; margin-bottom: 18px; }
+        .aviso.bien { border-left-color: var(--ok); background: #eaf7ef; }
+        .modos { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .modo { border: 1px solid var(--linea); border-radius: 10px; padding: 16px; }
+        .modo.ia { border-top: 4px solid var(--azul); }
+        .modo.alf { border-top: 4px solid var(--gris); }
+        .modo h3 { margin: 0 0 2px; font-size: 1rem; }
+        .modo .sub { margin: 0 0 12px; color: var(--tenue); font-size: .85rem; }
+        .modo dl { margin: 0; display: grid; grid-template-columns: 1fr auto; row-gap: 8px; }
+        .modo dt { color: var(--tenue); font-size: .9rem; }
+        .modo dd { margin: 0; font-weight: 800; font-size: 1.05rem; text-align: right; font-variant-numeric: tabular-nums; }
+        .modo .n { margin-top: 10px; font-size: .8rem; color: var(--tenue); }
+        .barras { display: grid; gap: 18px; }
+        .fila-barra h3 { margin: 0 0 6px; font-size: .92rem; display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+        .fila-barra h3 span { font-size: .85rem; font-weight: 800; color: var(--ok); }
+        .fila-barra h3 span.neg { color: #b42318; }
+        .pista { display: grid; grid-template-columns: 90px 1fr 70px; align-items: center; gap: 10px; margin: 4px 0; font-size: .85rem; }
+        .pista .barra { height: 14px; background: #eef0f4; border-radius: 4px; overflow: hidden; }
+        .pista .barra i { display: block; height: 100%; border-radius: 4px; transition: width .6s ease; }
+        .pista .valor { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+        .azul { background: var(--azul); } .grisb { background: var(--gris); }
+        ol.pasos { margin: 0; padding-left: 20px; } ol.pasos li { margin: 6px 0; }
+        .acciones { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+        button, a.boton { font: inherit; font-size: .9rem; border-radius: 6px; padding: 8px 16px; cursor: pointer; text-decoration: none; display: inline-block; }
+        button.primario, a.boton.primario { background: var(--azul); color: #fff; border: 1px solid var(--azul); }
+        button.primario:hover, a.boton.primario:hover { background: var(--azul-osc); }
+        button.sec { background: #fff; color: var(--azul); border: 1px solid var(--azul); }
+        button.sec:hover { background: #eef2fb; }
+        button.peligro { background: #fff; color: #b42318; border: 1px solid #e4b4af; }
+        button.peligro:hover { background: #fdf0ef; }
+        button:focus-visible, a:focus-visible { outline: 3px solid rgba(30,58,138,.35); outline-offset: 2px; }
+        table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+        th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--linea); }
+        th { color: var(--tenue); font-weight: 600; font-size: .8rem; }
+        td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+        .etq { font-size: .75rem; font-weight: 700; border-radius: 4px; padding: 1px 8px; }
+        .etq.ia { background: #e4ebfa; color: var(--azul); } .etq.alf { background: #eef0f4; color: #4b5563; }
+        .scroll { overflow-x: auto; }
+        .vacio { color: var(--tenue); padding: 10px 0; }
+        #estado { font-size: .85rem; color: var(--tenue); margin-top: 8px; min-height: 1.2em; }
+        @media (max-width: 720px) { .modos { grid-template-columns: 1fr; } .pista { grid-template-columns: 78px 1fr 62px; } h1 { font-size: 1.4rem; } }
+        @media (prefers-reduced-motion: reduce) { .pista .barra i { transition: none; } }
+    </style>
+</head>
+<body>
+<header>
+    <div class="ancho">
+        <a class="volver" href="/tienda_virtual/tienda.html">&larr; Volver a la tienda</a>
+        <h1>Comparativa de búsqueda: antes y después</h1>
+        <p>Mide cuánto tarda una persona en encontrar un producto con el orden alfabético tradicional frente al ranking con IA, que reordena según su historial y el stock disponible.</p>
+    </div>
+</header>
+
+<main class="ancho">
+    <div class="aviso" id="aviso">Cargando resultados...</div>
+
+    <section class="tarjeta" aria-labelledby="t-modos">
+        <h2 id="t-modos">Resultados medidos</h2>
+        <div class="modos">
+            <div class="modo alf">
+                <h3>Antes: orden alfabético</h3>
+                <p class="sub">Los productos salen de la A a la Z, sin personalización.</p>
+                <dl id="dAlf"></dl>
+                <div class="n" id="nAlf"></div>
+            </div>
+            <div class="modo ia">
+                <h3>Después: ranking con IA</h3>
+                <p class="sub">Orden por relevancia, afinidad con tu historial y stock.</p>
+                <dl id="dIa"></dl>
+                <div class="n" id="nIa"></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="tarjeta" aria-labelledby="t-mejora">
+        <h2 id="t-mejora">Cuánto mejora</h2>
+        <div class="barras" id="barras"><div class="vacio">Todavía no hay mediciones de los dos modos.</div></div>
+    </section>
+
+    <section class="tarjeta" aria-labelledby="t-prueba">
+        <h2 id="t-prueba">Cómo hacer la prueba</h2>
+        <ol class="pasos">
+            <li>Abre la tienda y navega un poco: agrega algunos productos al carrito o márcalos como favoritos, para que la tienda conozca tus gustos.</li>
+            <li>Escribe una búsqueda en la caja de la tienda (por ejemplo "aceite", "arroz" o "detergente") con el orden <b>Alfabético</b> y agrega el producto que quieres.</li>
+            <li>Cambia a <b>Con IA</b>, escribe otra búsqueda distinta y agrega el producto que quieres.</li>
+            <li>Repite al menos 5 veces en cada modo y vuelve aquí. Cuanto más repitas, más confiable es la comparación.</li>
+        </ol>
+        <p style="margin:10px 0 0;color:var(--tenue);font-size:.88rem;">Se mide desde la primera tecla hasta que agregas un producto de los resultados. Si cambias de modo a mitad de una búsqueda, esa búsqueda no se cuenta.</p>
+    </section>
+
+    <section class="tarjeta" aria-labelledby="t-ult">
+        <h2 id="t-ult">Últimas búsquedas medidas</h2>
+        <div class="scroll" id="ultimos"><div class="vacio">Aún no hay búsquedas medidas.</div></div>
+    </section>
+
+    <div class="acciones">
+        <a class="boton primario" href="/tienda_virtual/tienda.html">Ir a la tienda a probar</a>
+        <button type="button" class="sec" id="bActualizar">Actualizar</button>
+        <button type="button" class="sec" id="bCopiar">Copiar resumen para el informe</button>
+        <button type="button" class="peligro" id="bReiniciar">Empezar una prueba limpia</button>
+    </div>
+    <div id="estado" role="status" aria-live="polite"></div>
+</main>
+
+<script>
+(function () {
+    "use strict";
+    var $ = function (id) { return document.getElementById(id); };
+    var datos = null;
+
+    function fmt(n, dec) { return Number(n).toLocaleString("es-PE", { minimumFractionDigits: dec, maximumFractionDigits: dec }); }
+    function aviso(texto, bien) { var a = $("aviso"); a.textContent = texto; a.className = "aviso" + (bien ? " bien" : ""); }
+    function estado(t) { $("estado").textContent = t; }
+
+    function fichas(m) {
+        return "<dt>Tiempo medio para encontrar</dt><dd>" + fmt(m.tiempo_medio_s, 1) + " s</dd>" +
+            "<dt>Teclas escritas (media)</dt><dd>" + fmt(m.teclas_medias, 1) + "</dd>" +
+            "<dt>Posición del producto elegido</dt><dd>" + fmt(m.posicion_media, 1) + "</dd>" +
+            "<dt>Elegido entre los 3 primeros</dt><dd>" + fmt(m.pct_top3, 0) + " %</dd>";
+    }
+
+    function pista(etiqueta, clase, valor, maximo, unidad) {
+        var ancho = maximo > 0 ? Math.max(2, Math.round(100 * valor / maximo)) : 0;
+        return '<div class="pista"><span>' + etiqueta + '</span><span class="barra"><i class="' + clase + '" style="width:' + ancho + '%"></i></span><span class="valor">' + fmt(valor, 1) + " " + unidad + "</span></div>";
+    }
+
+    function bloqueMejora(titulo, alf, ia, unidad, pct) {
+        var max = Math.max(alf, ia);
+        var texto = pct >= 0 ? "mejora " + fmt(pct, 0) + " %" : "empeora " + fmt(Math.abs(pct), 0) + " %";
+        return '<div class="fila-barra"><h3>' + titulo + '<span class="' + (pct >= 0 ? "" : "neg") + '">' + texto + "</span></h3>" +
+            pista("Alfabético", "grisb", alf, max, unidad) + pista("Con IA", "azul", ia, max, unidad) + "</div>";
+    }
+
+    function pintar(d) {
+        datos = d;
+        var alf = d.alfabetico, ia = d.ia;
+        $("dAlf").innerHTML = alf.n ? fichas(alf) : "<dt>Sin mediciones todavía</dt><dd>-</dd>";
+        $("dIa").innerHTML = ia.n ? fichas(ia) : "<dt>Sin mediciones todavía</dt><dd>-</dd>";
+        $("nAlf").textContent = alf.n + (alf.n === 1 ? " búsqueda medida" : " búsquedas medidas");
+        $("nIa").textContent = ia.n + (ia.n === 1 ? " búsqueda medida" : " búsquedas medidas");
+
+        if (d.mejora) {
+            $("barras").innerHTML =
+                bloqueMejora("Tiempo hasta encontrar el producto", alf.tiempo_medio_s, ia.tiempo_medio_s, "s", d.mejora.tiempo_pct) +
+                bloqueMejora("Teclas escritas", alf.teclas_medias, ia.teclas_medias, "", d.mejora.teclas_pct) +
+                bloqueMejora("Posición del producto elegido (1 = primero)", alf.posicion_media, ia.posicion_media, "", d.mejora.posicion_pct);
+        } else {
+            $("barras").innerHTML = '<div class="vacio">Todavía no hay mediciones de los dos modos.</div>';
+        }
+
+        if (d.total === 0) aviso("Aún no hay mediciones. Haz la prueba de abajo en la tienda y vuelve a esta página.", false);
+        else if (!d.datos_suficientes) aviso("Hay " + d.total + " mediciones, pero se recomiendan al menos " + d.minimo_por_modo + " por cada modo para que la comparación sea confiable.", false);
+        else aviso("Hay " + d.total + " búsquedas medidas, suficientes para comparar los dos modos.", true);
+
+        if (d.ultimos && d.ultimos.length) {
+            var filas = d.ultimos.map(function (u) {
+                var hora = new Date(u.ts).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" });
+                var etq = u.modo === "ia" ? '<span class="etq ia">Con IA</span>' : '<span class="etq alf">Alfabético</span>';
+                return "<tr><td>" + hora + "</td><td>" + etq + "</td><td>" + String(u.consulta).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }) +
+                    '</td><td class="num">' + fmt(u.tiempo_s, 1) + ' s</td><td class="num">' + u.teclas + '</td><td class="num">' + u.posicion + "</td></tr>";
+            }).join("");
+            $("ultimos").innerHTML = '<table><thead><tr><th>Hora</th><th>Orden</th><th>Búsqueda</th><th class="num">Tiempo</th><th class="num">Teclas</th><th class="num">Posición</th></tr></thead><tbody>' + filas + "</tbody></table>";
+        } else {
+            $("ultimos").innerHTML = '<div class="vacio">Aún no hay búsquedas medidas.</div>';
+        }
+    }
+
+    function cargar() {
+        estado("Actualizando...");
+        return fetch("/api/tienda/metricas/resumen").then(function (r) { return r.json(); }).then(function (d) {
+            if (!d || !d.ok) throw new Error("respuesta inválida");
+            pintar(d); estado("Actualizado a las " + new Date().toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
+        }).catch(function () {
+            aviso("No se pudo leer el resumen. Revisa que el servidor esté encendido.", false);
+            estado("");
+        });
+    }
+
+    function resumenTexto() {
+        if (!datos || !datos.mejora) return "";
+        var a = datos.alfabetico, i = datos.ia, m = datos.mejora;
+        return "Comparativa de búsqueda (orden alfabético frente a ranking con IA)\n" +
+            "Búsquedas medidas: " + a.n + " alfabéticas y " + i.n + " con IA.\n" +
+            "Tiempo medio para encontrar un producto: " + fmt(a.tiempo_medio_s, 1) + " s frente a " + fmt(i.tiempo_medio_s, 1) + " s (" + (m.tiempo_pct >= 0 ? "mejora " : "empeora ") + fmt(Math.abs(m.tiempo_pct), 0) + " %).\n" +
+            "Teclas escritas: " + fmt(a.teclas_medias, 1) + " frente a " + fmt(i.teclas_medias, 1) + " (" + (m.teclas_pct >= 0 ? "mejora " : "empeora ") + fmt(Math.abs(m.teclas_pct), 0) + " %).\n" +
+            "Posición media del producto elegido: " + fmt(a.posicion_media, 1) + " frente a " + fmt(i.posicion_media, 1) + " (" + (m.posicion_pct >= 0 ? "mejora " : "empeora ") + fmt(Math.abs(m.posicion_pct), 0) + " %).\n" +
+            "Elegido entre los 3 primeros: " + fmt(a.pct_top3, 0) + " % frente a " + fmt(i.pct_top3, 0) + " %.\n" +
+            (datos.datos_suficientes ? "" : "Aviso: hay pocas mediciones; se recomiendan al menos " + datos.minimo_por_modo + " por modo.\n");
+    }
+
+    $("bActualizar").onclick = cargar;
+    $("bCopiar").onclick = function () {
+        var t = resumenTexto();
+        if (!t) { estado("Todavía no hay mediciones de los dos modos para copiar."); return; }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(t).then(function () { estado("Resumen copiado. Pégalo en tu informe."); }, function () { estado("No se pudo copiar. Selecciona el texto de la página y cópialo a mano."); });
+        } else { estado("Tu navegador no permite copiar desde aquí."); }
+    };
+    $("bReiniciar").onclick = function () {
+        if (!window.confirm("Se borrarán todas las mediciones guardadas. ¿Empezar una prueba limpia?")) return;
+        fetch("/api/tienda/metricas/reiniciar", { method: "POST" }).then(function (r) { return r.json(); }).then(function (d) {
+            if (d && d.ok) { estado("Mediciones borradas."); cargar(); } else { estado((d && d.error) || "No se pudo reiniciar."); }
+        }).catch(function () { estado("No se pudo reiniciar."); });
+    };
+    cargar();
+})();
+</script>
+</body>
+</html>
