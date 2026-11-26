@@ -54,3 +54,14 @@ Con pocas mediciones la comparación no es confiable; la página avisa cuando ha
 | `frontend_corporativo/historial_busqueda.js` | Historial del navegador y medición |
 | `frontend_corporativo/tienda.js`, `portada.js` | Buscador, interruptor de modo, "Para ti" |
 | `frontend_corporativo/comparativa_busqueda.html` | Resultados de la comparativa |
+
+## Integración con el Buscador IA de Leonardo (rama dayra-integrada)
+
+El proyecto ya tenía un Buscador IA (`/api/buscador-ia`, `TrieProductos` + `RankingProductosSmileIA`) que ordena por rotación histórica, stock y afinidad con la tienda. El trabajo de esta rama **no lo reemplaza**: se suma encima.
+
+- El navegador guarda un historial de lo que la persona ve y compra (`historial_busqueda.js`, solo en su navegador).
+- Al buscar, `/api/buscador-ia` recibe `perfil` y `modo`. Si hay historial y el modo es IA, `RankingBusqueda` reordena la lista IA sumando la afinidad con categorías, marcas y productos de esa persona. Sin historial, la respuesta es exactamente la de Leonardo.
+- La lista alfabética no se toca: es la línea base «antes» de la comparativa.
+- `/api/tienda/metricas` guarda tiempo, teclas y posición por búsqueda y `comparativa_busqueda.html` muestra alfabético contra IA.
+
+Alcance honesto: es un modelo de afinidad ponderada que aprende de forma incremental, no una red neuronal entrenada. El historial vive en el navegador, no en la base de datos.
