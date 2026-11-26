@@ -86,7 +86,7 @@
                     </button>
                 </div>
 
-                <button id="btnTradicional" type="button" class="auth-btn-primary">Siguiente: Verificación Facial</button>
+                <button id="btnTradicional" type="button" class="auth-btn-primary">Continuar</button>
                 <p id="statusTradicional" class="auth-status" style="margin-bottom:0;"></p>
             </div>
 
@@ -124,9 +124,8 @@
                 </div>
             </div>
 
-            <div class="auth-footer-links">
+            <div class="auth-footer-links" style="justify-content:center;">
                 <a href="/portal_institucional/index.html" class="auth-link">← Volver al Portal</a>
-                <a href="/acceso_seguridad/registro.html" class="auth-link">Nuevo Registro →</a>
             </div>
         </div>
     </main>
@@ -231,19 +230,31 @@
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    try {
-                        const datosSesion = JSON.stringify({
-                            usuario: data.usuario || inputUsuario.value.trim(),
-                            nombre_completo: data.nombre_completo || data.usuario || inputUsuario.value.trim(),
-                            face_encoding: data.face_encoding,
-                            es_superadmin: !!data.es_superadmin,
-                            rol: data.rol || (data.es_superadmin ? 'SuperAdmin' : 'Analista')
-                        });
-                        sessionStorage.setItem('usuario_activo', datosSesion);
-                        localStorage.setItem('usuario_activo', datosSesion);
-                        localStorage.setItem('ultimo_usuario', data.usuario || inputUsuario.value.trim());
-                    } catch (e) {}
+                    // Caso 1: Nuevo trabajador con biometría NULL en Supabase -> ingreso directo al Dashboard (modo restringido hasta activar en Perfil)
+                    if (data.biometria_registrada === false || data.requiere_facial === false || data.biometria_pendiente === true) {
+                        try {
+                            const datosSesion = JSON.stringify({
+                                usuario: data.usuario || inputUsuario.value.trim(),
+                                nombre_completo: data.nombre_completo || data.usuario || inputUsuario.value.trim(),
+                                face_encoding: null,
+                                biometria_registrada: false,
+                                biometria_pendiente: true,
+                                es_superadmin: !!data.es_superadmin,
+                                rol: data.rol || (data.es_superadmin ? 'SuperAdmin' : 'Analista')
+                            });
+                            sessionStorage.setItem('usuario_activo', datosSesion);
+                            localStorage.setItem('usuario_activo', datosSesion);
+                            localStorage.setItem('ultimo_usuario', data.usuario || inputUsuario.value.trim());
+                        } catch (e) {}
 
+                        statusTradicional.innerHTML = `<span style="color:var(--success);font-weight:700;">Bienvenido, ${data.nombre_completo || data.usuario}. Redirigiendo para activar tu biometría en Perfil...</span>`;
+                        setTimeout(() => {
+                            window.location.href = data.redirect || '/dashboard_bi/dashboard.html#perfil';
+                        }, 800);
+                        return;
+                    }
+
+                    // Caso 2: Usuario con biometría registrada -> exige validación facial antes de conceder acceso completo
                     statusTradicional.innerHTML = `<span style="color:var(--success);font-weight:700;">Credenciales válidas para ${data.nombre_completo || data.usuario}. Continúa con verificación facial...</span>`;
                     setTimeout(() => {
                         document.getElementById('seccionTradicional').style.opacity = '0.55';
@@ -321,6 +332,8 @@
                             usuario: data.usuario,
                             nombre_completo: data.nombre_completo || data.usuario,
                             face_encoding: data.face_encoding,
+                            biometria_registrada: true,
+                            biometria_pendiente: false,
                             porcentaje: data.porcentaje,
                             es_superadmin: !!data.es_superadmin,
                             rol: data.rol || (data.es_superadmin ? 'SuperAdmin' : 'Analista')
@@ -371,11 +384,18 @@
                     const box = document.querySelector('.login-box');
                     if (box) {
                         box.insertBefore(banner, box.firstChild);
-                        document.getElementById('btnCerrarSesionEnLogin').addEventListener('click', () => {
+                        document.getElementById('btnCerrarSesionEnLogin').addEventListener('click', async () => {
+                            try {
+                                await fetch('/api/logout', { method: 'POST', credentials: 'same-origin' });
+                            } catch (e) {}
                             sessionStorage.removeItem('usuario_activo');
                             localStorage.removeItem('usuario_activo');
                             sessionStorage.removeItem('empleado_desbloqueado');
                             localStorage.removeItem('empleado_desbloqueado');
+                            sessionStorage.removeItem('empleado_desbloqueado_timestamp');
+                            localStorage.removeItem('empleado_desbloqueado_timestamp');
+                            sessionStorage.removeItem('llave_personal_activa');
+                            localStorage.removeItem('llave_personal_activa');
                             banner.remove();
                             window.location.replace("/portal_institucional/index.html");
                         });

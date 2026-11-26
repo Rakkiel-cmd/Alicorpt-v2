@@ -59,8 +59,8 @@ CREATE TABLE IF NOT EXISTS ADMINISTRADORES (
     password_hash    VARCHAR(255)  NOT NULL,
     id_rol           INT           NOT NULL,
     id_estado        INT           NOT NULL,
-    face_encoding    TEXT,
-    l2_norm          DECIMAL(8, 5),
+    face_encoding    TEXT          NULL,
+    l2_norm          DECIMAL(8, 5) NULL,
     fecha_registro   TIMESTAMP     DEFAULT CURRENT_TIMESTAMP NOT NULL,
     CONSTRAINT fk_admin_rol FOREIGN KEY (id_rol)
         REFERENCES ROLES_SEGURIDAD (id_rol) ON DELETE RESTRICT,

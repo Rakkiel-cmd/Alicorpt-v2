@@ -289,18 +289,44 @@ public class ServicioBiometriaJavaCV {
         return Math.round(Math.sqrt(suma) * 10000.0) / 10000.0;
     }
 
-    public double[] parsearVectorJson(String jsonArray) {
-        if (jsonArray == null || jsonArray.isBlank()) return null;
+    /**
+     * Valida estrictamente que un valor proveniente de BD no sea NULL, vacío, "null", "[]" ni "{}"
+     * y contenga exactamente 128 valores numéricos finitos con norma L2 no nula.
+     */
+    public static double[] parsearVector128DEstricto(Object rawObj) {
+        if (rawObj == null) return null;
+        String s = String.valueOf(rawObj).trim();
+        if (s.isEmpty()
+                || "null".equalsIgnoreCase(s)
+                || "[]".equals(s)
+                || "{}".equals(s)
+                || !s.startsWith("[")
+                || !s.endsWith("]")) {
+            return null;
+        }
         try {
-            List<Double> lista = MAPPER.readValue(jsonArray, new TypeReference<List<Double>>() {});
-            if (lista.size() != DIMENSIONES) return null;
+            List<Double> lista = MAPPER.readValue(s, new TypeReference<List<Double>>() {});
+            if (lista == null || lista.size() != DIMENSIONES) return null;
             double[] arr = new double[DIMENSIONES];
+            double sumaSq = 0.0;
             for (int i = 0; i < DIMENSIONES; i++) {
-                arr[i] = lista.get(i);
+                Double val = lista.get(i);
+                if (val == null || !Double.isFinite(val)) return null;
+                arr[i] = val;
+                sumaSq += val * val;
             }
+            if (sumaSq <= 1e-8) return null;
             return arr;
         } catch (Exception e) {
             return null;
         }
+    }
+
+    public static boolean esVector128DValido(Object rawObj) {
+        return parsearVector128DEstricto(rawObj) != null;
+    }
+
+    public double[] parsearVectorJson(String jsonArray) {
+        return parsearVector128DEstricto(jsonArray);
     }
 }

@@ -6,6 +6,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.sql.*;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -22,6 +23,14 @@ public class ServicioSeguridadRelacional {
     private static final ZoneOffset ZONA_PERU = ZoneOffset.ofHours(-5);
     private static final long TOKEN_REAUTH_TTL_MS = 5 * 60 * 1000L; // 5 minutos
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
+    private static Calendar utcCal() {
+        return Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+    }
+
+    private static Timestamp getTimestampUtc(ResultSet rs, String col) throws SQLException {
+        return rs.getTimestamp(col, utcCal());
+    }
 
     private record TokenReauth(int idAdmin, String usuario, long expiraEnMs) {}
 
@@ -90,9 +99,18 @@ public class ServicioSeguridadRelacional {
     }
 
     public boolean validarClaveAcceso(String candidata) {
-        if (candidata == null) return false;
+        if (candidata == null || candidata.isBlank()) return false;
         String limpia = candidata.trim();
-        return limpia.equals(obtenerClaveAccesoActual()) || limpia.equals("784920");
+        String envKey = System.getenv("ADMIN_ACCESS_KEY");
+        if (envKey != null && !envKey.isBlank() && limpia.equals(envKey.trim())) {
+            return true;
+        }
+        return limpia.equals(obtenerClaveAccesoActual());
+    }
+
+    public boolean esUsuarioActivo3FN(String usuario) {
+        Map<String, Object> p = obtenerPerfilUsuario3FN(usuario);
+        return p != null && "activo".equalsIgnoreCase(String.valueOf(p.get("estado")));
     }
 
     /**
@@ -121,8 +139,13 @@ public class ServicioSeguridadRelacional {
                     m.put("password_hash", rs.getString("password_hash"));
                     m.put("rol", rs.getString("codigo_rol"));
                     m.put("estado", rs.getString("codigo_estado"));
-                    m.put("face_encoding", rs.getString("face_encoding"));
-                    m.put("l2_norm", rs.getDouble("l2_norm"));
+                    String faceRaw = rs.getString("face_encoding");
+                    boolean tieneBio = ServicioBiometriaJavaCV.esVector128DValido(faceRaw);
+                    m.put("face_encoding", tieneBio ? faceRaw : null);
+                    m.put("l2_norm", rs.getObject("l2_norm") != null ? rs.getDouble("l2_norm") : null);
+                    m.put("biometria_registrada", tieneBio);
+                    m.put("tiene_biometria", tieneBio);
+                    m.put("biometria_pendiente", !tieneBio);
                     m.put("es_superadmin", "superadmin".equalsIgnoreCase(rs.getString("codigo_rol"))
                             && "activo".equalsIgnoreCase(rs.getString("codigo_estado")));
                     return m;
@@ -188,16 +211,19 @@ public class ServicioSeguridadRelacional {
                     String estado = rs.getString("codigo_estado");
                     String vector = rs.getString("face_encoding");
                     int segs = rs.getInt("tiempo_segundos");
-                    Timestamp ult = rs.getTimestamp("ultimo_latido");
-                    boolean conectado = ult != null && (System.currentTimeMillis() - ult.getTime()) <= 60000;
+                    Timestamp ult = getTimestampUtc(rs, "ultimo_latido");
+                    long diffMs = ult != null ? (System.currentTimeMillis() - ult.getTime()) : Long.MAX_VALUE;
+                    boolean conectado = ult != null && diffMs >= -5000 && diffMs <= 60000;
 
                     item.put("usuario", rs.getString("usuario"));
                     item.put("nombre_completo", rs.getString("nombre_completo"));
                     item.put("email", rs.getString("email") != null ? rs.getString("email") : "");
                     item.put("rol", rol);
                     item.put("estado", estado);
+                    boolean tieneBio = ServicioBiometriaJavaCV.esVector128DValido(vector);
                     item.put("es_superadmin", "superadmin".equalsIgnoreCase(rol) && "activo".equalsIgnoreCase(estado));
-                    item.put("tiene_biometria", vector != null && vector.length() > 20);
+                    item.put("biometria_registrada", tieneBio);
+                    item.put("tiene_biometria", tieneBio);
                     item.put("conectado", conectado);
                     item.put("tiempo_hoy_segundos", segs);
                     item.put("tiempo_segundos_hoy", segs);
@@ -238,42 +264,21 @@ public class ServicioSeguridadRelacional {
                 fila.put("accion", accRaw);
                 fila.put("detalle", rs.getString("detalle"));
                 fila.put("motivo", rs.getString("detalle"));
-                fila.put("fecha", rs.getTimestamp("fecha_evento").toInstant().toString());
+                Timestamp fe = getTimestampUtc(rs, "fecha_evento");
+                fila.put("fecha", fe != null ? fe.toInstant().toString() : null);
                 logs.add(fila);
             }
         } catch (Exception ignored) {}
         return logs;
     }
 
-    public String registrarAdministrador3FN(String usuario, String nombreCompleto, String password, double[] vector128D, double l2Norm) {
-        if (usuario == null || usuario.isBlank() || nombreCompleto == null || nombreCompleto.isBlank() || password == null || password.isBlank()) {
-            return "Completa todos los campos requeridos.";
-        }
-        if (obtenerPerfilUsuario3FN(usuario.trim()) != null) {
-            return "El usuario '" + usuario.trim() + "' ya existe.";
-        }
-        StringBuilder sb = new StringBuilder("[");
-        for (int i = 0; i < vector128D.length; i++) {
-            if (i > 0) sb.append(",");
-            sb.append(vector128D[i]);
-        }
-        sb.append("]");
-
-        String sql = "INSERT INTO ADMINISTRADORES (usuario, nombre_completo, email, password_hash, id_rol, id_estado, face_encoding, l2_norm) " +
-                "VALUES (?, ?, ?, ?, 1, 1, ?, ?)";
-        try (Connection conn = DatabaseConfig.getDataSource().getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, usuario.trim());
-            ps.setString(2, nombreCompleto.trim());
-            ps.setString(3, usuario.trim().toLowerCase() + "@alicorp.com.pe");
-            ps.setString(4, password);
-            ps.setString(5, sb.toString());
-            ps.setDouble(6, l2Norm);
-            ps.executeUpdate();
-            return null;
-        } catch (Exception e) {
-            return "Error al registrar en BD 3FN: " + e.getMessage();
-        }
+    /**
+     * Evalúa estrictamente en 3FN si el usuario activo posee un vector biométrico válido de 128 dimensiones en Supabase.
+     */
+    public boolean tieneBiometriaRegistrada3FN(String usuario, ServicioBiometriaJavaCV motorBiometria) {
+        Map<String, Object> p = obtenerPerfilUsuario3FN(usuario);
+        if (p == null || !"activo".equalsIgnoreCase(String.valueOf(p.get("estado")))) return false;
+        return Boolean.TRUE.equals(p.get("biometria_registrada"));
     }
 
     public boolean cambiarEstadoUsuario3FN(String adminEjecutor, String usuarioObjetivo, int nuevoIdEstado, String accionNombre) {
@@ -325,8 +330,8 @@ public class ServicioSeguridadRelacional {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     java.sql.Date fecha = rs.getDate("fecha_sesion");
-                    Timestamp primer = rs.getTimestamp("primer_ingreso");
-                    Timestamp ultimo = rs.getTimestamp("ultimo_latido");
+                    Timestamp primer = getTimestampUtc(rs, "primer_ingreso");
+                    Timestamp ultimo = getTimestampUtc(rs, "ultimo_latido");
                     Map<String, Object> f = new LinkedHashMap<>();
                     f.put("fecha", fecha != null ? fecha.toString() : "");
                     f.put("tiempo_segundos", rs.getInt("tiempo_segundos"));
@@ -389,7 +394,8 @@ public class ServicioSeguridadRelacional {
                 String estRaw = rs.getString("estado_solicitud");
                 String estUi = "aprobada".equalsIgnoreCase(estRaw) ? "aprobado"
                         : ("rechazada".equalsIgnoreCase(estRaw) ? "rechazado" : "pendiente");
-                String ts = rs.getTimestamp("created_at").toInstant().toString();
+                Timestamp createdTs = getTimestampUtc(rs, "created_at");
+                String ts = createdTs != null ? createdTs.toInstant().toString() : null;
                 Map<String, Object> m = new LinkedHashMap<>();
                 m.put("id", rs.getInt("id_solicitud"));
                 m.put("nueva_clave", rs.getString("nueva_clave"));
@@ -460,9 +466,11 @@ public class ServicioSeguridadRelacional {
 
     public int registrarLatido3FN(String usuario, String fechaPeru, int segundosDelta, int tiempoTotalCliente) {
         Map<String, Object> perfil = obtenerPerfilUsuario3FN(usuario);
-        if (perfil == null) return tiempoTotalCliente;
+        if (perfil == null) return 0;
         int idAdmin = (Integer) perfil.get("id_admin");
         java.sql.Date fechaSql = java.sql.Date.valueOf(fechaPeru);
+        int deltaSeguro = Math.max(0, Math.min(120, segundosDelta));
+        Timestamp ahoraUtc = Timestamp.from(Instant.now());
 
         try (Connection conn = DatabaseConfig.getDataSource().getConnection()) {
             Integer actual = null;
@@ -474,28 +482,32 @@ public class ServicioSeguridadRelacional {
                     if (rs.next()) actual = rs.getInt(1);
                 }
             }
-            int nuevoTotal = Math.min(86400, (actual == null ? 0 : actual) + Math.max(0, segundosDelta));
             if (actual == null) {
-                nuevoTotal = Math.min(86400, Math.max(nuevoTotal, tiempoTotalCliente));
+                int nuevoTotal = deltaSeguro;
                 try (PreparedStatement psIns = conn.prepareStatement(
-                        "INSERT INTO ACTIVIDAD_USUARIOS (id_admin, fecha_sesion, tiempo_segundos, primer_ingreso, ultimo_latido) VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)")) {
+                        "INSERT INTO ACTIVIDAD_USUARIOS (id_admin, fecha_sesion, tiempo_segundos, primer_ingreso, ultimo_latido) VALUES (?, ?, ?, ?, ?)")) {
                     psIns.setInt(1, idAdmin);
                     psIns.setDate(2, fechaSql);
                     psIns.setInt(3, nuevoTotal);
+                    psIns.setTimestamp(4, ahoraUtc, utcCal());
+                    psIns.setTimestamp(5, ahoraUtc, utcCal());
                     psIns.executeUpdate();
                 }
+                return nuevoTotal;
             } else {
+                int nuevoTotal = Math.min(86400, actual + deltaSeguro);
                 try (PreparedStatement psUpd = conn.prepareStatement(
-                        "UPDATE ACTIVIDAD_USUARIOS SET tiempo_segundos = ?, ultimo_latido = CURRENT_TIMESTAMP WHERE id_admin = ? AND fecha_sesion = ?")) {
+                        "UPDATE ACTIVIDAD_USUARIOS SET tiempo_segundos = ?, ultimo_latido = ? WHERE id_admin = ? AND fecha_sesion = ?")) {
                     psUpd.setInt(1, nuevoTotal);
-                    psUpd.setInt(2, idAdmin);
-                    psUpd.setDate(3, fechaSql);
+                    psUpd.setTimestamp(2, ahoraUtc, utcCal());
+                    psUpd.setInt(3, idAdmin);
+                    psUpd.setDate(4, fechaSql);
                     psUpd.executeUpdate();
                 }
+                return nuevoTotal;
             }
-            return nuevoTotal;
         } catch (Exception e) {
-            return tiempoTotalCliente;
+            return Math.max(0, tiempoTotalCliente);
         }
     }
 
@@ -583,8 +595,10 @@ public class ServicioSeguridadRelacional {
     }
 
     /**
-     * Actualiza de forma atómica usuario, contraseña (hash SHA-256 con salt) y/o vector facial 128-D
-     * tras validar el token biométrico temporal, registrando trazabilidad en AMPLIACION_AUDITORIA.
+     * Actualiza de forma atómica usuario, contraseña (hash SHA-256 con salt) y/o vector facial 128-D.
+     * - Si el usuario ya posee biometría (face_encoding NOT NULL), exige token biométrico vigente.
+     * - Si el usuario tiene biometría pendiente (face_encoding IS NULL), permite activar su rostro inicial
+     *   y/o actualizar sus credenciales desde su sesión autenticada, registrando trazabilidad en AMPLIACION_AUDITORIA.
      */
     public Map<String, Object> actualizarCredencialesCompletas(
             String usuarioActual,
@@ -595,28 +609,50 @@ public class ServicioSeguridadRelacional {
             ServicioBiometriaJavaCV motorBiometria) {
 
         Map<String, Object> resp = new LinkedHashMap<>();
-        if (usuarioActual == null || usuarioActual.isBlank() || tokenVerificacion == null || tokenVerificacion.isBlank()) {
+        if (usuarioActual == null || usuarioActual.isBlank()) {
             resp.put("success", false);
             resp.put("http_status", 401);
-            resp.put("message", "Se requiere verificación biométrica vigente para modificar credenciales.");
+            resp.put("message", "Sesión de usuario no válida.");
             return resp;
         }
 
-        TokenReauth tok = tokensReauth.get(tokenVerificacion.trim());
-        long ahora = System.currentTimeMillis();
-        if (tok == null || tok.expiraEnMs() < ahora || !tok.usuario().equalsIgnoreCase(usuarioActual.trim())) {
-            tokensReauth.remove(tokenVerificacion.trim());
+        Map<String, Object> perfilActual = obtenerPerfilUsuario3FN(usuarioActual.trim());
+        if (perfilActual == null || !"activo".equalsIgnoreCase(String.valueOf(perfilActual.get("estado")))) {
             resp.put("success", false);
             resp.put("http_status", 401);
-            resp.put("message", "Token de verificación biométrica inválido o expirado. Vuelve a escanear tu rostro.");
+            resp.put("message", "Usuario no encontrado o cuenta suspendida.");
             return resp;
+        }
+
+        int idAdminActual = (Integer) perfilActual.get("id_admin");
+        String usuarioCanon = String.valueOf(perfilActual.get("usuario"));
+        Object rawFaceActual = perfilActual.get("face_encoding");
+        boolean yaTieneBiometria = rawFaceActual != null
+                && motorBiometria.parsearVectorJson(String.valueOf(rawFaceActual)) != null;
+
+        if (yaTieneBiometria) {
+            if (tokenVerificacion == null || tokenVerificacion.isBlank()) {
+                resp.put("success", false);
+                resp.put("http_status", 401);
+                resp.put("message", "Se requiere verificación biométrica vigente para modificar credenciales.");
+                return resp;
+            }
+            TokenReauth tok = tokensReauth.get(tokenVerificacion.trim());
+            long ahora = System.currentTimeMillis();
+            if (tok == null || tok.expiraEnMs() < ahora || !tok.usuario().equalsIgnoreCase(usuarioCanon)) {
+                tokensReauth.remove(tokenVerificacion.trim());
+                resp.put("success", false);
+                resp.put("http_status", 401);
+                resp.put("message", "Token de verificación biométrica inválido o expirado. Vuelve a escanear tu rostro.");
+                return resp;
+            }
         }
 
         String uNuevo = nuevoUsuario != null ? nuevoUsuario.trim() : "";
         String pNuevo = nuevoPassword != null ? nuevoPassword : "";
         String fNuevo = nuevoFrameBase64 != null ? nuevoFrameBase64.trim() : "";
 
-        boolean cambiaUsuario = !uNuevo.isEmpty() && !uNuevo.equals(tok.usuario());
+        boolean cambiaUsuario = !uNuevo.isEmpty() && !uNuevo.equals(usuarioCanon);
         boolean cambiaPassword = !pNuevo.isEmpty();
         boolean cambiaBiometria = !fNuevo.isEmpty();
 
@@ -671,7 +707,7 @@ public class ServicioSeguridadRelacional {
                     try (PreparedStatement psDup = conn.prepareStatement(
                             "SELECT 1 FROM ADMINISTRADORES WHERE UPPER(usuario) = UPPER(?) AND id_admin <> ?")) {
                         psDup.setString(1, uNuevo);
-                        psDup.setInt(2, tok.idAdmin());
+                        psDup.setInt(2, idAdminActual);
                         try (ResultSet rs = psDup.executeQuery()) {
                             if (rs.next()) {
                                 conn.rollback();
@@ -701,7 +737,7 @@ public class ServicioSeguridadRelacional {
                     sets.add("l2_norm = ?");
                     params.add(nuevaNormaL2);
                 }
-                params.add(tok.idAdmin());
+                params.add(idAdminActual);
 
                 String sqlUpd = "UPDATE ADMINISTRADORES SET " + String.join(", ", sets) + " WHERE id_admin = ?";
                 try (PreparedStatement psUpd = conn.prepareStatement(sqlUpd)) {
@@ -715,26 +751,51 @@ public class ServicioSeguridadRelacional {
                 }
 
                 // 3. Registrar trazabilidad en AMPLIACION_AUDITORIA dentro de la misma transacción
+                String accionAud = (!yaTieneBiometria && cambiaBiometria)
+                        ? "ACTIVACION_BIOMETRICA_INICIAL"
+                        : "MODIFICACION_CREDENCIALES_PROPIAS";
+                String detalleAud = (!yaTieneBiometria && cambiaBiometria)
+                        ? "Registro facial 128-D inicial completado desde Mi Perfil (desbloqueo de cuenta)"
+                        : (yaTieneBiometria
+                            ? "Actualización de usuario/clave/biometría tras re-autenticación facial"
+                            : "Actualización inicial de usuario/contraseña en cuenta con biometría pendiente");
                 try (PreparedStatement psAud = conn.prepareStatement(
                         "INSERT INTO AMPLIACION_AUDITORIA (id_admin_ejecutor, id_admin_objetivo, accion, detalle) VALUES (?, ?, ?, ?)")) {
-                    psAud.setInt(1, tok.idAdmin());
-                    psAud.setInt(2, tok.idAdmin());
-                    psAud.setString(3, "MODIFICACION_CREDENCIALES_PROPIAS");
-                    psAud.setString(4, "Actualización de usuario/clave/biometría tras re-autenticación facial");
+                    psAud.setInt(1, idAdminActual);
+                    psAud.setInt(2, idAdminActual);
+                    psAud.setString(3, accionAud);
+                    psAud.setString(4, detalleAud);
                     psAud.executeUpdate();
                 }
 
                 conn.commit();
-                tokensReauth.remove(tokenVerificacion.trim());
+                if (tokenVerificacion != null && !tokenVerificacion.isBlank()) {
+                    tokensReauth.remove(tokenVerificacion.trim());
+                }
 
-                String usuarioFinal = cambiaUsuario ? uNuevo : tok.usuario();
+                boolean tieneBioFinal = yaTieneBiometria || cambiaBiometria;
+                String usuarioFinal = cambiaUsuario ? uNuevo : usuarioCanon;
+                List<Double> vecLista = new ArrayList<>();
+                if (nuevoVector != null) {
+                    for (double d : nuevoVector) vecLista.add(d);
+                }
                 resp.put("success", true);
                 resp.put("http_status", 200);
                 resp.put("usuario", usuarioFinal);
                 resp.put("biometria_actualizada", cambiaBiometria);
+                resp.put("biometria_registrada", tieneBioFinal);
+                resp.put("tiene_biometria", tieneBioFinal);
+                resp.put("biometria_pendiente", !tieneBioFinal);
+                resp.put("biometria_activada_inicial", !yaTieneBiometria && cambiaBiometria);
+                if (!vecLista.isEmpty()) {
+                    resp.put("vector_128d", vecLista);
+                }
                 resp.put("l2_norm", cambiaBiometria ? nuevaNormaL2 : null);
-                resp.put("mensaje", "Credenciales actualizadas exitosamente");
-                resp.put("message", "Credenciales actualizadas exitosamente");
+                String msgOk = (!yaTieneBiometria && cambiaBiometria)
+                        ? "Biometría 128-D registrada exitosamente. Acceso completo al Dashboard desbloqueado."
+                        : "Credenciales actualizadas exitosamente";
+                resp.put("mensaje", msgOk);
+                resp.put("message", msgOk);
                 return resp;
             } catch (SQLException ex) {
                 try { conn.rollback(); } catch (SQLException ignored) {}

@@ -1,5 +1,5 @@
 /* ============================================================================
-   ALICORP INTELLIGENCE — TEMA HOMOGÉNEO DE ACCESO Y REGISTRO BIOMÉTRICO
+   ALICORP INTELLIGENCE — TEMA HOMOGÉNEO DE ACCESO CORPORATIVO Y BIOMETRÍA
    Comparte variables Light/Dark, Olas SVG y Glassmorphism con dashboard_theme.css
    ============================================================================ */
 
@@ -400,11 +400,6 @@ html, body {
 .auth-btn-primary:disabled {
     opacity: 0.55;
     cursor: not-allowed;
-}
-
-.auth-btn-primary.success {
-    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
-    box-shadow: 0 8px 20px -6px rgba(16, 185, 129, 0.45);
 }
 
 .auth-btn-secondary {

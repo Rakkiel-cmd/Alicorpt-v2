@@ -123,7 +123,9 @@
         });
     }
 
+    let _chatMontado = false;
     async function iniciar() {
+        if (_chatMontado) return;
         const usuario = usuarioActual();
         let ctx;
         try {
@@ -131,9 +133,11 @@
             if (!r.ok) return; ctx = await r.json();
         } catch (e) { return; }
         if (!ctx || !ctx.success) return;
+        _chatMontado = true;
         const u = ctx.usuario || usuario;
         if (ctx.rol === 'admin') montarAdmin(ctx, u); else montarAnalista(ctx, u);
     }
+    window.__iniciarChatbotDash = iniciar;
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(iniciar, 1200));
     else setTimeout(iniciar, 1200);
 })();

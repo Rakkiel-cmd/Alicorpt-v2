@@ -1,6 +1,7 @@
 package pe.com.alicorp.bi.modulos.acceso_biometria;
 
 import io.javalin.Javalin;
+import pe.com.alicorp.bi.AlicorpBiApplication;
 import pe.com.alicorp.bi.config.DatabaseConfig;
 
 import java.sql.Connection;
@@ -12,7 +13,7 @@ import java.util.*;
 
 /**
  * Controlador REST de la sección Web "Acceso, Biometría 128-D y Seguridad SuperAdmin"
- * (acceso_seguridad/admin_login.html, acceso_seguridad/registro.html, dashboard_bi/#seguridad y #administracion).
+ * (acceso_seguridad/admin_login.html, dashboard_bi/#perfil, #seguridad y #administracion).
  */
 @SuppressWarnings("unchecked")
 public class AccesoBiometriaController {
@@ -30,6 +31,8 @@ public class AccesoBiometriaController {
             String key = String.valueOf(body.getOrDefault("key", "")).trim();
             boolean valido = motorSeguridad.validarClaveAcceso(key);
             if (valido) {
+                AlicorpBiApplication.habilitarKeyEnSesion(ctx);
+                AlicorpBiApplication.aplicarNoCache(ctx);
                 ctx.json(Map.of(
                         "success", true,
                         "desbloqueado", true,
@@ -45,6 +48,11 @@ public class AccesoBiometriaController {
         });
 
         app.post("/api/login_password", ctx -> {
+            if (!AlicorpBiApplication.tieneKeyHabilitada(ctx)
+                    && !AlicorpBiApplication.tieneSesionAutenticada(ctx, motorSeguridad)) {
+                ctx.status(403).json(Map.of("success", false, "message", "Debes validar la llave de acceso corporativa primero."));
+                return;
+            }
             Map<String, Object> body = ctx.bodyAsClass(Map.class);
             String usuario = String.valueOf(body.getOrDefault("usuario", "")).trim();
             String password = String.valueOf(body.getOrDefault("password", ""));
@@ -63,17 +71,41 @@ public class AccesoBiometriaController {
                 return;
             }
 
-            ctx.req().getSession(true).setAttribute("usuario", perfil.get("usuario"));
-            ctx.json(Map.of(
-                    "success", true,
-                    "usuario", perfil.get("usuario"),
-                    "nombre_completo", perfil.get("nombre_completo"),
-                    "rol", perfil.get("rol"),
-                    "es_superadmin", perfil.get("es_superadmin")
-            ));
+            // Evaluar estrictamente en 3FN si el trabajador posee un vector numérico válido de 128 dimensiones
+            double[] vecGuardado = ServicioBiometriaJavaCV.parsearVector128DEstricto(perfil.get("face_encoding"));
+            boolean requiereFacial = vecGuardado != null;
+            var ses = ctx.req().getSession(true);
+            ses.setAttribute(AlicorpBiApplication.ATTR_BIOMETRIA_REGISTRADA, Boolean.FALSE);
+            if (requiereFacial) {
+                ses.removeAttribute(AlicorpBiApplication.ATTR_USUARIO_AUTENTICADO);
+                ses.setAttribute(AlicorpBiApplication.ATTR_USUARIO_PENDIENTE_FACIAL, perfil.get("usuario"));
+            } else {
+                // Nuevo trabajador sin vector válido 128-D: sesión autenticada pero con biometria_registrada = false
+                ses.removeAttribute(AlicorpBiApplication.ATTR_USUARIO_PENDIENTE_FACIAL);
+                ses.setAttribute(AlicorpBiApplication.ATTR_USUARIO_AUTENTICADO, perfil.get("usuario"));
+            }
+            AlicorpBiApplication.aplicarNoCache(ctx);
+            Map<String, Object> resp = new LinkedHashMap<>();
+            resp.put("success", true);
+            resp.put("requiere_facial", requiereFacial);
+            resp.put("biometria_registrada", false);
+            resp.put("biometria_pendiente", !requiereFacial);
+            resp.put("usuario", perfil.get("usuario"));
+            resp.put("nombre_completo", perfil.get("nombre_completo"));
+            resp.put("rol", perfil.get("rol"));
+            resp.put("es_superadmin", perfil.get("es_superadmin"));
+            if (!requiereFacial) {
+                resp.put("redirect", "/dashboard_bi/dashboard.html#perfil");
+            }
+            ctx.json(resp);
         });
 
         app.post("/api/login_facial", ctx -> {
+            if (!AlicorpBiApplication.tieneKeyHabilitada(ctx)
+                    && !AlicorpBiApplication.tieneSesionAutenticada(ctx, motorSeguridad)) {
+                ctx.status(403).json(Map.of("success", false, "message", "Debes validar la llave de acceso corporativa primero."));
+                return;
+            }
             Map<String, Object> body = ctx.bodyAsClass(Map.class);
             String imagenB64 = String.valueOf(body.getOrDefault("image", ""));
             double[] vectorVivo = motorBiometria.extraerEmbedding128D(imagenB64);
@@ -82,26 +114,49 @@ public class AccesoBiometriaController {
                 return;
             }
 
+            var sesActual = ctx.req().getSession(false);
+            Object pendienteObj = sesActual != null ? sesActual.getAttribute(AlicorpBiApplication.ATTR_USUARIO_PENDIENTE_FACIAL) : null;
+            String usuarioPendiente = pendienteObj != null ? String.valueOf(pendienteObj).trim() : "";
+
             Map<String, Object> mejorAdmin = null;
-            double mejorScore = -Double.MAX_VALUE;
             double[] mejorVec = null;
 
-            for (Map<String, Object> u : motorSeguridad.listarUsuariosConEstado3FN()) {
-                if (!"activo".equalsIgnoreCase(String.valueOf(u.get("estado")))) continue;
-                Map<String, Object> p = motorSeguridad.obtenerPerfilUsuario3FN(String.valueOf(u.get("usuario")));
-                double[] vecGuardado = p != null ? motorBiometria.parsearVectorJson(String.valueOf(p.get("face_encoding"))) : null;
-                if (vecGuardado != null) {
-                    double score = motorBiometria.puntajeSimilitud(vectorVivo, vecGuardado);
-                    if (score > mejorScore) {
-                        mejorScore = score;
+            if (!usuarioPendiente.isEmpty()) {
+                // Paso 2 del login tradicional: validar estrictamente contra el usuario cuyas credenciales se verificaron
+                Map<String, Object> p = motorSeguridad.obtenerPerfilUsuario3FN(usuarioPendiente);
+                if (p != null && "activo".equalsIgnoreCase(String.valueOf(p.get("estado")))) {
+                    Object rawF = p.get("face_encoding");
+                    double[] vecGuardado = rawF != null ? motorBiometria.parsearVectorJson(String.valueOf(rawF)) : null;
+                    if (vecGuardado != null && motorBiometria.esMatchBiometrico(vectorVivo, vecGuardado)) {
                         mejorAdmin = p;
                         mejorVec = vecGuardado;
+                    }
+                }
+            } else {
+                // Acceso directo biométrico (1:N entre usuarios activos con face_encoding NOT NULL)
+                double mejorScore = -Double.MAX_VALUE;
+                for (Map<String, Object> u : motorSeguridad.listarUsuariosConEstado3FN()) {
+                    if (!"activo".equalsIgnoreCase(String.valueOf(u.get("estado")))) continue;
+                    Map<String, Object> p = motorSeguridad.obtenerPerfilUsuario3FN(String.valueOf(u.get("usuario")));
+                    Object rawF = p != null ? p.get("face_encoding") : null;
+                    double[] vecGuardado = rawF != null ? motorBiometria.parsearVectorJson(String.valueOf(rawF)) : null;
+                    if (vecGuardado != null) {
+                        double score = motorBiometria.puntajeSimilitud(vectorVivo, vecGuardado);
+                        if (score > mejorScore) {
+                            mejorScore = score;
+                            mejorAdmin = p;
+                            mejorVec = vecGuardado;
+                        }
                     }
                 }
             }
 
             if (mejorAdmin != null && mejorVec != null && motorBiometria.esMatchBiometrico(vectorVivo, mejorVec)) {
-                ctx.req().getSession(true).setAttribute("usuario", mejorAdmin.get("usuario"));
+                var ses = ctx.req().getSession(true);
+                ses.setAttribute(AlicorpBiApplication.ATTR_USUARIO_AUTENTICADO, mejorAdmin.get("usuario"));
+                ses.setAttribute(AlicorpBiApplication.ATTR_BIOMETRIA_REGISTRADA, Boolean.TRUE);
+                ses.removeAttribute(AlicorpBiApplication.ATTR_USUARIO_PENDIENTE_FACIAL);
+                AlicorpBiApplication.aplicarNoCache(ctx);
                 double mejorDist = motorBiometria.calcularDistanciaEuclidiana(vectorVivo, mejorVec);
                 double porcentaje = motorBiometria.calcularPorcentajeConfianza(vectorVivo, mejorVec);
                 List<Double> vecLista = new ArrayList<>();
@@ -113,6 +168,8 @@ public class AccesoBiometriaController {
                 resp.put("nombre_completo", mejorAdmin.get("nombre_completo"));
                 resp.put("rol", mejorAdmin.get("rol"));
                 resp.put("es_superadmin", mejorAdmin.get("es_superadmin"));
+                resp.put("biometria_registrada", true);
+                resp.put("biometria_pendiente", false);
                 resp.put("face_encoding", vecLista);
                 resp.put("distancia", Math.round(mejorDist * 10000.0) / 10000.0);
                 resp.put("similitud_coseno", Math.round(motorBiometria.calcularSimilitudCoseno(vectorVivo, mejorVec) * 10000.0) / 10000.0);
@@ -122,79 +179,72 @@ public class AccesoBiometriaController {
                 ctx.json(resp);
                 return;
             }
-            ctx.status(401).json(Map.of("success", false, "message", "Rostro no coincide con ningún administrador autorizado. Si aún no registraste tu rostro, usa '+ Nuevo Registro'."));
-        });
-
-        app.post("/api/verificar_rostro", ctx -> {
-            Map<String, Object> body = ctx.bodyAsClass(Map.class);
-            String imagenB64 = String.valueOf(body.getOrDefault("image", ""));
-            double[] vector = motorBiometria.extraerEmbedding128D(imagenB64);
-            if (vector == null) {
-                ctx.status(400).json(Map.of("success", false, "message", "No se detectó un rostro válido en la captura."));
-                return;
-            }
-            ctx.json(Map.of(
-                    "success", true,
-                    "message", "Rostro validado y vectorizado en 128-D correctamente (Norma L2: " + motorBiometria.calcularNormaL2(vector) + ")."
-            ));
-        });
-
-        app.post("/api/registrar_admin_web", ctx -> {
-            Map<String, Object> body = ctx.bodyAsClass(Map.class);
-            String nombre = String.valueOf(body.getOrDefault("nombre_completo", "")).trim();
-            String usuario = String.valueOf(body.getOrDefault("usuario", "")).trim();
-            String password = String.valueOf(body.getOrDefault("password", ""));
-            String imagenB64 = String.valueOf(body.getOrDefault("image", ""));
-
-            double[] vector = motorBiometria.extraerEmbedding128D(imagenB64);
-            if (vector == null) {
-                ctx.status(400).json(Map.of("success", false, "message", "Captura facial inválida. Toma la foto nuevamente."));
-                return;
-            }
-            double l2 = motorBiometria.calcularNormaL2(vector);
-            String error = motorSeguridad.registrarAdministrador3FN(usuario, nombre, password, vector, l2);
-            if (error != null) {
-                ctx.status(400).json(Map.of("success", false, "message", error));
-                return;
-            }
-            ctx.json(Map.of(
-                    "success", true,
-                    "usuario", usuario,
-                    "nombre_completo", nombre,
-                    "l2_norm", l2,
-                    "message", "Administrador registrado con biometría 128-D en BD 3FN."
-            ));
+            String msgError = !usuarioPendiente.isEmpty()
+                    ? "El rostro capturado no coincide con la biometría registrada de @" + usuarioPendiente + "."
+                    : "Rostro no coincide con ningún colaborador con biometría activa. Si es tu primer ingreso, accede con tu usuario y contraseña.";
+            ctx.status(401).json(Map.of("success", false, "message", msgError));
         });
 
         app.post("/api/logout", ctx -> {
             if (ctx.req().getSession(false) != null) {
                 ctx.req().getSession(false).invalidate();
             }
-            ctx.json(Map.of("success", true));
+            ctx.removeCookie("JSESSIONID", "/");
+            AlicorpBiApplication.aplicarNoCache(ctx);
+            ctx.json(Map.of("success", true, "redirect", "/portal_institucional/index.html"));
+        });
+
+        app.get("/api/logout", ctx -> {
+            if (ctx.req().getSession(false) != null) {
+                ctx.req().getSession(false).invalidate();
+            }
+            ctx.removeCookie("JSESSIONID", "/");
+            AlicorpBiApplication.aplicarNoCache(ctx);
+            ctx.redirect("/portal_institucional/index.html");
         });
 
         app.get("/api/usuario_perfil", ctx -> {
-            String usuario = ctx.queryParam("usuario");
+            var ses = ctx.req().getSession(false);
+            Object sesUser = ses != null ? ses.getAttribute("usuario") : null;
+            String usuarioSesion = sesUser != null ? String.valueOf(sesUser).trim() : "";
+            String usuarioParam = ctx.queryParam("usuario") != null ? ctx.queryParam("usuario").trim() : "";
+            String usuario = !usuarioSesion.isEmpty() ? usuarioSesion : usuarioParam;
+            boolean bioActivaSesion = !usuarioSesion.isEmpty()
+                    && ses != null
+                    && Boolean.TRUE.equals(ses.getAttribute(AlicorpBiApplication.ATTR_BIOMETRIA_REGISTRADA))
+                    && motorSeguridad.tieneBiometriaRegistrada3FN(usuarioSesion, motorBiometria);
+            if (bioActivaSesion && !usuarioParam.isEmpty() && !usuarioParam.equalsIgnoreCase(usuarioSesion)
+                    && motorSeguridad.esSuperAdminActivo(usuarioSesion)) {
+                usuario = usuarioParam;
+            }
             Map<String, Object> perfil = motorSeguridad.obtenerPerfilUsuario3FN(usuario);
             if (perfil == null) {
                 ctx.status(404).json(Map.of("success", false, "message", "Usuario no encontrado."));
                 return;
             }
-            double[] vec = motorBiometria.parsearVectorJson(String.valueOf(perfil.get("face_encoding")));
+            double[] vec = ServicioBiometriaJavaCV.parsearVector128DEstricto(perfil.get("face_encoding"));
             List<Double> vectorLista = new ArrayList<>();
             if (vec != null) {
                 for (double d : vec) vectorLista.add(d);
             }
-            ctx.json(Map.of(
-                    "success", true,
-                    "usuario", perfil.get("usuario"),
-                    "nombre_completo", perfil.get("nombre_completo"),
-                    "rol", perfil.get("rol"),
-                    "estado", perfil.get("estado"),
-                    "es_superadmin", perfil.get("es_superadmin"),
-                    "vector_128d", vectorLista,
-                    "dimensiones", vectorLista.size()
-            ));
+            boolean tieneBio = (vec != null && vectorLista.size() == 128);
+            if (ses != null && usuario.equalsIgnoreCase(usuarioSesion)) {
+                ses.setAttribute(AlicorpBiApplication.ATTR_BIOMETRIA_REGISTRADA, tieneBio);
+            }
+            AlicorpBiApplication.aplicarNoCache(ctx);
+            Map<String, Object> resp = new LinkedHashMap<>();
+            resp.put("success", true);
+            resp.put("usuario", perfil.get("usuario"));
+            resp.put("nombre_completo", perfil.get("nombre_completo"));
+            resp.put("rol", perfil.get("rol"));
+            resp.put("estado", perfil.get("estado"));
+            resp.put("es_superadmin", perfil.get("es_superadmin"));
+            resp.put("biometria_registrada", tieneBio);
+            resp.put("tiene_biometria", tieneBio);
+            resp.put("biometria_pendiente", !tieneBio);
+            resp.put("vector_128d", vectorLista);
+            resp.put("dimensiones", vectorLista.size());
+            ctx.json(resp);
         });
 
         // SuperAdmin, Usuarios, Roles, Auditoría y Actividad
@@ -301,11 +351,14 @@ public class AccesoBiometriaController {
         app.get("/api/actividad/hoy", ctx -> {
             try {
                 Object sesUser = ctx.req().getSession(false) != null ? ctx.req().getSession(false).getAttribute("usuario") : null;
-                String usuario = ctx.queryParam("usuario");
-                if ((usuario == null || usuario.isBlank()) && sesUser != null) usuario = String.valueOf(sesUser);
+                String usuario = sesUser != null ? String.valueOf(sesUser).trim() : "";
+                if (usuario.isEmpty()) {
+                    ctx.status(401).json(Map.of("success", false, "message", "Sesión no autenticada."));
+                    return;
+                }
                 String fechaPeru = OffsetDateTime.now(ZONA_PERU).toLocalDate().toString();
-                int segs = (usuario != null && !usuario.isBlank()) ? motorSeguridad.obtenerTiempoHoy3FN(usuario.trim(), fechaPeru) : 0;
-                ctx.json(Map.of("success", true, "fecha", fechaPeru, "tiempo_segundos", segs));
+                int segs = motorSeguridad.obtenerTiempoHoy3FN(usuario, fechaPeru);
+                ctx.json(Map.of("success", true, "usuario", usuario, "fecha", fechaPeru, "tiempo_segundos", segs));
             } catch (Exception e) {
                 ctx.status(500).json(Map.of("success", false, "message", "Error consultando actividad del día."));
             }
@@ -313,8 +366,13 @@ public class AccesoBiometriaController {
 
         app.post("/api/actividad/latido", ctx -> {
             try {
+                Object sesUser = ctx.req().getSession(false) != null ? ctx.req().getSession(false).getAttribute("usuario") : null;
+                String usuario = sesUser != null ? String.valueOf(sesUser).trim() : "";
+                if (usuario.isEmpty()) {
+                    ctx.status(401).json(Map.of("success", false, "message", "Sesión no autenticada."));
+                    return;
+                }
                 Map<String, Object> body = ctx.bodyAsClass(Map.class);
-                String usuario = String.valueOf(body.getOrDefault("usuario", "")).trim();
                 String fechaCliente = String.valueOf(body.getOrDefault("fecha", "")).trim();
                 String fechaHoyPeru = OffsetDateTime.now(ZONA_PERU).toLocalDate().toString();
                 int delta = ((Number) body.getOrDefault("segundos_delta", 15)).intValue();
@@ -327,6 +385,7 @@ public class AccesoBiometriaController {
 
                 ctx.json(Map.of(
                         "success", true,
+                        "usuario", usuario,
                         "fecha", fechaHoyPeru,
                         "tiempo_segundos", totalBD,
                         "reset_medianoche", cambioDia
@@ -339,11 +398,21 @@ public class AccesoBiometriaController {
         app.get("/api/actividad/historial", ctx -> {
             try {
                 Object sesUser = ctx.req().getSession(false) != null ? ctx.req().getSession(false).getAttribute("usuario") : null;
-                String usuario = ctx.queryParam("usuario");
-                if ((usuario == null || usuario.isBlank()) && sesUser != null) usuario = String.valueOf(sesUser);
+                String usuarioSesion = sesUser != null ? String.valueOf(sesUser).trim() : "";
+                if (usuarioSesion.isEmpty()) {
+                    ctx.status(401).json(Map.of("success", false, "message", "Sesión no autenticada."));
+                    return;
+                }
+                String usuarioObj = ctx.queryParam("usuario") != null ? ctx.queryParam("usuario").trim() : "";
+                String usuario = usuarioObj.isEmpty() ? usuarioSesion : usuarioObj;
+                if (!usuario.equalsIgnoreCase(usuarioSesion) && !motorSeguridad.esSuperAdminActivo(usuarioSesion)) {
+                    ctx.status(403).json(Map.of("success", false, "message", "No autorizado para consultar el historial de otro usuario."));
+                    return;
+                }
                 String fechaHoyPeru = OffsetDateTime.now(ZONA_PERU).toLocalDate().toString();
                 ctx.json(Map.of(
                         "success", true,
+                        "usuario", usuario,
                         "fecha_hoy", fechaHoyPeru,
                         "historial", motorSeguridad.obtenerHistorialActividad3FN(usuario)
                 ));
@@ -415,7 +484,8 @@ public class AccesoBiometriaController {
                 return;
             }
             try (Connection conn = DatabaseConfig.getDataSource().getConnection();
-                 PreparedStatement ps = conn.prepareStatement("UPDATE ADMINISTRADORES SET id_rol = 1 WHERE LOWER(usuario) = LOWER(?)")) {
+                 PreparedStatement ps = conn.prepareStatement(
+                         "UPDATE ADMINISTRADORES SET id_rol = (SELECT id_rol FROM ROLES_SEGURIDAD WHERE codigo_rol = 'analista') WHERE UPPER(usuario) = UPPER(?)")) {
                 ps.setString(1, objetivo);
                 ps.executeUpdate();
             } catch (SQLException e) {
@@ -541,11 +611,14 @@ public class AccesoBiometriaController {
 
         app.post("/api/usuario/actualizar_credenciales", ctx -> {
             try {
+                var ses = ctx.req().getSession(false);
+                Object sesionUser = ses != null ? ses.getAttribute("usuario") : null;
+                String usuarioActual = sesionUser != null ? String.valueOf(sesionUser).trim() : "";
+                if (usuarioActual.isEmpty()) {
+                    ctx.status(401).json(Map.of("success", false, "message", "Sesión no autenticada."));
+                    return;
+                }
                 Map<String, Object> body = ctx.bodyAsClass(Map.class);
-                Object sesionUser = ctx.req().getSession(false) != null
-                        ? ctx.req().getSession(false).getAttribute("usuario")
-                        : null;
-                String usuarioActual = String.valueOf(body.getOrDefault("usuario_actual", sesionUser != null ? sesionUser : "")).trim();
                 String tokenVerif = String.valueOf(body.getOrDefault("token_verificacion", "")).trim();
                 String nuevoUsuario = body.get("nuevo_usuario") != null ? String.valueOf(body.get("nuevo_usuario")).trim() : "";
                 String nuevoPassword = body.get("nuevo_password") != null ? String.valueOf(body.get("nuevo_password")) : "";
@@ -555,12 +628,53 @@ public class AccesoBiometriaController {
                         usuarioActual, tokenVerif, nuevoUsuario, nuevoPassword, nuevoFrame, motorBiometria);
                 int status = resultado.get("http_status") instanceof Number n ? n.intValue() : 200;
                 resultado.remove("http_status");
-                if (Boolean.TRUE.equals(resultado.get("success")) && resultado.get("usuario") != null) {
-                    ctx.req().getSession(true).setAttribute("usuario", String.valueOf(resultado.get("usuario")));
+                if (Boolean.TRUE.equals(resultado.get("success"))) {
+                    var sesUpd = ctx.req().getSession(true);
+                    if (resultado.get("usuario") != null) {
+                        sesUpd.setAttribute(AlicorpBiApplication.ATTR_USUARIO_AUTENTICADO, String.valueOf(resultado.get("usuario")));
+                    }
+                    if (Boolean.TRUE.equals(resultado.get("biometria_registrada")) || Boolean.TRUE.equals(resultado.get("tiene_biometria"))) {
+                        sesUpd.setAttribute(AlicorpBiApplication.ATTR_BIOMETRIA_REGISTRADA, Boolean.TRUE);
+                    }
                 }
                 ctx.status(status).json(resultado);
             } catch (Exception e) {
                 ctx.status(500).json(Map.of("success", false, "message", "Error interno al actualizar credenciales."));
+            }
+        });
+
+        app.post("/api/usuario/registrar_biometria_inicial", ctx -> {
+            try {
+                var ses = ctx.req().getSession(false);
+                Object sesionUser = ses != null ? ses.getAttribute("usuario") : null;
+                String usuarioActual = sesionUser != null ? String.valueOf(sesionUser).trim() : "";
+                if (usuarioActual.isEmpty()) {
+                    ctx.status(401).json(Map.of("success", false, "message", "Sesión no autenticada."));
+                    return;
+                }
+                Map<String, Object> body = ctx.bodyAsClass(Map.class);
+                String frameB64 = String.valueOf(body.getOrDefault("frame_base64", body.getOrDefault("nuevo_frame_base64", body.getOrDefault("image", ""))));
+                if (frameB64.isBlank()) {
+                    ctx.status(400).json(Map.of("success", false, "message", "Captura facial obligatoria."));
+                    return;
+                }
+                String nuevoUsuario = body.get("nuevo_usuario") != null ? String.valueOf(body.get("nuevo_usuario")).trim() : "";
+                String nuevoPassword = body.get("nuevo_password") != null ? String.valueOf(body.get("nuevo_password")) : "";
+
+                Map<String, Object> resultado = motorSeguridad.actualizarCredencialesCompletas(
+                        usuarioActual, "", nuevoUsuario, nuevoPassword, frameB64, motorBiometria);
+                int status = resultado.get("http_status") instanceof Number n ? n.intValue() : 200;
+                resultado.remove("http_status");
+                if (Boolean.TRUE.equals(resultado.get("success")) && Boolean.TRUE.equals(resultado.get("biometria_registrada"))) {
+                    var sesUpd = ctx.req().getSession(true);
+                    if (resultado.get("usuario") != null) {
+                        sesUpd.setAttribute(AlicorpBiApplication.ATTR_USUARIO_AUTENTICADO, String.valueOf(resultado.get("usuario")));
+                    }
+                    sesUpd.setAttribute(AlicorpBiApplication.ATTR_BIOMETRIA_REGISTRADA, Boolean.TRUE);
+                }
+                ctx.status(status).json(resultado);
+            } catch (Exception e) {
+                ctx.status(500).json(Map.of("success", false, "message", "Error interno al registrar biometría inicial."));
             }
         });
     }
