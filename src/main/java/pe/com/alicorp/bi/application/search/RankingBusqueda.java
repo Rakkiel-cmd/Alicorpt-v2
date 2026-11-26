@@ -63,11 +63,17 @@ public final class RankingBusqueda {
     }
 
     private static String texto(Map<String, Object> m, String clave) {
+        if (m == null) {
+            return "";
+        }
         Object o = m.get(clave);
         return o == null ? "" : String.valueOf(o);
     }
 
     private static int stockDe(Map<String, Object> m) {
+        if (m == null) {
+            return 0;
+        }
         Object o = m.get("stock");
         return o instanceof Number n ? n.intValue() : 0;
     }
@@ -234,7 +240,7 @@ public final class RankingBusqueda {
             int stock = stockDe(it);
             double fs = factorStock(stock);
             double puntaje;
-            if (personalizado) {
+            if (personalizado && perfil != null) {
                 double afinidad = perfil.afinidad(texto(it, "categoria"), texto(it, "marca"), texto(it, "sku"));
                 puntaje = CON_PERFIL_RELEVANCIA * relevancia + CON_PERFIL_AFINIDAD * afinidad + CON_PERFIL_STOCK * fs;
             } else {
@@ -255,7 +261,7 @@ public final class RankingBusqueda {
             }
             Map<String, Object> copia = new LinkedHashMap<>(items.get((Integer) p[1]));
             copia.put("ia_puntaje", redondear((Double) p[0]));
-            if (personalizado && stockDe(copia) > 0) {
+            if (personalizado && perfil != null && stockDe(copia) > 0) {
                 String motivo = motivo(perfil, copia);
                 if (motivo != null) {
                     copia.put("ia_motivo", motivo);
