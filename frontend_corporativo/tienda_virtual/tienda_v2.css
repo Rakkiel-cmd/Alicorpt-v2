@@ -391,3 +391,6 @@ svg { flex-shrink: 0; }
 /* Integración con el buscador IA de Leonardo: controles alineados a la izquierda con el buscador */
 .controles-buscador-ia{margin:14px 0 0;max-width:none;justify-content:flex-start}
 .cinta-inteligente > span:nth-child(2){flex:1 1 0;min-width:0}
+
+/* La insignia IA va abajo a la izquierda de la foto para no taparse con el corazon de favoritos */
+.producto .foto .badge-ia{top:auto;right:auto;bottom:8px;left:8px;z-index:2}
