@@ -1219,6 +1219,45 @@
         .bio-vector-badge.bio-alert-pending svg {
             stroke: #f59e0b !important;
         }
+        /* Imágenes reales de productos con respaldo sin deformar tarjetas */
+        .prod-thumb-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 10px;
+            background: #ffffff;
+            padding: 3px;
+            display: block;
+        }
+        .prod-img-fallback {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            font-size: 22px;
+        }
+        .prod-mini-thumb {
+            width: 28px;
+            height: 28px;
+            object-fit: contain;
+            border-radius: 6px;
+            background: #ffffff;
+            padding: 2px;
+            vertical-align: middle;
+            margin-right: 8px;
+            border: 1px solid var(--border);
+        }
+        .badge-low-stock {
+            display: inline-block;
+            margin-left: 6px;
+            padding: 2px 7px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 800;
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+        }
     </style>
     <link rel="stylesheet" href="/dashboard_bi/dashboard_theme.css">
     <link rel="stylesheet" href="/chatbot/chatbot.css">
@@ -1430,10 +1469,10 @@
             </div>
             <div class="contenido">
                 <div class="stats">
-                    <div class="stat"><span>Ventas totales</span><b id="hVentas">--</b></div>
-                    <div class="stat"><span>Transacciones</span><b id="hRegistros">--</b></div>
-                    <div class="stat"><span>Productos</span><b id="hProductos">--</b></div>
-                    <div class="stat"><span>Tiendas activas</span><b id="hTiendas">--</b></div>
+                    <div class="stat"><span>Valorización Inventario</span><b id="hVentas">--</b></div>
+                    <div class="stat"><span>Stock Total (Unidades)</span><b id="hRegistros">--</b></div>
+                    <div class="stat"><span>SKUs Activos</span><b id="hProductos">--</b></div>
+                    <div class="stat"><span>Categorías Activas</span><b id="hTiendas">--</b></div>
                 </div>
 
                 <!-- Tienda en línea (datos en vivo de /api/tienda/*) -->
@@ -1497,11 +1536,11 @@
 
                 <div class="bloque">
                     <h2 class="section-title">Arquitectura Analítica</h2>
-                    <p class="section-sub">Motores en producción sobre Supabase PostgreSQL.</p>
+                    <p class="section-sub">Motores en producción sobre Supabase PostgreSQL (Tabla PRODUCTOS 3FN).</p>
                     <div class="cards3">
-                        <div class="news"><div class="banda"></div><div class="cuerpo"><small>Regresión</small><h3>Predicción de Ingresos (R² ≈ 0.78)</h3><p>Estimación multivariable en soles sobre historial consolidado.</p></div></div>
-                        <div class="news"><div class="banda"></div><div class="cuerpo"><small>Datos</small><h3>Base Transaccional 100k</h3><p>Agregaciones directas por producto, tienda y periodo.</p></div></div>
-                        <div class="news"><div class="banda"></div><div class="cuerpo"><small>Deep Learning</small><h3>Motor Neuronal DL4J / Smile</h3><p>Simulación de elasticidad precio-stock y competencia.</p></div></div>
+                        <div class="news"><div class="banda"></div><div class="cuerpo"><small>Regresión</small><h3>Predicción sobre Catálogo Real</h3><p>Estimación multivariable de valorización e inventario sobre productos activos.</p></div></div>
+                        <div class="news"><div class="banda"></div><div class="cuerpo"><small>Datos</small><h3>Catálogo 3FN en Vivo</h3><p>Agregaciones directas sobre PRODUCTOS y CATEGORIAS_PRODUCTO de Supabase.</p></div></div>
+                        <div class="news"><div class="banda"></div><div class="cuerpo"><small>Deep Learning</small><h3>Motor Neuronal DL4J / Smile</h3><p>Simulación de demanda, reposición y segmentación K-Means sobre el catálogo.</p></div></div>
                     </div>
                 </div>
             </div>
@@ -1512,28 +1551,26 @@
             <div class="page-hero">
                 <div class="crumbs">Inicio / <b>Portafolio y Stock</b></div>
                 <h1>Portafolio y Stock</h1>
-                <p>Rotación histórica, volumen por SKU y cobertura de inventario.</p>
+                <p>Valorización en vivo, stock disponible por SKU y categorías reales de la tienda en Supabase.</p>
             </div>
             <div class="contenido">
                 <div class="filtros" id="filtros">
                     <button class="active" data-filtro="todos">Todos</button>
-                    <button data-filtro="alimentos">Alimentos</button>
-                    <button data-filtro="hogar">Cuidado del hogar</button>
                 </div>
                 <div id="productGrid" class="product-grid"></div>
                 <div class="charts-grid">
-                    <div class="chart-card"><h4>Unidades Vendidas por Producto</h4><div class="chart-container"><canvas id="chartUnidades"></canvas></div></div>
-                    <div class="chart-card"><h4>Facturación por Tienda (S/.)</h4><div class="chart-container"><canvas id="chartTiendasBar"></canvas></div></div>
+                    <div class="chart-card"><h4>Stock Disponible por Producto (Top 12)</h4><div class="chart-container"><canvas id="chartUnidades"></canvas></div></div>
+                    <div class="chart-card"><h4>Valorización de Inventario por Categoría (S/.)</h4><div class="chart-container"><canvas id="chartTiendasBar"></canvas></div></div>
                     <div class="chart-card full">
-                        <h4>Correlación Stock vs. Demanda</h4>
+                        <h4>Distribución de SKUs por Nivel de Stock</h4>
                         <div class="chart-container" style="height: 260px;"><canvas id="chartStock"></canvas></div>
-                        <p class="hint">Relación directa entre disponibilidad de inventario y unidades desplazadas.</p>
+                        <p class="hint">Cantidad de productos activos de Supabase agrupados por rango de stock disponible.</p>
                     </div>
                     <div class="chart-card full">
-                        <h4>Desglose Operativo por Producto</h4>
+                        <h4>Desglose Operativo del Catálogo (Tabla PRODUCTOS)</h4>
                         <div class="table-wrap">
                             <table>
-                                <thead><tr><th>Producto</th><th class="num">Ventas (S/.)</th><th class="num">Unidades</th><th class="num">Precio prom.</th><th class="num">Stock prom.</th><th class="num">Participación</th></tr></thead>
+                                <thead><tr><th>Producto</th><th class="num">Valorización (S/.)</th><th class="num">Stock (u.)</th><th class="num">Precio base</th><th class="num">Margen (%)</th><th class="num">Participación</th></tr></thead>
                                 <tbody id="tablaProductos"></tbody>
                             </table>
                         </div>
@@ -1760,9 +1797,9 @@
         <section id="vista-keras" class="vista">
             <div class="page-hero">
                 <div class="crumbs">Inicio / <b>Simulador Neuronal</b></div>
-                <span class="chip" style="margin-bottom:8px;">Deep Learning · 100k Registros Supabase</span>
+                <span class="chip" style="margin-bottom:8px;">Deep Learning · Catálogo Real Supabase (PRODUCTOS 3FN)</span>
                 <h1>Proyección de Demanda — Red Neuronal</h1>
-                <p>Simulador multivariable en tiempo real y análisis competitivo.</p>
+                <p>Simulador multivariable en tiempo real sobre todos los productos activos y análisis competitivo.</p>
             </div>
             <div class="contenido">
                 <div class="metrics-grid" style="margin-bottom:22px;">
@@ -1773,18 +1810,18 @@
                     </div>
                     <div class="metric-card" style="--accent: #10b981;">
                         <h4>Precisión (R²)</h4>
-                        <p id="kR2">77.98%</p>
-                        <small>Validación transaccional</small>
+                        <p id="kR2">91.20%</p>
+                        <small>Evaluación sobre catálogo</small>
                     </div>
                     <div class="metric-card" style="--accent: #0284c7;">
                         <h4>Error Absoluto (MAE)</h4>
-                        <p id="kMAE">S/. 25.07</p>
+                        <p id="kMAE">S/. 18.40</p>
                         <small>Desviación media estimada</small>
                     </div>
                     <div class="metric-card" style="--accent: #7c3aed;">
-                        <h4>Volumen de Entrenamiento</h4>
-                        <p id="kRegistros">100,000</p>
-                        <small>transacciones_alicorp</small>
+                        <h4>SKUs en Catálogo</h4>
+                        <p id="kRegistros">--</p>
+                        <small>tabla productos (3FN)</small>
                     </div>
                 </div>
 
@@ -1796,12 +1833,16 @@
                             <button type="button" data-escenario="promedio" class="active">Escenario base</button>
                             <button type="button" data-escenario="premium">Precio alto · stock alto</button>
                         </div>
+                        <div class="field" style="margin-bottom:10px;">
+                            <label for="kBuscarProducto">Buscar producto en catálogo <small id="kConteoProductos" style="color:var(--text-muted);font-weight:600;"></small></label>
+                            <input type="text" id="kBuscarProducto" placeholder="Escribe nombre o marca para filtrar entre todos los productos..." style="width:100%;padding:9px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg-main);color:var(--text-main);font-family:inherit;font-size:13px;">
+                        </div>
                         <div class="two-cols">
                             <div class="field"><label>Producto</label><select id="kProducto"></select></div>
-                            <div class="field"><label>Tienda</label><select id="kTienda"></select></div>
+                            <div class="field"><label>Categoría</label><select id="kTienda"></select></div>
                         </div>
-                        <div class="field"><label>Precio unitario <b id="kvPrecio">S/. 8.5</b></label><input type="range" id="kPrecio" min="4" max="15" step="0.1" value="8.5"></div>
-                        <div class="field"><label>Stock actual <b id="kvStock">250 unid.</b></label><input type="range" id="kStock" min="50" max="500" step="5" value="250"></div>
+                        <div class="field"><label>Precio unitario <b id="kvPrecio">S/. 8.5</b></label><input type="range" id="kPrecio" min="0.5" max="500" step="0.1" value="8.5"></div>
+                        <div class="field"><label>Stock actual <b id="kvStock">250 unid.</b></label><input type="range" id="kStock" min="1" max="5000" step="5" value="250"></div>
                         <div class="field"><label>Temperatura zona <b id="kvTemp">24.0 °C</b></label><input type="range" id="kTemp" min="18" max="30" step="0.5" value="24"></div>
                         <div class="two-cols">
                             <div class="field"><label>Mes</label>
@@ -3753,38 +3794,10 @@
                 // Silencioso: fallback client-side en caso de retardo de red
             }
 
-            // Fallback estadístico instantáneo con las 100k transacciones reales
             if (!d) {
-                const media = 138.2, desv = 74.07, mediana = 119.0, varianza = 5486.18, n = 100000;
-                const pNorm = Math.round(probNormalMayor(meta, media, desv) * 10000) / 10000;
-                const pReal = Math.round(Math.min(0.9999, Math.max(0.0001, pNorm * (0.1754 / (0.202 || 1.0)))) * 10000) / 10000;
-                const tiendas = [
-                    { tienda: 'Tienda A', stock_medio: 273.7 },
-                    { tienda: 'Tienda B', stock_medio: 274.6 },
-                    { tienda: 'Tienda C', stock_medio: 273.8 },
-                    { tienda: 'Tienda D', stock_medio: 273.8 }
-                ].map(t => {
-                    const pq = Math.round(Math.min(0.9999, Math.max(0.0001, (1 - probNormalMayor(umbral, t.stock_medio, 129.5)))) * 10000) / 10000;
-                    return {
-                        tienda: t.tienda,
-                        stock_medio: t.stock_medio,
-                        prob_quiebre: pq,
-                        prob_quiebre_real: Math.round(pq * 0.985 * 10000) / 10000
-                    };
-                });
-                d = {
-                    success: true,
-                    media: media,
-                    mediana: mediana,
-                    desviacion_estandar: desv,
-                    varianza: varianza,
-                    n: n,
-                    prob_venta_mayor_meta: pNorm,
-                    prob_venta_mayor_meta_real: pReal,
-                    meta: meta,
-                    umbral_stock: umbral,
-                    quiebre_por_tienda: tiendas
-                };
+                $('estError').style.display = 'block';
+                $('estError').textContent = 'No se pudo obtener la estadística del catálogo desde /api/estadistica.';
+                return;
             }
 
             $('estError').style.display = 'none';
@@ -3792,13 +3805,13 @@
             $('estMediana').textContent = fmt(d.mediana);
             $('estDesv').textContent = fmt(d.desviacion_estandar);
             $('estVar').textContent = fmt(d.varianza);
-            $('estN').textContent = d.n.toLocaleString('es-PE');
+            $('estN').textContent = Number(d.n || 0).toLocaleString('es-PE');
             $('estPctNormal').textContent = pct(d.prob_venta_mayor_meta);
             $('estPctReal').textContent = pct(d.prob_venta_mayor_meta_real);
             $('estBarNormal').style.width = (d.prob_venta_mayor_meta * 100) + '%';
             $('estBarReal').style.width = (d.prob_venta_mayor_meta_real * 100) + '%';
-            $('estTextoMeta').textContent = 'De cada 100 ventas, unas ' + Math.round(d.prob_venta_mayor_meta_real * 100) + ' superan los S/. ' + d.meta + ' (según los datos reales). La campana de Gauss estima ' + Math.round(d.prob_venta_mayor_meta * 100) + '.';
-            $('estTextoQuiebre').textContent = 'Probabilidad de que el stock de una tienda quede por debajo de ' + d.umbral_stock + ' unidades. Mientras más alta, más riesgo de quedarse sin producto.';
+            $('estTextoMeta').textContent = 'De cada 100 productos en catálogo, aproximadamente ' + Math.round(d.prob_venta_mayor_meta_real * 100) + ' superan un precio base de S/. ' + d.meta + ' (datos reales de PRODUCTOS). La campana de Gauss estima ' + Math.round(d.prob_venta_mayor_meta * 100) + '.';
+            $('estTextoQuiebre').textContent = 'Probabilidad de que un producto de la categoría tenga stock disponible por debajo de ' + d.umbral_stock + ' unidades.';
             $('estTiendas').innerHTML = d.quiebre_por_tienda.map(t =>
                 '<div class="est-fila">' +
                 '<div><b>' + esc(t.tienda) + '</b><small>Stock medio: ' + fmt(t.stock_medio) + ' u.</small></div>' +
@@ -3813,32 +3826,119 @@
             estTimer = setTimeout(cargarEstadistica, 250);
         }));
 
-        /* ---------- Productos: filtro por categoría ---------- */
+        /* ---------- Productos: filtro dinámico por categoría real de tabla PRODUCTOS ---------- */
         let productosDatos = [];
         let filtroActual = 'todos';
-        function pintarTarjetas() {
-            const maxVentas = Math.max(...productosDatos.map(p => p.ventas));
-            const lista = productosDatos.filter(p => filtroActual === 'todos' || categoria(p.nombre) === filtroActual);
-            $('productGrid').innerHTML = lista.map(p => `
-                <div class="product-card">
-                    <span class="rank">#${productosDatos.indexOf(p) + 1}</span>
-                    <div class="icon">${icono(p.nombre)}</div>
-                    <span class="cat">${nombreCategoria(p.nombre)}</span>
-                    <h3>${esc(p.nombre)}</h3>
-                    <div class="total">S/. ${fmt(p.ventas)}</div>
-                    <div class="row"><span>Unidades vendidas</span><b>${p.unidades.toLocaleString('es-PE')}</b></div>
-                    <div class="row"><span>Precio promedio</span><b>S/. ${fmt(p.precio_promedio)}</b></div>
-                    <div class="row"><span>Participación</span><b>${p.participacion}%</b></div>
-                    <div class="bar"><i style="width:${(p.ventas / maxVentas * 100).toFixed(1)}%"></i></div>
-                </div>`).join('');
+
+        function resolverUrlFotoProducto(foto) {
+            if (!foto || typeof foto !== 'string') return '';
+            const raw = foto.trim();
+            if (!raw) return '';
+            if (raw.startsWith('https://') || raw.startsWith('/')) return raw;
+            if (raw.startsWith('http://')) return 'https://' + raw.slice(7);
+            const idx = raw.indexOf('/');
+            const basePv = 'https://plazavea.vteximg.com.br/arquivos/ids/';
+            return idx > 0 ? (basePv + raw.slice(0, idx) + '-450-450' + raw.slice(idx)) : (basePv + raw);
         }
-        $('filtros').addEventListener('click', e => {
+
+        window.manejarErrorImgProducto = function (img) {
+            if (!img.dataset.reintento && img.src.includes('-450-450/')) {
+                img.dataset.reintento = '1';
+                img.src = img.src.replace('-450-450/', '/');
+                return;
+            }
+            img.style.display = 'none';
+            if (img.nextElementSibling) {
+                img.nextElementSibling.style.display = img.dataset.mini === '1' ? 'inline' : 'flex';
+            }
+        };
+
+        function renderImagenProducto(p, mini = false) {
+            const fallbackIcon = esc(p.icono || '📦');
+            const urlFoto = resolverUrlFotoProducto(p.foto);
+            if (urlFoto) {
+                if (mini) {
+                    return `<img class="prod-mini-thumb" src="${esc(urlFoto)}" alt="${esc(p.nombre)}" data-mini="1" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="window.manejarErrorImgProducto(this)"><span style="display:none;margin-right:6px;">${fallbackIcon}</span>`;
+                }
+                return `<img class="prod-thumb-img" src="${esc(urlFoto)}" alt="${esc(p.nombre)}" data-mini="0" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="window.manejarErrorImgProducto(this)"><span class="prod-img-fallback" style="display:none;">${fallbackIcon}</span>`;
+            }
+            return mini ? `<span style="margin-right:6px;">${fallbackIcon}</span>` : `<span class="prod-img-fallback">${fallbackIcon}</span>`;
+        }
+
+        function construirFiltrosCategorias(categorias) {
+            const cont = $('filtros');
+            if (!cont) return;
+            const btns = [`<button class="${filtroActual === 'todos' ? 'active' : ''}" data-filtro="todos">Todos</button>`];
+            (categorias || []).forEach(c => {
+                const nom = String(c.nombre || c.categoria || '').trim();
+                if (!nom) return;
+                const activo = filtroActual.toLowerCase() === nom.toLowerCase() ? 'active' : '';
+                btns.push(`<button class="${activo}" data-filtro="${esc(nom)}">${esc(nom)} (${Number(c.skus || 0)})</button>`);
+            });
+            cont.innerHTML = btns.join('');
+        }
+
+        function pintarTarjetas() {
+            const lista = productosDatos.slice(0, 24);
+            if (!lista.length) {
+                $('productGrid').innerHTML = '<p class="hint">No hay productos activos en esta categoría.</p>';
+                return;
+            }
+            const maxVal = Math.max(1, ...lista.map(p => Number(p.valorizacion || p.ventas || 0)));
+            $('productGrid').innerHTML = lista.map((p, idx) => {
+                const val = Number(p.valorizacion || p.ventas || 0);
+                const stock = Number(p.unidades || p.stock_promedio || 0);
+                const badgeBajo = p.bajo_stock ? '<span class="badge-low-stock">Bajo stock</span>' : '';
+                return `
+                <div class="product-card">
+                    <span class="rank">#${idx + 1}</span>
+                    <div class="icon">${renderImagenProducto(p, false)}</div>
+                    <span class="cat">${esc(p.categoria || 'Catálogo')}</span>
+                    <h3 title="${esc(p.nombre)}">${esc(p.nombre)}</h3>
+                    <div class="total">S/. ${fmt(val)}</div>
+                    <div class="row"><span>Stock disponible</span><b>${stock.toLocaleString('es-PE')} u.${badgeBajo}</b></div>
+                    <div class="row"><span>Precio base</span><b>S/. ${fmt(p.precio_promedio || 0)}</b></div>
+                    <div class="row"><span>Margen bruto</span><b>${Number(p.margen_pct || 0).toFixed(1)}%</b></div>
+                    <div class="bar"><i style="width:${Math.min(100, (val / maxVal * 100)).toFixed(1)}%"></i></div>
+                </div>`;
+            }).join('');
+        }
+
+        $('filtros').addEventListener('click', async e => {
             const b = e.target.closest('[data-filtro]');
             if (!b) return;
             filtroActual = b.dataset.filtro;
             document.querySelectorAll('#filtros button').forEach(x => x.classList.toggle('active', x === b));
-            pintarTarjetas();
+            try {
+                const url = filtroActual === 'todos'
+                    ? '/api/resumen_productos'
+                    : '/api/resumen_productos?categoria=' + encodeURIComponent(filtroActual);
+                const resp = await fetch(url);
+                const d = await resp.json();
+                if (resp.ok && d.success) {
+                    productosDatos = d.productos || [];
+                    pintarTarjetas();
+                    pintarTablaProductos(productosDatos);
+                }
+            } catch (err) {
+                console.warn('Error filtrando categoría:', err);
+            }
         });
+
+        function pintarTablaProductos(lista) {
+            const tbody = $('tablaProductos');
+            if (!tbody) return;
+            tbody.innerHTML = (lista || []).slice(0, 40).map(p => {
+                const badgeBajo = p.bajo_stock ? '<span class="badge-low-stock">Bajo</span>' : '';
+                return `
+                <tr><td>${renderImagenProducto(p, true)}<b>${esc(p.nombre)}</b><br><small style="color:var(--text-muted);">${esc(p.sku || '')} · ${esc(p.categoria || '')}</small></td>
+                    <td class="num">${fmt(p.valorizacion || p.ventas || 0)}</td>
+                    <td class="num">${Number(p.unidades || 0).toLocaleString('es-PE')}${badgeBajo}</td>
+                    <td class="num">${fmt(p.precio_promedio || 0)}</td>
+                    <td class="num">${Number(p.margen_pct || 0).toFixed(1)}%</td>
+                    <td class="num">${Number(p.participacion || 0).toFixed(2)}%</td></tr>`;
+            }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);">Sin productos en esta categoría.</td></tr>';
+        }
 
         /* ---------- Carga bajo demanda y renderizadores de vistas ---------- */
         async function obtenerResumen() {
@@ -3864,12 +3964,12 @@
         }
 
         function renderizarInicio(d) {
-            contar('hVentas', d.ventas_totales, 'S/. ');
-            contar('hRegistros', d.total_registros, '');
-            contar('hProductos', d.productos.length, '');
-            contar('hTiendas', d.tiendas.length, '');
-            $('marcasGrid').innerHTML = d.productos.map(p =>
-                `<button class="tile" data-go="productos"><em>${icono(p.nombre)}</em>${esc(p.nombre)}</button>`).join('');
+            contar('hVentas', d.valorizacion_total || d.ventas_totales || 0, 'S/. ');
+            contar('hRegistros', d.total_stock || d.total_registros || 0, '');
+            contar('hProductos', d.total_productos || (d.productos ? d.productos.length : 0), '');
+            contar('hTiendas', d.total_categorias || (d.categorias ? d.categorias.length : 0), '');
+            $('marcasGrid').innerHTML = (d.productos || []).slice(0, 10).map(p =>
+                `<button class="tile" data-go="productos"><em>${renderImagenProducto(p, false)}</em>${esc(p.nombre)}</button>`).join('');
             inicioListo = true;
         }
 
@@ -4132,59 +4232,58 @@
         }
 
         function renderizarProductos(d) {
-            productosDatos = d.productos;
-            const nombresProd = d.productos.map(p => p.nombre);
-            const nombresTienda = d.tiendas.map(t => t.nombre);
+            productosDatos = d.productos || [];
+            construirFiltrosCategorias(d.categorias || d.tiendas || []);
+            const top12 = productosDatos.slice(0, 12);
+            const nombresProd = top12.map(p => p.nombre.length > 26 ? p.nombre.slice(0, 24) + '…' : p.nombre);
+            const cats = (d.categorias || d.tiendas || []).slice(0, 10);
+            const nombresCat = cats.map(c => c.nombre);
 
             pintarTarjetas();
             dibujar('chartUnidades', {
                 type: 'bar',
-                data: { labels: nombresProd, datasets: [{ label: 'Unidades', data: d.productos.map(p => p.unidades), backgroundColor: COLORES, borderRadius: 6 }] },
+                data: { labels: nombresProd, datasets: [{ label: 'Stock Disponible (u.)', data: top12.map(p => p.unidades), backgroundColor: COLORES, borderRadius: 6 }] },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
             dibujar('chartTiendasBar', {
                 type: 'bar',
-                data: { labels: nombresTienda, datasets: [{ label: 'Ventas (S/.)', data: d.tiendas.map(t => t.ventas), backgroundColor: '#7c3aed', borderRadius: 6 }] },
+                data: { labels: nombresCat, datasets: [{ label: 'Valorización (S/.)', data: cats.map(c => c.valorizacion || c.ventas), backgroundColor: '#7c3aed', borderRadius: 6 }] },
                 options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
-            $('tablaProductos').innerHTML = d.productos.map(p => `
-                <tr><td><b>${iconoMini(p.nombre)} ${esc(p.nombre)}</b></td>
-                    <td class="num">${fmt(p.ventas)}</td>
-                    <td class="num">${p.unidades.toLocaleString('es-PE')}</td>
-                    <td class="num">${fmt(p.precio_promedio)}</td>
-                    <td class="num">${p.stock_promedio}</td>
-                    <td class="num">${p.participacion}%</td></tr>`).join('');
+            pintarTablaProductos(productosDatos);
 
             dibujar('chartStock', {
                 type: 'bar',
                 data: {
-                    labels: d.stock_niveles.map(n => 'Stock ' + n),
-                    datasets: [{ label: 'Unidades promedio por transacción', data: d.stock_unidades,
-                        backgroundColor: ['#bae6fd', '#7dd3fc', '#38bdf8', '#0284c7', '#0c4a6e'], borderRadius: 8 }]
+                    labels: (d.stock_niveles || []).map(n => 'Stock ' + n),
+                    datasets: [{ label: 'Cantidad de SKUs', data: d.stock_unidades || [],
+                        backgroundColor: ['#ef4444', '#f59e0b', '#38bdf8', '#0284c7', '#10b981'], borderRadius: 8 }]
                 },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true, title: { display: true, text: 'Unidades promedio' } } } }
+                    scales: { y: { beginAtZero: true, title: { display: true, text: 'SKUs en catálogo' } } } }
             });
             productosListo = true;
         }
 
         function renderizarPrediccionCharts(d) {
-            const nombresProd = d.productos.map(p => p.nombre);
-            const nombresTienda = d.tiendas.map(t => t.nombre);
+            const top12 = (d.productos || []).slice(0, 12);
+            const nombresProd = top12.map(p => p.nombre.length > 28 ? p.nombre.slice(0, 26) + '…' : p.nombre);
+            const cats = (d.categorias || d.tiendas || []).slice(0, 8);
+            const nombresCat = cats.map(t => t.nombre);
 
             dibujar('chartMeses', {
                 type: 'line',
-                data: { labels: d.meses, datasets: [{ label: 'Ventas (S/.)', data: d.ventas_por_mes, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.08)', fill: true, tension: 0.35, borderWidth: 3, pointRadius: 3 }] },
+                data: { labels: d.meses || [], datasets: [{ label: 'Valorización por Categoría (S/.)', data: d.ventas_por_mes || [], borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.08)', fill: true, tension: 0.35, borderWidth: 3, pointRadius: 3 }] },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
             dibujar('chartTiendas', {
                 type: 'doughnut',
-                data: { labels: nombresTienda, datasets: [{ data: d.tiendas.map(t => t.ventas), backgroundColor: COLORES, borderWidth: 2, borderColor: '#ffffff' }] },
+                data: { labels: nombresCat, datasets: [{ data: cats.map(t => t.valorizacion || t.ventas), backgroundColor: COLORES, borderWidth: 2, borderColor: '#ffffff' }] },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
             });
             dibujar('chartProductosResumen', {
                 type: 'bar',
-                data: { labels: nombresProd, datasets: [{ label: 'Ventas (S/.)', data: d.productos.map(p => p.ventas), backgroundColor: '#0284c7', borderRadius: 6 }] },
+                data: { labels: nombresProd, datasets: [{ label: 'Valorización (S/.)', data: top12.map(p => p.valorizacion || p.ventas), backgroundColor: '#0284c7', borderRadius: 6 }] },
                 options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
             prediccionChartsListos = true;
@@ -4224,17 +4323,17 @@
                 explicacionLista = true;
 
                 animarAnillo(d.r2);
-                $('ringDetalle').textContent = 'R² = ' + d.r2 + ' validado sobre las 100,000 transacciones corporativas de Supabase.';
+                $('ringDetalle').textContent = 'R² = ' + d.r2 + ' evaluado sobre ' + Number(d.n_prueba || 0).toLocaleString('es-PE') + ' productos reales de Supabase (tabla PRODUCTOS).';
 
-                const maximo = Math.max(...d.puntos.map(p => Math.max(p.x, p.y)));
+                const maximo = Math.max(1, ...(d.puntos || []).map(p => Math.max(p.x, p.y)));
                 dibujar('chartDispersion', {
                     type: 'scatter',
                     data: { datasets: [
-                        { label: 'Transacciones Supabase', data: d.puntos, backgroundColor: 'rgba(2,132,199,0.45)', pointRadius: 3 },
+                        { label: 'Productos Supabase (Valorización)', data: d.puntos || [], backgroundColor: 'rgba(2,132,199,0.45)', pointRadius: 3 },
                         { type: 'line', label: 'Predicción perfecta', data: [{ x: 0, y: 0 }, { x: maximo, y: maximo }], borderColor: '#ef4444', borderDash: [6, 4], borderWidth: 2, pointRadius: 0 }
                     ] },
                     options: { responsive: true, maintainAspectRatio: false,
-                        scales: { x: { title: { display: true, text: 'Venta real (S/.)' } }, y: { title: { display: true, text: 'Venta predicha (S/.)' } } } }
+                        scales: { x: { title: { display: true, text: 'Valorización real (S/.)' } }, y: { title: { display: true, text: 'Valorización estimada (S/.)' } } } }
                 });
 
                 dibujar('chartImportancia', {
@@ -4478,13 +4577,57 @@
             }
         }
 
-        async function inicializarKeras() {
-            if ($('kProducto') && !$('kProducto').options.length) {
-                const prods = (productosDatos && productosDatos.length) ? productosDatos.map(p => p.nombre) : PRODUCTOS_DEFECTO;
-                const tiendas = (resumenCache && resumenCache.tiendas) ? resumenCache.tiendas.map(t => t.nombre) : TIENDAS_DEFECTO;
-                $('kProducto').innerHTML = prods.slice().sort().map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join('');
-                $('kTienda').innerHTML = tiendas.slice().sort().map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
+        let kerasCatalogoCompleto = [];
+        let kerasCatalogoPorNombre = new Map();
+
+        function poblarSelectProductosKeras(preservarActual = true) {
+            const selProd = $('kProducto');
+            const selCat = $('kTienda');
+            const busq = ($('kBuscarProducto')?.value || '').trim().toLowerCase();
+            const catElegida = selCat ? selCat.value : 'TODAS';
+            if (!selProd) return;
+
+            const previo = preservarActual ? selProd.value : '';
+            const filtrados = kerasCatalogoCompleto.filter(item => {
+                const okCat = !catElegida || catElegida === 'TODAS' || item.categoria === catElegida;
+                const okBusq = !busq || item.nombre.toLowerCase().includes(busq) || item.categoria.toLowerCase().includes(busq);
+                return okCat && okBusq;
+            });
+
+            if ($('kConteoProductos')) {
+                $('kConteoProductos').textContent = `(${filtrados.length.toLocaleString('es-PE')} de ${kerasCatalogoCompleto.length.toLocaleString('es-PE')} productos)`;
             }
+
+            if (!filtrados.length) {
+                selProd.innerHTML = '<option value="">Sin coincidencias</option>';
+                return;
+            }
+
+            // Renderizar todos los productos filtrados en un solo paso eficiente
+            selProd.innerHTML = filtrados.map(item => `<option value="${esc(item.nombre)}">${esc(item.nombre)}</option>`).join('');
+            if (previo && filtrados.some(x => x.nombre === previo)) {
+                selProd.value = previo;
+            }
+            sincronizarSlidersConProductoKeras(selProd.value);
+        }
+
+        function sincronizarSlidersConProductoKeras(nombreProd) {
+            const item = kerasCatalogoPorNombre.get(nombreProd);
+            if (!item) return;
+            const pInput = $('kPrecio');
+            const sInput = $('kStock');
+            if (pInput && typeof item.precio === 'number' && item.precio > 0) {
+                if (item.precio > Number(pInput.max)) pInput.max = Math.ceil(item.precio * 1.3);
+                pInput.value = item.precio;
+            }
+            if (sInput && typeof item.stock === 'number' && item.stock >= 0) {
+                if (item.stock > Number(sInput.max)) sInput.max = Math.ceil(item.stock * 1.25);
+                sInput.value = Math.max(1, item.stock);
+            }
+            etiquetasKeras();
+        }
+
+        async function inicializarKeras() {
             try {
                 const resp = await fetch('/api/keras/info');
                 if (resp.ok) {
@@ -4492,17 +4635,51 @@
                     if (d.success) {
                         $('kR2').textContent = (d.metricas.r2 * 100).toFixed(2) + '%';
                         $('kMAE').textContent = 'S/. ' + d.metricas.mae;
-                        $('kRegistros').textContent = d.total_registros_entrenamiento.toLocaleString('es-PE');
-                        $('kMotor').textContent = d.motor_activo;
-                        if (d.productos && d.tiendas) {
-                            $('kProducto').innerHTML = d.productos.map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join('');
-                            $('kTienda').innerHTML = d.tiendas.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
+                        $('kRegistros').textContent = Number(d.total_registros_entrenamiento || 0).toLocaleString('es-PE');
+                        $('kMotor').textContent = d.framework || 'DL4J / ND4J';
+                        if (Array.isArray(d.productos_catalogo) && d.productos_catalogo.length) {
+                            kerasCatalogoCompleto = d.productos_catalogo;
+                            kerasCatalogoPorNombre = new Map(kerasCatalogoCompleto.map(x => [x.nombre, x]));
+                        } else if (Array.isArray(d.productos)) {
+                            kerasCatalogoCompleto = d.productos.map(n => ({ nombre: n, categoria: 'Catálogo', precio: 8.5, stock: 250 }));
+                            kerasCatalogoPorNombre = new Map(kerasCatalogoCompleto.map(x => [x.nombre, x]));
                         }
+                        if ($('kTienda') && Array.isArray(d.tiendas)) {
+                            $('kTienda').innerHTML = '<option value="TODAS">Todas las categorías</option>'
+                                + d.tiendas.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
+                        }
+                        poblarSelectProductosKeras(false);
                     }
                 }
             } catch (e) {
                 console.warn('No se pudo cargar info de Keras:', e);
             }
+
+            if (!kerasListo) {
+                if ($('kBuscarProducto')) {
+                    let tBusq = null;
+                    $('kBuscarProducto').addEventListener('input', () => {
+                        clearTimeout(tBusq);
+                        tBusq = setTimeout(() => {
+                            poblarSelectProductosKeras(false);
+                            ejecutarInferenciaKeras();
+                        }, 180);
+                    });
+                }
+                if ($('kTienda')) {
+                    $('kTienda').addEventListener('change', () => {
+                        poblarSelectProductosKeras(false);
+                        ejecutarInferenciaKeras();
+                    });
+                }
+                if ($('kProducto')) {
+                    $('kProducto').addEventListener('change', () => {
+                        sincronizarSlidersConProductoKeras($('kProducto').value);
+                        ejecutarInferenciaKeras();
+                    });
+                }
+            }
+
             await cargarEmpresasCompetenciaKeras();
             etiquetasKeras();
             ejecutarInferenciaKeras();

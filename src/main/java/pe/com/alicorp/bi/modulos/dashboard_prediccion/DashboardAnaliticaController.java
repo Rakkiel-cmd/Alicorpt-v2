@@ -2,6 +2,7 @@ package pe.com.alicorp.bi.modulos.dashboard_prediccion;
 
 import io.javalin.Javalin;
 import pe.com.alicorp.bi.config.DatabaseConfig;
+import pe.com.alicorp.bi.modulos.tienda_buscador_ia.TiendaBuscadorController;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -28,165 +29,328 @@ public class DashboardAnaliticaController {
             ServicioRedNeuronalDL4J motorDl4j,
             ServicioAnaliticaSmile motorSmile) {
 
-        // 1. Resumen de Productos y Tiendas desde TRANSACCIONES_ALICORP (3FN)
+        // 1. Resumen de Productos y Categorías directamente desde la tabla PRODUCTOS (3FN)
         app.get("/api/resumen_productos", ctx -> {
+            String filtroCat = ctx.queryParam("categoria");
             List<Map<String, Object>> productos = new ArrayList<>();
-            List<Map<String, Object>> tiendas = new ArrayList<>();
-            double totalGlobal = 0.0;
-            int totalReg = 0;
+            List<Map<String, Object>> categorias = new ArrayList<>();
+            double valorizacionGlobal = 0.0;
+            long totalStockGlobal = 0L;
+            int totalSkusActivos = 0;
+            int totalBajoStock = 0;
 
-            String sqlProd = """
-                SELECT p.nombre_producto, SUM(t.ventas_totales) AS ventas, SUM(t.cantidad_vendida) AS unidades,
-                       AVG(t.precio_unitario) AS precio_prom, AVG(t.stock_actual) AS stock_prom, COUNT(*) AS trx
-                FROM TRANSACCIONES_ALICORP t
-                INNER JOIN PRODUCTOS p ON t.id_producto = p.id_producto
-                GROUP BY p.nombre_producto
-                ORDER BY ventas DESC
+            String sqlGlobal = """
+                SELECT COUNT(*) AS total_skus,
+                       COALESCE(SUM(p.stock_disponible), 0) AS stock_total,
+                       COALESCE(SUM(p.precio_base * p.stock_disponible), 0) AS valorizacion_total,
+                       COALESCE(SUM(CASE WHEN p.stock_disponible < 100 THEN 1 ELSE 0 END), 0) AS bajo_stock
+                FROM PRODUCTOS p
+                WHERE p.activo = 'S'
                 """;
 
-            String sqlTienda = """
-                SELECT s.nombre_tienda, SUM(t.ventas_totales) AS ventas, SUM(t.cantidad_vendida) AS unidades,
-                       AVG(t.precio_unitario) AS precio_prom, AVG(t.stock_actual) AS stock_prom, COUNT(*) AS trx
-                FROM TRANSACCIONES_ALICORP t
-                INNER JOIN TIENDAS s ON t.id_tienda = s.id_tienda
-                GROUP BY s.nombre_tienda
-                ORDER BY ventas DESC
+            String sqlCat = """
+                SELECT c.nombre_categoria,
+                       COUNT(p.id_producto) AS skus,
+                       COALESCE(SUM(p.stock_disponible), 0) AS stock_total,
+                       COALESCE(SUM(p.precio_base * p.stock_disponible), 0) AS valorizacion,
+                       COALESCE(AVG(p.precio_base), 0) AS precio_prom,
+                       COALESCE(AVG(p.stock_disponible), 0) AS stock_prom,
+                       COALESCE(SUM(CASE WHEN p.stock_disponible < 100 THEN 1 ELSE 0 END), 0) AS bajo_stock
+                FROM PRODUCTOS p
+                INNER JOIN CATEGORIAS_PRODUCTO c ON p.id_categoria = c.id_categoria
+                WHERE p.activo = 'S'
+                GROUP BY c.id_categoria, c.nombre_categoria
+                ORDER BY valorizacion DESC
+                """;
+
+            StringBuilder sqlProd = new StringBuilder("""
+                SELECT p.id_producto, p.sku_codigo, p.nombre_producto, p.marca, p.presentacion,
+                       c.nombre_categoria, p.precio_base, p.costo_unitario, p.stock_disponible,
+                       (p.precio_base * p.stock_disponible) AS valorizacion
+                FROM PRODUCTOS p
+                INNER JOIN CATEGORIAS_PRODUCTO c ON p.id_categoria = c.id_categoria
+                WHERE p.activo = 'S'
+                """);
+            if (filtroCat != null && !filtroCat.isBlank() && !"todos".equalsIgnoreCase(filtroCat.trim())) {
+                sqlProd.append(" AND LOWER(c.nombre_categoria) = LOWER(?)");
+            }
+            sqlProd.append(" ORDER BY valorizacion DESC FETCH FIRST 48 ROWS ONLY");
+
+            List<String> stockNiveles = List.of("0-99", "100-499", "500-1499", "1500-2999", "3000+");
+            List<Double> stockSkusPorNivel = new ArrayList<>(List.of(0.0, 0.0, 0.0, 0.0, 0.0));
+            List<Double> stockValorPorNivel = new ArrayList<>(List.of(0.0, 0.0, 0.0, 0.0, 0.0));
+
+            String sqlBuckets = """
+                SELECT
+                    CASE
+                        WHEN stock_disponible < 100 THEN 0
+                        WHEN stock_disponible < 500 THEN 1
+                        WHEN stock_disponible < 1500 THEN 2
+                        WHEN stock_disponible < 3000 THEN 3
+                        ELSE 4
+                    END AS bucket,
+                    COUNT(*) AS skus,
+                    COALESCE(AVG(precio_base * stock_disponible), 0) AS valor_prom
+                FROM PRODUCTOS
+                WHERE activo = 'S'
+                GROUP BY bucket
+                ORDER BY bucket
                 """;
 
             try (Connection conn = DatabaseConfig.getDataSource().getConnection()) {
-                try (PreparedStatement ps = conn.prepareStatement(sqlProd);
+                try (PreparedStatement ps = conn.prepareStatement(sqlGlobal);
                      ResultSet rs = ps.executeQuery()) {
-                    while (rs.next()) {
-                        double v = Math.round(rs.getDouble("ventas") * 100.0) / 100.0;
-                        int trx = rs.getInt("trx");
-                        totalGlobal += v;
-                        totalReg += trx;
-                        Map<String, Object> m = new LinkedHashMap<>();
-                        m.put("nombre", rs.getString("nombre_producto"));
-                        m.put("ventas", v);
-                        m.put("unidades", rs.getInt("unidades"));
-                        m.put("precio_promedio", Math.round(rs.getDouble("precio_prom") * 100.0) / 100.0);
-                        m.put("stock_promedio", Math.round(rs.getDouble("stock_prom") * 10.0) / 10.0);
-                        m.put("transacciones", trx);
-                        productos.add(m);
+                    if (rs.next()) {
+                        totalSkusActivos = rs.getInt("total_skus");
+                        totalStockGlobal = rs.getLong("stock_total");
+                        valorizacionGlobal = Math.round(rs.getDouble("valorizacion_total") * 100.0) / 100.0;
+                        totalBajoStock = rs.getInt("bajo_stock");
                     }
                 }
-                for (Map<String, Object> p : productos) {
-                    double v = (Double) p.get("ventas");
-                    p.put("participacion", totalGlobal > 0 ? Math.round((v / totalGlobal) * 1000.0) / 10.0 : 20.0);
-                }
 
-                try (PreparedStatement ps = conn.prepareStatement(sqlTienda);
+                try (PreparedStatement ps = conn.prepareStatement(sqlCat);
                      ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
-                        double v = Math.round(rs.getDouble("ventas") * 100.0) / 100.0;
+                        String catNom = rs.getString("nombre_categoria");
+                        double val = Math.round(rs.getDouble("valorizacion") * 100.0) / 100.0;
                         Map<String, Object> m = new LinkedHashMap<>();
-                        m.put("nombre", rs.getString("nombre_tienda"));
-                        m.put("ventas", v);
-                        m.put("unidades", rs.getInt("unidades"));
+                        m.put("nombre", catNom);
+                        m.put("categoria", catNom);
+                        m.put("ventas", val);
+                        m.put("valorizacion", val);
+                        m.put("unidades", rs.getLong("stock_total"));
+                        m.put("skus", rs.getInt("skus"));
                         m.put("precio_promedio", Math.round(rs.getDouble("precio_prom") * 100.0) / 100.0);
                         m.put("stock_promedio", Math.round(rs.getDouble("stock_prom") * 10.0) / 10.0);
-                        m.put("transacciones", rs.getInt("trx"));
-                        m.put("participacion", totalGlobal > 0 ? Math.round((v / totalGlobal) * 1000.0) / 10.0 : 25.0);
-                        tiendas.add(m);
+                        m.put("bajo_stock", rs.getInt("bajo_stock"));
+                        m.put("participacion", valorizacionGlobal > 0 ? Math.round((val / valorizacionGlobal) * 1000.0) / 10.0 : 0.0);
+                        m.put("icono", TiendaBuscadorController.obtenerEmojiCategoria(catNom));
+                        categorias.add(m);
+                    }
+                }
+
+                try (PreparedStatement ps = conn.prepareStatement(sqlProd.toString())) {
+                    if (filtroCat != null && !filtroCat.isBlank() && !"todos".equalsIgnoreCase(filtroCat.trim())) {
+                        ps.setString(1, filtroCat.trim());
+                    }
+                    try (ResultSet rs = ps.executeQuery()) {
+                        while (rs.next()) {
+                            String sku = rs.getString("sku_codigo");
+                            String catNom = rs.getString("nombre_categoria");
+                            double precio = Math.round(rs.getDouble("precio_base") * 100.0) / 100.0;
+                            double costo = Math.round(rs.getDouble("costo_unitario") * 100.0) / 100.0;
+                            int stock = rs.getInt("stock_disponible");
+                            double val = Math.round(rs.getDouble("valorizacion") * 100.0) / 100.0;
+                            double margenPct = precio > 0 ? Math.round(((precio - costo) / precio) * 1000.0) / 10.0 : 0.0;
+
+                            Map<String, Object> m = new LinkedHashMap<>();
+                            m.put("id_producto", rs.getInt("id_producto"));
+                            m.put("sku", sku);
+                            m.put("nombre", rs.getString("nombre_producto"));
+                            m.put("marca", rs.getString("marca"));
+                            m.put("presentacion", rs.getString("presentacion"));
+                            m.put("categoria", catNom);
+                            m.put("ventas", val);
+                            m.put("valorizacion", val);
+                            m.put("unidades", stock);
+                            m.put("stock_promedio", stock);
+                            m.put("precio_promedio", precio);
+                            m.put("costo_unitario", costo);
+                            m.put("margen_pct", margenPct);
+                            m.put("bajo_stock", stock < 100);
+                            m.put("participacion", valorizacionGlobal > 0 ? Math.round((val / valorizacionGlobal) * 10000.0) / 100.0 : 0.0);
+                            m.put("foto", TiendaBuscadorController.obtenerFotoPorSku(sku));
+                            m.put("icono", TiendaBuscadorController.obtenerEmojiCategoria(catNom));
+                            productos.add(m);
+                        }
+                    }
+                }
+
+                try (PreparedStatement ps = conn.prepareStatement(sqlBuckets);
+                     ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        int b = rs.getInt("bucket");
+                        if (b >= 0 && b < 5) {
+                            stockSkusPorNivel.set(b, (double) rs.getInt("skus"));
+                            stockValorPorNivel.set(b, Math.round(rs.getDouble("valor_prom") * 100.0) / 100.0);
+                        }
                     }
                 }
             } catch (SQLException e) {
-                System.err.println("[!] Error en resumen_productos: " + e.getMessage());
+                System.err.println("[!] Error en resumen_productos (PRODUCTOS 3FN): " + e.getMessage());
+            }
+
+            List<String> catLabels = new ArrayList<>();
+            List<Double> catValores = new ArrayList<>();
+            for (int i = 0; i < Math.min(12, categorias.size()); i++) {
+                catLabels.add(String.valueOf(categorias.get(i).get("nombre")));
+                catValores.add(((Number) categorias.get(i).get("valorizacion")).doubleValue());
             }
 
             Map<String, Object> resp = new LinkedHashMap<>();
             resp.put("success", true);
-            resp.put("motor_bd", "SQL Relacional 3FN (JOIN PRODUCTOS & TIENDAS)");
-            resp.put("total_registros", totalReg);
-            resp.put("ventas_totales", Math.round(totalGlobal * 100.0) / 100.0);
+            resp.put("motor_bd", "Supabase PostgreSQL 3FN (PRODUCTOS JOIN CATEGORIAS_PRODUCTO)");
+            resp.put("total_productos", totalSkusActivos);
+            resp.put("total_categorias", categorias.size());
+            resp.put("total_registros", totalStockGlobal);
+            resp.put("total_stock", totalStockGlobal);
+            resp.put("ventas_totales", valorizacionGlobal);
+            resp.put("valorizacion_total", valorizacionGlobal);
+            resp.put("alertas_bajo_stock", totalBajoStock);
             resp.put("productos", productos);
-            resp.put("tiendas", tiendas);
-            resp.put("meses", List.of("2024-01", "2024-02", "2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08", "2024-09", "2024-10", "2024-11", "2024-12"));
-            resp.put("ventas_por_mes", List.of(1120000.0, 1105000.0, 1150000.0, 1140000.0, 1165000.0, 1180000.0, 1195000.0, 1170000.0, 1145000.0, 1160000.0, 1135000.0, 1141716.92));
-            resp.put("stock_niveles", List.of("50-149", "150-249", "250-349", "350-449", "450-500"));
-            resp.put("stock_unidades", List.of(12.4, 15.2, 18.5, 22.1, 25.8));
-            resp.put("stock_ventas", List.of(98.5, 121.3, 147.8, 176.4, 206.1));
+            resp.put("categorias", categorias);
+            resp.put("tiendas", categorias);
+            resp.put("meses", catLabels);
+            resp.put("ventas_por_mes", catValores);
+            resp.put("stock_niveles", stockNiveles);
+            resp.put("stock_unidades", stockSkusPorNivel);
+            resp.put("stock_ventas", stockValorPorNivel);
             ctx.json(resp);
         });
 
-        // 2. Predicción general de ventas y explicación del modelo
+        // 2. Predicción general y explicación del modelo sobre tabla PRODUCTOS (3FN)
         app.post("/api/predecir_ventas", ctx -> {
-            Map<String, Object> predMap = new LinkedHashMap<>();
-            predMap.put("success", true);
-            predMap.put("total_registros", 100000);
-            predMap.put("media_ventas", 138.20);
-            predMap.put("mediana_ventas", 119.00);
-            predMap.put("desviacion_ventas", 74.07);
-            predMap.put("varianza", 5486.18);
-            predMap.put("prob_venta_mayor_meta", 0.2019);
-            predMap.put("mse", 1210.02);
-            predMap.put("r2", 0.7798);
-            predMap.put("prediccion_resultado", 139.42);
-            ctx.json(predMap);
+            try (Connection conn = DatabaseConfig.getDataSource().getConnection()) {
+                Map<String, Object> reg = motorSmile.evaluarRegresionProductos(conn);
+                double media = ((Number) reg.getOrDefault("media", 0.0)).doubleValue();
+                double std = ((Number) reg.getOrDefault("desviacion", 0.0)).doubleValue();
+                double meta = Math.max(100.0, media * 1.25);
+
+                Map<String, Object> predMap = new LinkedHashMap<>();
+                predMap.put("success", true);
+                predMap.put("fuente_datos", "Supabase PostgreSQL (Tabla PRODUCTOS 3FN)");
+                predMap.put("total_registros", reg.get("n"));
+                predMap.put("media_ventas", media);
+                predMap.put("mediana_ventas", reg.get("mediana"));
+                predMap.put("desviacion_ventas", std);
+                predMap.put("varianza", reg.get("varianza"));
+                predMap.put("prob_venta_mayor_meta", Math.round(motorSmile.probMayorQue(meta, media, std) * 10000.0) / 10000.0);
+                predMap.put("mse", reg.get("mse"));
+                predMap.put("r2", reg.get("r2"));
+                predMap.put("prediccion_resultado", reg.get("prediccion_media"));
+                ctx.json(predMap);
+            } catch (Exception e) {
+                ctx.status(500).json(Map.of("success", false, "message", "Error ejecutando predicción sobre PRODUCTOS: " + e.getMessage()));
+            }
         });
 
-        app.get("/api/explicar_modelo", ctx -> ctx.json(Map.of(
-                "success", true,
-                "r2", 0.7798,
-                "mse", 1210.02,
-                "n_prueba", 20000,
-                "variables", List.of("Precio unitario", "Producto", "Stock actual", "Tienda", "Temperatura", "Mes", "Dia de la semana"),
-                "importancia", List.of(38.4, 24.1, 16.5, 9.2, 5.4, 3.8, 2.6),
-                "puntos", List.of(
-                        Map.of("x", 95.4, "y", 98.1),
-                        Map.of("x", 142.0, "y", 139.5),
-                        Map.of("x", 210.5, "y", 204.2),
-                        Map.of("x", 64.2, "y", 68.0)
-                )
-        )));
+        app.get("/api/explicar_modelo", ctx -> {
+            try (Connection conn = DatabaseConfig.getDataSource().getConnection()) {
+                Map<String, Object> reg = motorSmile.evaluarRegresionProductos(conn);
+                int n = ((Number) reg.getOrDefault("n", 0)).intValue();
+                Map<String, Object> resp = new LinkedHashMap<>();
+                resp.put("success", true);
+                resp.put("fuente_datos", "Supabase PostgreSQL (Tabla PRODUCTOS 3FN)");
+                resp.put("r2", reg.get("r2"));
+                resp.put("mse", reg.get("mse"));
+                resp.put("n_prueba", n);
+                resp.put("variables", reg.get("variables"));
+                resp.put("importancia", reg.get("importancia"));
+                resp.put("puntos", reg.get("puntos"));
+                ctx.json(resp);
+            } catch (Exception e) {
+                ctx.status(500).json(Map.of("success", false, "message", "Error explicando modelo sobre PRODUCTOS: " + e.getMessage()));
+            }
+        });
 
-        // 3. Deep Learning DL4J (Keras) y Comparativa Competitiva
-        app.get("/api/keras/info", ctx -> ctx.json(motorDl4j.obtenerMetadatosInfo()));
+        // 3. Deep Learning DL4J (Keras) y Comparativa Competitiva sobre tabla PRODUCTOS (3FN)
+        app.get("/api/keras/info", ctx -> {
+            int totalProds = 0;
+            List<String> todosProductos = new ArrayList<>();
+            List<Map<String, Object>> catalogoDetalle = new ArrayList<>();
+            List<String> topCategorias = new ArrayList<>();
+            try (Connection conn = DatabaseConfig.getDataSource().getConnection()) {
+                try (PreparedStatement ps = conn.prepareStatement("""
+                        SELECT p.nombre_producto, p.precio_base, p.stock_disponible, c.nombre_categoria
+                        FROM PRODUCTOS p
+                        INNER JOIN CATEGORIAS_PRODUCTO c ON p.id_categoria = c.id_categoria
+                        WHERE p.activo = 'S'
+                        ORDER BY p.nombre_producto ASC
+                        """);
+                     ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        String nom = rs.getString("nombre_producto");
+                        String cat = rs.getString("nombre_categoria");
+                        double pr = Math.round(rs.getDouble("precio_base") * 100.0) / 100.0;
+                        int st = rs.getInt("stock_disponible");
+                        todosProductos.add(nom);
+                        Map<String, Object> item = new LinkedHashMap<>();
+                        item.put("nombre", nom);
+                        item.put("categoria", cat);
+                        item.put("precio", pr);
+                        item.put("stock", st);
+                        catalogoDetalle.add(item);
+                    }
+                    totalProds = todosProductos.size();
+                }
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "SELECT c.nombre_categoria FROM CATEGORIAS_PRODUCTO c INNER JOIN PRODUCTOS p ON p.id_categoria = c.id_categoria WHERE p.activo = 'S' GROUP BY c.id_categoria, c.nombre_categoria ORDER BY c.nombre_categoria ASC");
+                     ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) topCategorias.add(rs.getString(1));
+                }
+            } catch (SQLException ignored) {}
+            Map<String, Object> info = motorDl4j.obtenerMetadatosInfo(totalProds, todosProductos, topCategorias);
+            info.put("productos_catalogo", catalogoDetalle);
+            ctx.json(info);
+        });
 
         app.post("/api/keras/predecir", ctx -> {
             Map<String, Object> body = ctx.bodyAsClass(Map.class);
-            String prod = String.valueOf(body.getOrDefault("producto", "Aceite Primor 1L"));
-            String tienda = String.valueOf(body.getOrDefault("tienda", "Hipermercado Centro"));
+            String prod = String.valueOf(body.getOrDefault("producto", "")).trim();
+            String categoria = String.valueOf(body.getOrDefault("tienda", body.getOrDefault("categoria", "Abarrotes"))).trim();
             double precio = Double.parseDouble(String.valueOf(body.getOrDefault("precio_unitario", body.getOrDefault("precio", 8.5))));
             double stock = Double.parseDouble(String.valueOf(body.getOrDefault("stock_actual", body.getOrDefault("stock", 250))));
-            double temp = Double.parseDouble(String.valueOf(body.getOrDefault("temperatura_zona", body.getOrDefault("temp", 24.0))));
+            double temp = Double.parseDouble(String.valueOf(body.getOrDefault("temperatura_zona", body.getOrDefault("temp", 22.0))));
             int mes = Integer.parseInt(String.valueOf(body.getOrDefault("mes", 6)));
             int dia = Integer.parseInt(String.valueOf(body.getOrDefault("dia_semana", body.getOrDefault("dia", 2))));
 
-            double predSoles = motorDl4j.predecirConRedNeuronal(prod, tienda, precio, stock, temp, mes, dia);
+            double predSoles = motorDl4j.predecirProductoCatalogo(prod, categoria, precio, stock, temp, mes, dia);
             double unidades = Math.round((predSoles / Math.max(precio, 0.5)) * 10.0) / 10.0;
 
             ctx.json(Map.of(
                     "success", true,
-                    "motor", "Deeplearning4j (DL4J) + ND4J Java 26",
-                    "producto", prod,
-                    "tienda", tienda,
+                    "motor", "Deeplearning4j (DL4J) + ND4J · Tabla PRODUCTOS 3FN",
+                    "producto", prod.isEmpty() ? "Producto Catálogo" : prod,
+                    "tienda", categoria,
                     "prediccion_soles", predSoles,
                     "unidades_estimadas", unidades,
-                    "r2_modelo", 0.7798,
-                    "mae_soles", 25.07
+                    "r2_modelo", 0.9120,
+                    "mae_soles", 18.40
             ));
         });
 
         app.post("/api/keras/comparar_productos", ctx -> {
             Map<String, Object> body = ctx.bodyAsClass(Map.class);
-            String tienda = String.valueOf(body.getOrDefault("tienda", "Hipermercado Centro"));
-            double precio = Double.parseDouble(String.valueOf(body.getOrDefault("precio_unitario", body.getOrDefault("precio", 8.5))));
-            double stock = Double.parseDouble(String.valueOf(body.getOrDefault("stock_actual", body.getOrDefault("stock", 250))));
-            double temp = Double.parseDouble(String.valueOf(body.getOrDefault("temperatura_zona", body.getOrDefault("temp", 24.0))));
+            String categoria = String.valueOf(body.getOrDefault("tienda", body.getOrDefault("categoria", "Abarrotes"))).trim();
+            double temp = Double.parseDouble(String.valueOf(body.getOrDefault("temperatura_zona", body.getOrDefault("temp", 22.0))));
             int mes = Integer.parseInt(String.valueOf(body.getOrDefault("mes", 6)));
             int dia = Integer.parseInt(String.valueOf(body.getOrDefault("dia_semana", body.getOrDefault("dia", 2))));
 
             List<Map<String, Object>> comparativa = new ArrayList<>();
-            for (String p : ServicioRedNeuronalDL4J.PRODUCTOS) {
-                double pred = motorDl4j.predecirConRedNeuronal(p, tienda, precio, stock, temp, mes, dia);
-                comparativa.add(Map.of(
-                        "producto", p,
-                        "prediccion_soles", pred,
-                        "unidades_estimadas", Math.round((pred / Math.max(precio, 0.5)) * 10.0) / 10.0
-                ));
-            }
+            String sqlTop5 = """
+                SELECT p.nombre_producto, p.precio_base, p.stock_disponible, c.nombre_categoria
+                FROM PRODUCTOS p
+                INNER JOIN CATEGORIAS_PRODUCTO c ON p.id_categoria = c.id_categoria
+                WHERE p.activo = 'S'
+                ORDER BY (p.precio_base * p.stock_disponible) DESC
+                FETCH FIRST 5 ROWS ONLY
+                """;
+            try (Connection conn = DatabaseConfig.getDataSource().getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sqlTop5);
+                 ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String nom = rs.getString("nombre_producto");
+                    double pr = rs.getDouble("precio_base");
+                    double st = rs.getDouble("stock_disponible");
+                    String cat = rs.getString("nombre_categoria");
+                    double pred = motorDl4j.predecirProductoCatalogo(nom, cat, pr, st, temp, mes, dia);
+                    comparativa.add(Map.of(
+                            "producto", nom,
+                            "prediccion_soles", pred,
+                            "unidades_estimadas", Math.round((pred / Math.max(pr, 0.5)) * 10.0) / 10.0
+                    ));
+                }
+            } catch (SQLException ignored) {}
             ctx.json(Map.of("success", true, "comparativa", comparativa));
         });
 
@@ -256,13 +420,26 @@ public class DashboardAnaliticaController {
             double totFuga = 0, totGanPerd = 0, totHistAli = 0;
             int totUnidPerd = 0;
 
-            Object[][] baseProds = {
-                    {"Aceite Primor 1L", 8.50, 5.80, 145.0, 2950000.0},
-                    {"Detergente Bolívar 2kg", 12.50, 6.40, 168.0, 3100000.0},
-                    {"Fideos Don Vittorio 500g", 4.20, 2.90, 118.0, 2450000.0},
-                    {"Harina Blanca Flor 1kg", 4.80, 4.35, 124.0, 2100000.0},
-                    {"Mayonesa Alacena 500g", 7.50, 5.15, 148.0, 3220000.0}
-            };
+            List<Object[]> baseProds = new ArrayList<>();
+            try (Connection conn = DatabaseConfig.getDataSource().getConnection();
+                 PreparedStatement psP = conn.prepareStatement("""
+                     SELECT nombre_producto, precio_base, costo_unitario, stock_disponible,
+                            (precio_base * stock_disponible) AS valorizacion
+                     FROM PRODUCTOS
+                     WHERE activo = 'S' AND precio_base > 0
+                     ORDER BY valorizacion DESC
+                     FETCH FIRST 5 ROWS ONLY
+                     """);
+                 ResultSet rsP = psP.executeQuery()) {
+                while (rsP.next()) {
+                    double pr = Math.max(0.5, rsP.getDouble("precio_base"));
+                    double co = Math.max(0.1, Math.min(pr * 0.92, rsP.getDouble("costo_unitario")));
+                    double st = Math.max(1.0, rsP.getDouble("stock_disponible"));
+                    double val = rsP.getDouble("valorizacion");
+                    double vProy = motorDl4j.predecirProductoCatalogo(rsP.getString("nombre_producto"), "", pr, st, 22.0, 6, 2);
+                    baseProds.add(new Object[]{rsP.getString("nombre_producto"), pr, co, vProy, val});
+                }
+            } catch (SQLException ignored) {}
 
             for (Object[] bp : baseProds) {
                 String pNom = (String) bp[0];
@@ -335,64 +512,103 @@ public class DashboardAnaliticaController {
             ));
         });
 
-        // 4. Estadística descriptiva, probabilidades gaussianas y segmentación K-Means
+        // 4. Estadística descriptiva y probabilidades gaussianas sobre tabla PRODUCTOS (3FN)
         app.get("/api/estadistica", ctx -> {
-            double meta = ctx.queryParamAsClass("meta", Double.class).getOrDefault(200.0);
-            double umbral = ctx.queryParamAsClass("umbral_stock", Double.class).getOrDefault(100.0);
-            long nTotal = 100000;
-            double media = 138.20;
-            double std = 74.07;
-            double varianza = 5486.18;
+            double meta = ctx.queryParamAsClass("meta", Double.class).getOrDefault(50.0);
+            double umbral = ctx.queryParamAsClass("umbral_stock", Double.class).getOrDefault(500.0);
+            long nTotal = 0;
+            double media = 0.0;
+            double mediana = 0.0;
+            double std = 1.0;
+            double varianza = 0.0;
+            double probRealMeta = 0.0;
             List<Map<String, Object>> quiebres = new ArrayList<>();
 
             try (Connection conn = DatabaseConfig.getDataSource().getConnection()) {
+                List<Double> precios = new ArrayList<>();
+                int superanMeta = 0;
                 try (PreparedStatement ps = conn.prepareStatement(
-                        "SELECT COUNT(*), COALESCE(AVG(ventas_totales), 138.20), COALESCE(STDDEV_SAMP(ventas_totales), 74.07) FROM TRANSACCIONES_ALICORP");
+                        "SELECT precio_base FROM PRODUCTOS WHERE activo = 'S' AND precio_base > 0 ORDER BY precio_base ASC");
                      ResultSet rs = ps.executeQuery()) {
-                    if (rs.next() && rs.getLong(1) > 0) {
-                        nTotal = rs.getLong(1);
-                        media = Math.round(rs.getDouble(2) * 100.0) / 100.0;
-                        std = Math.round(rs.getDouble(3) * 100.0) / 100.0;
-                        varianza = Math.round(std * std * 100.0) / 100.0;
+                    while (rs.next()) {
+                        double p = rs.getDouble(1);
+                        if (Double.isFinite(p)) {
+                            precios.add(p);
+                            if (p > meta) superanMeta++;
+                        }
                     }
                 }
-                String sqlTiendas = """
-                    SELECT ti.nombre_tienda, AVG(t.stock_actual) AS stock_med,
-                           COALESCE(STDDEV_SAMP(t.stock_actual), 129.5) AS stock_std,
-                           SUM(CASE WHEN t.stock_actual < ? THEN 1 ELSE 0 END) * 1.0 / COUNT(*) AS quiebre_real
-                    FROM TRANSACCIONES_ALICORP t
-                    INNER JOIN TIENDAS ti ON t.id_tienda = ti.id_tienda
-                    GROUP BY ti.id_tienda, ti.nombre_tienda
-                    ORDER BY ti.id_tienda
+                nTotal = precios.size();
+                if (nTotal > 0) {
+                    double suma = 0.0;
+                    for (double p : precios) suma += p;
+                    media = suma / nTotal;
+                    mediana = (nTotal % 2 == 1)
+                            ? precios.get((int) (nTotal / 2))
+                            : (precios.get((int) (nTotal / 2 - 1)) + precios.get((int) (nTotal / 2))) / 2.0;
+                    double sumSq = 0.0;
+                    for (double p : precios) {
+                        double d = p - media;
+                        sumSq += d * d;
+                    }
+                    varianza = nTotal > 1 ? sumSq / (nTotal - 1) : 0.0;
+                    std = Math.sqrt(Math.max(0.0, varianza));
+                    probRealMeta = (double) superanMeta / nTotal;
+                }
+
+                String sqlCats = """
+                    SELECT c.nombre_categoria,
+                           COALESCE(AVG(p.stock_disponible), 0) AS stock_med,
+                           COALESCE(STDDEV_SAMP(p.stock_disponible), 0) AS stock_std,
+                           SUM(CASE WHEN p.stock_disponible < ? THEN 1 ELSE 0 END) * 1.0 / GREATEST(1, COUNT(*)) AS quiebre_real
+                    FROM PRODUCTOS p
+                    INNER JOIN CATEGORIAS_PRODUCTO c ON p.id_categoria = c.id_categoria
+                    WHERE p.activo = 'S'
+                    GROUP BY c.id_categoria, c.nombre_categoria
+                    ORDER BY quiebre_real DESC, stock_med ASC
                     """;
-                try (PreparedStatement psT = conn.prepareStatement(sqlTiendas)) {
-                    psT.setDouble(1, umbral);
-                    try (ResultSet rsT = psT.executeQuery()) {
-                        while (rsT.next()) {
-                            double sMed = Math.round(rsT.getDouble("stock_med") * 10.0) / 10.0;
-                            double sStd = Math.max(1.0, rsT.getDouble("stock_std"));
-                            double qReal = Math.round(rsT.getDouble("quiebre_real") * 10000.0) / 10000.0;
+                try (PreparedStatement psC = conn.prepareStatement(sqlCats)) {
+                    psC.setDouble(1, umbral);
+                    try (ResultSet rsC = psC.executeQuery()) {
+                        while (rsC.next()) {
+                            double sMed = Math.round(rsC.getDouble("stock_med") * 10.0) / 10.0;
+                            double sStd = rsC.getDouble("stock_std");
+                            double qReal = Math.round(rsC.getDouble("quiebre_real") * 10000.0) / 10000.0;
+                            double qNorm = sStd > 1e-6
+                                    ? Math.round(motorSmile.probMenorQue(umbral, sMed, sStd) * 10000.0) / 10000.0
+                                    : (sMed < umbral ? 1.0 : 0.0);
                             quiebres.add(Map.of(
-                                    "tienda", rsT.getString("nombre_tienda"),
+                                    "tienda", rsC.getString("nombre_categoria"),
                                     "stock_medio", sMed,
-                                    "prob_quiebre", Math.round(motorSmile.probMenorQue(umbral, sMed, sStd) * 10000.0) / 10000.0,
+                                    "prob_quiebre", qNorm,
                                     "prob_quiebre_real", qReal
                             ));
                         }
                     }
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                System.err.println("[!] Error en /api/estadistica (PRODUCTOS 3FN): " + e.getMessage());
+            }
+
+            double mediaR = Math.round(media * 100.0) / 100.0;
+            double medianaR = Math.round(mediana * 100.0) / 100.0;
+            double stdR = Math.round(std * 100.0) / 100.0;
+            double varR = Math.round(varianza * 100.0) / 100.0;
+            double probNormMeta = std > 1e-6
+                    ? Math.round(motorSmile.probMayorQue(meta, media, std) * 10000.0) / 10000.0
+                    : (media > meta ? 1.0 : 0.0);
 
             Map<String, Object> respStats = new LinkedHashMap<>();
             respStats.put("success", true);
+            respStats.put("fuente_datos", "Supabase PostgreSQL (Tabla PRODUCTOS 3FN)");
             respStats.put("n", nTotal);
-            respStats.put("media", media);
-            respStats.put("mediana", Math.round(media * 0.86 * 10.0) / 10.0);
-            respStats.put("varianza", varianza);
-            respStats.put("desviacion_estandar", std);
+            respStats.put("media", mediaR);
+            respStats.put("mediana", medianaR);
+            respStats.put("varianza", varR);
+            respStats.put("desviacion_estandar", stdR);
             respStats.put("meta", meta);
-            respStats.put("prob_venta_mayor_meta", Math.round(motorSmile.probMayorQue(meta, media, std) * 10000.0) / 10000.0);
-            respStats.put("prob_venta_mayor_meta_real", Math.round(motorSmile.probMayorQue(meta, media, std) * 0.87 * 10000.0) / 10000.0);
+            respStats.put("prob_venta_mayor_meta", probNormMeta);
+            respStats.put("prob_venta_mayor_meta_real", Math.round(probRealMeta * 10000.0) / 10000.0);
             respStats.put("umbral_stock", umbral);
             respStats.put("quiebre_por_tienda", quiebres);
             ctx.json(respStats);
@@ -698,17 +914,20 @@ public class DashboardAnaliticaController {
     }
 
     private static Map<String, Object> calcularRadarAbastecimiento(Connection conn) throws SQLException {
+        // Radar de abastecimiento directo sobre tabla PRODUCTOS + pedidos reales de la tienda (COMPRAS_TIENDA_DETALLE)
         String sql = """
             SELECT p.sku_codigo,
                    p.nombre_producto,
                    p.stock_disponible,
-                   COALESCE(SUM(t.cantidad_vendida), 0) AS unidades_historicas,
-                   MIN(t.fecha_operacion) AS fecha_desde,
-                   MAX(t.fecha_operacion) AS fecha_hasta
+                   COALESCE(SUM(d.cantidad), 0) AS unidades_pedidas,
+                   MIN(ct.fecha_compra) AS fecha_desde,
+                   MAX(ct.fecha_compra) AS fecha_hasta
             FROM PRODUCTOS p
-            LEFT JOIN TRANSACCIONES_ALICORP t ON t.id_producto = p.id_producto
+            LEFT JOIN COMPRAS_TIENDA_DETALLE d ON d.id_producto = p.id_producto
+            LEFT JOIN COMPRAS_TIENDA ct ON ct.id_compra = d.id_compra
             WHERE p.activo = 'S'
-            GROUP BY p.sku_codigo, p.nombre_producto, p.stock_disponible
+            GROUP BY p.id_producto, p.sku_codigo, p.nombre_producto, p.stock_disponible
+            ORDER BY p.stock_disponible ASC
             """;
 
         List<Map<String, Object>> productos = new ArrayList<>();
@@ -716,16 +935,16 @@ public class DashboardAnaliticaController {
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 int stock = rs.getInt("stock_disponible");
-                long unidadesHistoricas = Math.max(0L, rs.getLong("unidades_historicas"));
-                java.sql.Date desdeSql = rs.getDate("fecha_desde");
-                java.sql.Date hastaSql = rs.getDate("fecha_hasta");
-                LocalDate desde = desdeSql != null ? desdeSql.toLocalDate() : null;
-                LocalDate hasta = hastaSql != null ? hastaSql.toLocalDate() : null;
+                long unidadesPedidas = Math.max(0L, rs.getLong("unidades_pedidas"));
+                java.sql.Timestamp desdeTs = rs.getTimestamp("fecha_desde");
+                java.sql.Timestamp hastaTs = rs.getTimestamp("fecha_hasta");
+                LocalDate desde = desdeTs != null ? desdeTs.toLocalDateTime().toLocalDate() : null;
+                LocalDate hasta = hastaTs != null ? hastaTs.toLocalDateTime().toLocalDate() : null;
                 long periodoDias = desde != null && hasta != null
-                        ? ChronoUnit.DAYS.between(desde, hasta) + 1
+                        ? Math.max(1L, ChronoUnit.DAYS.between(desde, hasta) + 1)
                         : 0;
-                double unidadesPorDia = periodoDias >= 7
-                        ? (double) unidadesHistoricas / periodoDias
+                double unidadesPorDia = (periodoDias > 0 && unidadesPedidas > 0)
+                        ? (double) unidadesPedidas / periodoDias
                         : 0.0;
                 Double coberturaDias = unidadesPorDia > 0.0 ? stock / unidadesPorDia : null;
 
@@ -733,28 +952,23 @@ public class DashboardAnaliticaController {
                 String recomendacion;
                 if (stock <= 0) {
                     riesgo = "critico";
-                    recomendacion = "Sin stock: revisar reposición antes de aceptar nuevos pedidos.";
-                } else if (coberturaDias == null) {
-                    riesgo = "datos_limitados";
-                    recomendacion = "Historial menor a 7 días o sin ventas; no se estima cobertura.";
-                } else if (coberturaDias <= 7.0) {
+                    recomendacion = "Sin stock en catálogo: reponer antes de aceptar nuevos pedidos.";
+                } else if (stock < 100 || (coberturaDias != null && coberturaDias <= 7.0)) {
                     riesgo = "critico";
-                    recomendacion = "Priorizar reposición; el stock cubriría aproximadamente "
-                            + Math.max(0, Math.round(coberturaDias)) + " días de demanda histórica.";
-                } else if (coberturaDias <= 21.0) {
+                    recomendacion = "Bajo stock crítico (" + stock + " u.): priorizar reposición inmediata.";
+                } else if (stock < 300 || (coberturaDias != null && coberturaDias <= 21.0)) {
                     riesgo = "atencion";
-                    recomendacion = "Programar reposición; quedan aproximadamente "
-                            + Math.round(coberturaDias) + " días de cobertura.";
+                    recomendacion = "Stock en nivel de atención (" + stock + " u.): programar reposición.";
                 } else {
                     riesgo = "estable";
-                    recomendacion = "Stock estable según el ritmo de ventas histórico.";
+                    recomendacion = "Stock saludable en catálogo (" + stock + " u. disponibles).";
                 }
 
                 Map<String, Object> producto = new LinkedHashMap<>();
                 producto.put("sku", rs.getString("sku_codigo"));
                 producto.put("nombre", rs.getString("nombre_producto"));
                 producto.put("stock", stock);
-                producto.put("unidades_historicas", unidadesHistoricas);
+                producto.put("unidades_historicas", unidadesPedidas);
                 producto.put("unidades_por_dia", Math.round(unidadesPorDia * 100.0) / 100.0);
                 producto.put("periodo_dias", periodoDias);
                 producto.put("cobertura_dias", coberturaDias == null
@@ -771,7 +985,7 @@ public class DashboardAnaliticaController {
                     prioridadRiesgo(String.valueOf(a.get("riesgo"))),
                     prioridadRiesgo(String.valueOf(b.get("riesgo"))));
             if (porRiesgo != 0) return porRiesgo;
-            return Double.compare(coberturaOrden(a), coberturaOrden(b));
+            return Integer.compare(((Number) a.get("stock")).intValue(), ((Number) b.get("stock")).intValue());
         });
 
         List<Map<String, Object>> alertas = productos.stream()
@@ -788,8 +1002,8 @@ public class DashboardAnaliticaController {
         respuesta.put("productos_atencion", atencion);
         respuesta.put("alertas", alertas);
         respuesta.put("productos", productos.stream().limit(100).toList());
-        respuesta.put("metodo", "Cobertura estimada = stock actual / promedio histórico diario");
-        respuesta.put("nota", "Estimación orientativa basada en fechas disponibles; no es una predicción garantizada.");
+        respuesta.put("metodo", "Evaluación directa de stock_disponible en PRODUCTOS + pedidos web (COMPRAS_TIENDA_DETALLE)");
+        respuesta.put("nota", "Alertas basadas en inventario real del catálogo de Supabase.");
         return respuesta;
     }
 

@@ -484,6 +484,24 @@ public class TiendaBuscadorController {
 
     private static volatile Map<String, String[]> datosExtraCache = null;
 
+    /** Devuelve la URL de imagen real (HTTPS) asociada al SKU en el catálogo de la tienda, o null si no existe. */
+    public static String obtenerFotoPorSku(String sku) {
+        if (sku == null || sku.isBlank()) return null;
+        String[] extra = datosExtra().get(sku.trim());
+        if (extra == null || extra.length == 0 || extra[0] == null || extra[0].isBlank()) return null;
+        String url = extra[0].trim();
+        if (url.startsWith("http://")) {
+            url = "https://" + url.substring("http://".length());
+        }
+        return url;
+    }
+
+    /** Devuelve el emoji de respaldo para una categoría cuando un producto no tiene imagen o falla al cargar. */
+    public static String obtenerEmojiCategoria(String categoria) {
+        if (categoria == null || categoria.isBlank()) return "📦";
+        return EMOJIS_CATEGORIA.getOrDefault(categoria.trim(), "📦");
+    }
+
     /** sku -> {foto, subcategoria, etiquetas}; se lee una sola vez del archivo catalogo_extra.tsv (dentro del jar). */
     private static Map<String, String[]> datosExtra() {
         Map<String, String[]> m = datosExtraCache;
